@@ -11,16 +11,14 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.WindowsAzure.Storage;
+using System.Collections.Generic;
 
-namespace ItemSync.Items
-{
-    public static class Upload
-    {
+namespace ItemSync.Items {
+    public static class Upload {
         [FunctionName("Upload")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post")]HttpRequestMessage req,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
-            [Table(Item.TableName)] ICollector<Item> collector,
             TraceWriter log
         ) {
             var client = storageAccount.CreateCloudTableClient();
@@ -43,25 +41,65 @@ namespace ItemSync.Items
 
 
             log.Info($"Received a request from {partitionKey} to upload {data.Items?.Count ?? 0} items and remove {data.Deleted?.Count ?? 0} items");
+            var itemTable = client.GetTableReference(Item.TableName);
+
             if (data.Items?.Count > 0) {
                 var newItems = data.Items.Select(m => ItemBuilder.Create(partitionKey, m.Data));
-                foreach (var item in newItems) {
-                    collector.Add(item);
-                }
+                var numBatchOperations = Insert(partitionKey, itemTable, newItems);
+                log.Info($"Inserted {data.Items} items over {numBatchOperations} batches");
             }
-            if (data.Deleted?.Count > 0) {
-                var itemTable = client.GetTableReference(Item.TableName);
 
-                foreach (var itemKey in data.Deleted) {
-                    var entity = new DynamicTableEntity(partitionKey, itemKey);
-                    entity.ETag = "*";
-                    entity.Properties.Add("IsActive", new EntityProperty(false));
-                    itemTable.Execute(TableOperation.Merge(entity));
-                    
+            if (data.Deleted?.Count > 0) {
+                var numBatchOperations = Delete(partitionKey, itemTable, data.Deleted);
+                log.Info($"Marked {data.Deleted.Count} items as deleted over {numBatchOperations} batches");
+            }
+
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+
+        private static int Insert(string partitionKey, CloudTable itemTable, IEnumerable<Item> items) {
+            int numOperations = 0;
+            var batch = new TableBatchOperation();
+            foreach (var item in items) {
+                batch.Add(TableOperation.Insert(item));
+
+                if (batch.Count == 100) {
+                    itemTable.ExecuteBatch(batch);
+                    batch.Clear();
+                    numOperations++;
                 }
             }
-            
-            return req.CreateResponse(HttpStatusCode.OK);
+
+            if (batch.Count > 0) {
+                itemTable.ExecuteBatch(batch);
+                numOperations++;
+            }
+
+            return numOperations;
+        }
+
+        private static int Delete(string partitionKey, CloudTable itemTable, List<string> itemKeys) {
+            int numOperations = 0;
+            var batch = new TableBatchOperation();
+            foreach (var itemKey in itemKeys) {
+                var entity = new DynamicTableEntity(partitionKey, itemKey);
+                entity.ETag = "*";
+                entity.Properties.Add("IsActive", new EntityProperty(false));
+                batch.Add(TableOperation.Merge(entity));
+
+                if (batch.Count == 100) {
+                    itemTable.ExecuteBatch(batch);
+                    batch.Clear();
+                    numOperations++;
+                }
+            }
+
+            if (batch.Count > 0) {
+                itemTable.ExecuteBatch(batch);
+                numOperations++;
+            }
+
+            return numOperations;
         }
     }
 }
