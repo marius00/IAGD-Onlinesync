@@ -4,25 +4,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ItemSync.Shared.Dto;
 
 namespace ItemSync.Shared {
     static class ItemBuilder {
-
-        public static Item Create(string email, string key, string data) {
+        public static Item Create(string email, ItemJson pi) {            
             return new Item {
                 PartitionKey = email,
-                RowKey = $"item-{key}",
-                Data = data,
-                IsActive = true
-            };
-        }
+                RowKey = Guid.NewGuid().ToString().Replace("-", ""),
 
-
-        public static Item Create(string email, string data) {            
-            return new Item {
-                PartitionKey = email,
-                RowKey = $"item-{Guid.NewGuid().ToString()}",
-                Data = data,
+                BaseRecord = pi.BaseRecord,
+                EnchantmentRecord = pi.EnchantmentRecord,
+                EnchantmentSeed = pi.EnchantmentSeed,
+                IsHardcore = pi.IsHardcore,
+                MateriaCombines = pi.MateriaCombines,
+                MateriaRecord = pi.MateriaRecord,
+                Mod = pi.Mod,
+                ModifierRecord = pi.ModifierRecord,
+                PrefixRecord = pi.PrefixRecord,
+                RelicCompletionBonusRecord = pi.RelicCompletionBonusRecord,
+                RelicSeed = pi.RelicSeed,
+                Seed = pi.Seed,
+                StackCount = pi.StackCount,
+                SuffixRecord = pi.SuffixRecord,
+                TransmuteRecord = pi.TransmuteRecord,
                 IsActive = true
             };
         }

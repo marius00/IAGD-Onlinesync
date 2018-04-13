@@ -17,12 +17,17 @@ namespace ItemSync.Items
     {
         [FunctionName("Authenticate")]
         public static async Task<HttpResponseMessage> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req,
+            [HttpTrigger(AuthorizationLevel.System, "get", "post", Route = null)]HttpRequestMessage req,
             [Table(Authentication.TableName)] ICollector<Authentication> collector,
             TraceWriter log
         ) {
             var user = User.PartitionKey;
             log.Info($"Authentication token request received for {user}");
+
+            if (string.IsNullOrWhiteSpace(user)) {
+                log.Error("Got an empty authentication context");
+                return req.CreateErrorResponse(HttpStatusCode.NoContent, "Authentication context is empty");
+            }
 
             var auth = new Authentication {
                 PartitionKey = Authentication.PartitionName,
@@ -30,11 +35,11 @@ namespace ItemSync.Items
                 Identity = user
             };
             collector.Add(auth);
+            
+            var response = req.CreateResponse(HttpStatusCode.Redirect);
+            response.Headers.Location = new Uri("https://auth.iagd.dreamcrash.org/token/" + auth.RowKey);
 
-            var result = new SuccessfulAuthenticationJson {
-                Token = auth.RowKey
-            };
-            return req.CreateResponse(HttpStatusCode.OK, result);
+            return response;
         }
     }
 }

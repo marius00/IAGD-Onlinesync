@@ -1,0 +1,61 @@
+{
+  "routes": [
+    {
+      "http_methods": [ "GET", "POST", "PUT" ],
+      "path_prefix": "/",
+      "policies": {
+        "unauthenticated_action": "AllowAnonymous"
+      }
+    },
+    {
+      "http_methods": [ "GET", "POST", "PUT" ],
+      "path_prefix": "/api/Authenticate",
+      "policies": {
+        "unauthenticated_action": "RedirectToLoginPage"
+      }
+    },
+    {
+      "http_methods": [ "GET" ],
+      "path_prefix": "/api/VerifyToken",
+      "policies": {
+        "unauthenticated_action": "AllowAnonymous"
+      }
+    },
+    {
+      "http_methods": [ "GET" ],
+      "path_prefix": "/api/Upload",
+      "policies": {
+        "unauthenticated_action": "AllowAnonymous"
+      }
+    },
+    {
+      "http_methods": [ "GET" ],
+      "path_prefix": "/api/Remove",
+      "policies": {
+        "unauthenticated_action": "AllowAnonymous"
+      }
+    },
+    {
+      "http_methods": [ "GET" ],
+      "path_prefix": "/privacy",
+      "policies": {
+        "unauthenticated_action": "AllowAnonymous"
+      }
+    },
+    {
+      "http_methods": [ "GET" ],
+      "path_prefix": "/login",
+      "policies": {
+        "unauthenticated_action": "RedirectToLoginPage"
+      }
+    },
+    {
+      "http_methods": [ "GET" ],
+      "path_prefix": "/app",
+      "policies": {
+        "unauthenticated_action": "AllowAnonymous"
+      }
+    }
+  ]
+}
+

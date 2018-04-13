@@ -12,12 +12,14 @@ using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.WindowsAzure.Storage;
 using System.Collections.Generic;
+using System.Diagnostics;
+using ItemSync.Shared.Utility;
 
 namespace ItemSync.Items {
     public static class Upload {
         [FunctionName("Upload")]
         public static async Task<HttpResponseMessage> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post")]HttpRequestMessage req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post")]HttpRequestMessage req,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
             TraceWriter log
         ) {
@@ -28,78 +30,72 @@ namespace ItemSync.Items {
             }
 
 
-            ItemUploadJson data = await req.Content.ReadAsAsync<ItemUploadJson>();
-            if (data == null) {
+            List<ItemJson> items = await req.Content.ReadAsAsync<List<ItemJson>>();
+            if (items == null) {
                 return req.CreateResponse(HttpStatusCode.BadRequest, "Could not correctly parse the request parameters");
             }
-            else if (data.Items == null && data.Deleted == null) {
-                return req.CreateResponse(HttpStatusCode.BadRequest, "At least one of \"items\" or \"deleted\" must be non-null");
+            else if (items?.Count > 100) {
+                return req.CreateResponse(HttpStatusCode.BadRequest, "Too many items to store, maximum 100 per call");
             }
-            else if (data.Items?.Count == 0 && data.Deleted?.Count == 0) {
-                return req.CreateResponse(HttpStatusCode.OK);
+            else if (items?.Count <= 0) {
+                return req.CreateResponse(HttpStatusCode.BadRequest, "No items to store");
             }
+            
+            var partition = PartionUtility.GetUploadPartition(log, client, partitionKey);
+            log.Info($"Received a request from {partitionKey} to upload {items.Count} items to {partition.RowKey}");
 
-
-            log.Info($"Received a request from {partitionKey} to upload {data.Items?.Count ?? 0} items and remove {data.Deleted?.Count ?? 0} items");
             var itemTable = client.GetTableReference(Item.TableName);
+            await itemTable.CreateIfNotExistsAsync();
+            var itemMapping = Insert(partitionKey, partition.RowKey, itemTable, items);
+            log.Info($"Inserted {items} items over {itemMapping} batches");
 
-            if (data.Items?.Count > 0) {
-                var newItems = data.Items.Select(m => ItemBuilder.Create(partitionKey, m.Data));
-                var numBatchOperations = Insert(partitionKey, itemTable, newItems);
-                log.Info($"Inserted {data.Items} items over {numBatchOperations} batches");
-            }
 
-            if (data.Deleted?.Count > 0) {
-                var numBatchOperations = Delete(partitionKey, itemTable, data.Deleted);
-                log.Info($"Marked {data.Deleted.Count} items as deleted over {numBatchOperations} batches");
-            }
+            // Update the partition reference
+            // TODO TODO TODO: This is
+            // TODO TODO TODO: This is
+            // TODO TODO TODO: This is
+            // TODO TODO TODO: This is best handled on download, if partition starstwith today, and items > x, then untag it as active.
+            // That way partition can grow to any size, but stops growing once "done" with large syncups
+            /*
+            partition.NumItems += items.Count;
+            partition.IsActive = partition.NumItems < 200;
+            var table = client.GetTableReference(Partition.TableName);
+            table.Execute(TableOperation.Replace(partition));
+            */
 
-            return req.CreateResponse(HttpStatusCode.OK);
+            return req.CreateResponse(HttpStatusCode.OK, itemMapping);
         }
 
-        private static int Insert(string partitionKey, CloudTable itemTable, IEnumerable<Item> items) {
-            int numOperations = 0;
+
+        class UploadResultItem {
+            public long LocalId { get; set; }
+            public string Id { get; set; }
+            public string Partition { get; set; }
+        }
+
+        private static List<UploadResultItem> Insert(string owner, string partition, CloudTable itemTable, List<ItemJson> items) {
+            Debug.Assert(items.Count <= 100);
+            var ouputKey = partition.Remove(0, owner.Length);
+
             var batch = new TableBatchOperation();
             foreach (var item in items) {
-                batch.Add(TableOperation.Insert(item));
-
-                if (batch.Count == 100) {
-                    itemTable.ExecuteBatch(batch);
-                    batch.Clear();
-                    numOperations++;
-                }
+                batch.Add(TableOperation.Insert(ItemBuilder.Create(partition, item)));
             }
 
-            if (batch.Count > 0) {
-                itemTable.ExecuteBatch(batch);
-                numOperations++;
+            var mapping = new List<UploadResultItem>();
+            var results = itemTable.ExecuteBatch(batch);
+            for (int i = 0; i < items.Count; i++) {
+                var saved = results[i].Result as Item;
+                mapping.Add(new UploadResultItem {
+                    LocalId = items[i].LocalId,
+                    Id = saved.RowKey,
+                    Partition = ouputKey // The email/whatever is only used to represent the item internally
+                });
             }
+            
 
-            return numOperations;
+            return mapping;
         }
-
-        private static int Delete(string partitionKey, CloudTable itemTable, List<string> itemKeys) {
-            int numOperations = 0;
-            var batch = new TableBatchOperation();
-            foreach (var itemKey in itemKeys) {
-                var entity = new DynamicTableEntity(partitionKey, itemKey);
-                entity.ETag = "*";
-                entity.Properties.Add("IsActive", new EntityProperty(false));
-                batch.Add(TableOperation.Merge(entity));
-
-                if (batch.Count == 100) {
-                    itemTable.ExecuteBatch(batch);
-                    batch.Clear();
-                    numOperations++;
-                }
-            }
-
-            if (batch.Count > 0) {
-                itemTable.ExecuteBatch(batch);
-                numOperations++;
-            }
-
-            return numOperations;
-        }
+        
     }
 }

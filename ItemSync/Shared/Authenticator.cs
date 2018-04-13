@@ -1,12 +1,23 @@
-﻿using ItemSync.Shared.Model;
+﻿using System;
+using System.Collections.Generic;
+using ItemSync.Shared.Model;
 using Microsoft.WindowsAzure.Storage.Table;
 using System.Linq;
 using System.Net.Http;
+using System.Web;
 
 namespace ItemSync.Shared {
     public static class Authenticator {
         public static string Authenticate(CloudTableClient client, HttpRequestMessage request) {
-            var key = request.Headers.GetValues("Simple-Auth")?.FirstOrDefault();            
+            string key;
+
+            if (request.Headers.TryGetValues("Simple-Auth", out var s)) {
+                key = s.FirstOrDefault();
+            }
+            else {
+                return string.Empty;
+            }
+
             if (string.IsNullOrEmpty(key)) {
                 return string.Empty;
             }
