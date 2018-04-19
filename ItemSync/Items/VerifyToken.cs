@@ -21,17 +21,25 @@ namespace ItemSync.Items
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
             TraceWriter log
         ) {
-            var client = storageAccount.CreateCloudTableClient();
-            string partitionKey = Authenticator.Authenticate(client, req);
+            try {
+                var ip = IpUtility.GetClientIp(req);
+                log.Info($"User {ip} is attempting to authenticate a token");
+                var client = storageAccount.CreateCloudTableClient();
+                string partitionKey = Authenticator.Authenticate(client, req);
 
-            var ip = IpUtility.GetClientIp(req);
-            if (string.IsNullOrEmpty(partitionKey)) {
-                log.Warning($"{ip}: Authentication failure");
-                return req.CreateResponse(HttpStatusCode.Unauthorized);
+                if (string.IsNullOrEmpty(partitionKey)) {
+                    log.Warning($"{ip}: Authentication failure");
+                    return req.CreateResponse(HttpStatusCode.Unauthorized);
+                }
+                else {
+                    log.Info($"{ip}: Authentication success");
+                    return req.CreateResponse(HttpStatusCode.OK);
+                }
             }
-            else {
-                log.Info($"{ip}: Authentication success");
-                return req.CreateResponse(HttpStatusCode.OK);
+            catch (Exception ex) {
+                log.Error("Unhandlex exception while processing request");
+                log.Error(ex.Message, ex);
+                return req.CreateErrorResponse(HttpStatusCode.InternalServerError, "Internal server error");
             }
         }
     }

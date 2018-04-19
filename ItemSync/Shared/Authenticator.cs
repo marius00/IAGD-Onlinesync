@@ -23,6 +23,7 @@ namespace ItemSync.Shared {
             }
 
             var table = client.GetTableReference(Authentication.TableName);
+            table.CreateIfNotExists();
 
             var query = TableQuery.CombineFilters(
                 TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Authentication.PartitionName),

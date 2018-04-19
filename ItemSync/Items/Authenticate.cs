@@ -37,7 +37,7 @@ namespace ItemSync.Items
 
             var auth = new Authentication {
                 PartitionKey = Authentication.PartitionName,
-                RowKey = Guid.NewGuid().ToString(),
+                RowKey = (Guid.NewGuid().ToString() + Guid.NewGuid().ToString()).Replace("-", ""),
                 Identity = user
             };
             collector.Add(auth);

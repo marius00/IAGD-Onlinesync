@@ -54,8 +54,12 @@ namespace ItemSync.Items {
                 var deleted = GetDeletedItems(userKey + subPartition, client);
                 log.Info($"A total of {deleted.Count} items were marked for deletion");
 
-                //if (filteredItems.Count > 80 && subPartition) {
-                //} // TODO: Disable the partition if active
+                if (filteredItems.Count > 80) {
+                    log.Info($"Disabling partition {subPartition} for {userKey} (may already be disabled)");
+                    var table = client.GetTableReference(Partition.TableName);
+                    await table.CreateIfNotExistsAsync();
+                    DisablePartition(userKey, subPartition, table);
+                }
 
                 var result = new DownloadResponse {
                     Items = filteredItems.Select(m => Map(userKey, m)).ToList(),
@@ -109,6 +113,15 @@ namespace ItemSync.Items {
         public class DownloadResponse {
             public List<DownloadItemJson> Items { get; set; }
             public List<DeletedItemDto> Removed { get; set; }
+        }
+
+
+
+        private static void DisablePartition(string owner, string rowkey, CloudTable table) {
+            var entity = new DynamicTableEntity(owner, owner + rowkey);
+            entity.ETag = "*";
+            entity.Properties.Add("IsActive", new EntityProperty(false));
+            table.Execute(TableOperation.Merge(entity));
         }
     }
 }
