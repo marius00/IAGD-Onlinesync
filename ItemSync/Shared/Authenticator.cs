@@ -4,15 +4,17 @@ using ItemSync.Shared.Model;
 using Microsoft.WindowsAzure.Storage.Table;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web;
+using ItemSync.Shared.AzureCloudTable;
+using Microsoft.AspNetCore.Http;
 
 namespace ItemSync.Shared {
     public static class Authenticator {
-        public static string Authenticate(CloudTableClient client, HttpRequestMessage request) {
+        public static async Task<string> Authenticate(CloudTableClient client, HttpRequest request) {
             string key;
-
-            if (request.Headers.TryGetValues("Simple-Auth", out var s)) {
-                key = s.FirstOrDefault();
+            if (request.Headers.ContainsKey("Simple-Auth")) {
+                key = request.Headers["Simple-Auth"];
             }
             else {
                 return string.Empty;
@@ -23,7 +25,7 @@ namespace ItemSync.Shared {
             }
 
             var table = client.GetTableReference(Authentication.TableName);
-            table.CreateIfNotExists();
+            await table.CreateIfNotExistsAsync();
 
             var query = TableQuery.CombineFilters(
                 TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Authentication.PartitionName),
@@ -33,7 +35,8 @@ namespace ItemSync.Shared {
 
             var exQuery = new TableQuery<Authentication>().Where(query);
 
-            var authenticationKeys = table.ExecuteQuery(exQuery);
+            
+            var authenticationKeys = await QueryHelper.ListAll(table, exQuery);
             return authenticationKeys.FirstOrDefault()?.Identity;
         }
     }

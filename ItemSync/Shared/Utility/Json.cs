@@ -18,21 +18,8 @@ namespace ItemSync.Shared.Utility
             NullValueHandling = NullValueHandling.Ignore
         };
 
-        public static List<MediaTypeFormatter> JsonFormatter = new List<MediaTypeFormatter> {
-            new JsonMediaTypeFormatter {
-                SerializerSettings = JsonSerializerSettings
-            }
+        public static MediaTypeFormatter JsonFormatter = new JsonMediaTypeFormatter {
+            SerializerSettings = JsonSerializerSettings
         };
-
-
-
-        public static HttpConfiguration Config {
-            get {
-                var config = new HttpConfiguration();
-                config.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
-                config.Formatters.JsonFormatter.UseDataContractJsonSerializer = false;
-                return config;
-            }
-        }
     }
 }

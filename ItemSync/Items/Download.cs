@@ -7,9 +7,12 @@ using System.Threading.Tasks;
 using ItemSync.Shared;
 using ItemSync.Shared.Dto;
 using ItemSync.Shared.Model;
-using Microsoft.Azure;
+using System.Web.Http;
+using ItemSync.Shared.AzureCloudTable;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
@@ -18,27 +21,22 @@ namespace ItemSync.Items {
     public static class Download {
 
         [FunctionName("Download")]
-        public static async Task<HttpResponseMessage> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]HttpRequestMessage req,
+        public static async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]HttpRequest req,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
             TraceWriter log
         ) {
             try {
                 var client = storageAccount.CreateCloudTableClient();
-                string userKey = Authenticator.Authenticate(client, req);
+                string userKey = await Authenticator.Authenticate(client, req);
                 if (string.IsNullOrEmpty(userKey)) {
-                    return req.CreateResponse(HttpStatusCode.Unauthorized);
+                    return new UnauthorizedResult();
                 }
-
-                var subPartition = req.GetQueryNameValuePairs()
-                    .FirstOrDefault(q => string.Compare(q.Key, "partition", true) == 0)
-                    .Value;
+                
+                var subPartition = req.Query["partition"];
 
                 if (string.IsNullOrWhiteSpace(subPartition)) {
-                    return req.CreateResponse(
-                        HttpStatusCode.BadRequest,
-                        "The query parameter \"partition\" empty or missing"
-                    );
+                    return new BadRequestObjectResult("The query parameter \"partition\" empty or missing");
                 }
 
                 log.Info($"User {userKey} has requested an item download for sub partition {subPartition}");
@@ -47,11 +45,13 @@ namespace ItemSync.Items {
                 var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal,
                     userKey + subPartition);
                 var exQuery = new TableQuery<Item>().Where(query);
-                var filteredItems = itemTable.ExecuteQuery(exQuery).Where(m => m.IsActive).ToList();
+
+                var unfilteredItems = await QueryHelper.ListAll(itemTable, exQuery);
+                var filteredItems = unfilteredItems.Where(m => m.IsActive).ToList();
                 log.Info($"A total of {filteredItems.Count} items were returned");
 
 
-                var deleted = GetDeletedItems(userKey + subPartition, client);
+                var deleted = await GetDeletedItems(userKey + subPartition, client);
                 log.Info($"A total of {deleted.Count} items were marked for deletion");
 
                 if (filteredItems.Count > 80) {
@@ -65,11 +65,12 @@ namespace ItemSync.Items {
                     Items = filteredItems.Select(m => Map(userKey, m)).ToList(),
                     Removed = deleted
                 };
-                return req.CreateResponse(HttpStatusCode.OK, result);
+
+                return new OkObjectResult(result);
             }
             catch (Exception ex) {
                 log.Error(ex.Message, ex);
-                return req.CreateResponse(HttpStatusCode.InternalServerError);
+                return new ExceptionResult(ex, false);
             }
         }
 
@@ -95,13 +96,16 @@ namespace ItemSync.Items {
             };
         }
 
-        private static List<DeletedItemDto> GetDeletedItems(string partition, CloudTableClient client) {
+        private static async Task<List<DeletedItemDto>> GetDeletedItems(string partition, CloudTableClient client) {
             var table = client.GetTableReference(DeletedItem.TableName);
-            table.CreateIfNotExists();
+            await table.CreateIfNotExistsAsync();
 
             var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partition);
             var exQuery = new TableQuery<DeletedItem>().Where(query);
-            return table.ExecuteQuery(exQuery)
+
+
+            var unfiltered = await QueryHelper.ListAll(table, exQuery);
+            return unfiltered
                 .Select(m => new DeletedItemDto { Partition = m.ItemPartitionKey , Id = m.ItemRowKey })
                 .ToList();
         }
@@ -117,11 +121,11 @@ namespace ItemSync.Items {
 
 
 
-        private static void DisablePartition(string owner, string rowkey, CloudTable table) {
+        private static async void DisablePartition(string owner, string rowkey, CloudTable table) {
             var entity = new DynamicTableEntity(owner, owner + rowkey);
             entity.ETag = "*";
             entity.Properties.Add("IsActive", new EntityProperty(false));
-            table.Execute(TableOperation.Merge(entity));
+            await table.ExecuteAsync(TableOperation.Merge(entity));
         }
     }
 }

@@ -1,10 +1,6 @@
 using System;
-using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Linq;
 using ItemSync.Shared;
-using ItemSync.Shared.Dto;
 using ItemSync.Shared.Model;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -13,43 +9,47 @@ using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.WindowsAzure.Storage;
 using System.Collections.Generic;
 using ItemSync.Shared.Utility;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace ItemSync.Items {
     public static class Remove {
         [FunctionName("Remove")]
-        public static async Task<HttpResponseMessage> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post")]HttpRequestMessage req,
+        public static async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post")]HttpRequest req,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
             TraceWriter log
         ) {
             var client = storageAccount.CreateCloudTableClient();
-            string partitionKey = Authenticator.Authenticate(client, req);
+            string partitionKey = await Authenticator.Authenticate(client, req);
             if (string.IsNullOrEmpty(partitionKey)) {
-                return req.CreateResponse(HttpStatusCode.Unauthorized);
+                return new UnauthorizedResult();
             }
 
 
-            List<ItemToRemove> data = await req.Content.ReadAsAsync<List<ItemToRemove>>();
+            string json = await req.ReadAsStringAsync();
+            var data = JsonConvert.DeserializeObject<List<ItemToRemove>>(json);
+            
             if (data == null) {
-                return req.CreateResponse(HttpStatusCode.BadRequest, "Could not correctly parse the request parameters");
+                return new BadRequestObjectResult("Could not correctly parse the request parameters");
             }
             else if (data?.Count <= 0) {
-                return req.CreateResponse(HttpStatusCode.BadRequest, "No items to delete");
+                return new BadRequestObjectResult("No items to delete");
             }
 
             log.Info($"Received a request from {partitionKey} to remove {data.Count} items");
             var itemTable = client.GetTableReference(Item.TableName);
 
-            var numBatchOperations = DeleteByPartition(partitionKey, itemTable, data);
-            log.Info($"Marked {data.Count} items as deleted over {numBatchOperations} batches");
+            DeleteByPartition(partitionKey, itemTable, data, log);
 
 
-            var partition = PartionUtility.GetUploadPartition(log, client, partitionKey);
+            var partition = await PartionUtility.GetUploadPartition(log, client, partitionKey);
             var deletedItemsTable = client.GetTableReference(DeletedItem.TableName);
             DeleteInActivePartition(partition.RowKey, deletedItemsTable, data);
             log.Info($"Marked {data.Count} items as deleted in the active partition {partition.RowKey}");
 
-            return req.CreateResponse(HttpStatusCode.OK);
+            return new OkResult();
         }
 
         public class ItemToRemove {
@@ -63,7 +63,7 @@ namespace ItemSync.Items {
         /// <param name="activePartitionKey"></param>
         /// <param name="itemTable"></param>
         /// <param name="itemKeys"></param>
-        private static void DeleteInActivePartition(string activePartitionKey, CloudTable itemTable, List<ItemToRemove> itemKeys) {
+        private static async void DeleteInActivePartition(string activePartitionKey, CloudTable itemTable, List<ItemToRemove> itemKeys) {
             var batch = new TableBatchOperation();
             foreach (var itemKey in itemKeys) {
                 batch.Add(TableOperation.InsertOrReplace(new DeletedItem {
@@ -75,14 +75,14 @@ namespace ItemSync.Items {
 
 
                 if (batch.Count == 100) {
-                    itemTable.ExecuteBatch(batch);
+                    await itemTable.ExecuteBatchAsync(batch);
                     batch.Clear();
                 }
             }
 
 
             if (batch.Count > 0) {
-                itemTable.ExecuteBatch(batch);
+                await itemTable.ExecuteBatchAsync(batch);
             }
         }
 
@@ -93,7 +93,7 @@ namespace ItemSync.Items {
         /// <param name="itemTable"></param>
         /// <param name="itemKeys"></param>
         /// <returns></returns>
-        private static int DeleteByPartition(string partitionKey, CloudTable itemTable, List<ItemToRemove> itemKeys) {
+        private static async void DeleteByPartition(string partitionKey, CloudTable itemTable, List<ItemToRemove> itemKeys, TraceWriter log) {
             int numOperations = 0;
             var batch = new TableBatchOperation();
 
@@ -104,7 +104,7 @@ namespace ItemSync.Items {
             foreach (var itemKey in itemKeys) {
                 // No batches across partitions
                 if (batch.Count == 100 || previousPartition != itemKey.Partition) {
-                    itemTable.ExecuteBatch(batch);
+                    await itemTable.ExecuteBatchAsync(batch);
                     batch.Clear();
                     numOperations++;
                 }
@@ -118,11 +118,12 @@ namespace ItemSync.Items {
             }
 
             if (batch.Count > 0) {
-                itemTable.ExecuteBatch(batch);
+                await itemTable.ExecuteBatchAsync(batch);
                 numOperations++;
             }
 
-            return numOperations;
+
+            log.Info($"Marked {itemKeys.Count} items as deleted over {numOperations} batches");
         }
     }
 }

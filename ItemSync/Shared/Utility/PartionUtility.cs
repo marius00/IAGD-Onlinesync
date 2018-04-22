@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ItemSync.Shared.AzureCloudTable;
 using ItemSync.Shared.Model;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage.Table;
@@ -18,15 +19,16 @@ namespace ItemSync.Shared.Utility
         /// <param name="client"></param>
         /// <param name="owner"></param>
         /// <returns></returns>
-        public static Partition GetUploadPartition(TraceWriter log, CloudTableClient client, string owner) {
+        public static async Task<Partition> GetUploadPartition(TraceWriter log, CloudTableClient client, string owner) {
             try {
                 var table = client.GetTableReference(Partition.TableName);
-                table.CreateIfNotExists();
+                await table.CreateIfNotExistsAsync();
 
 
                 var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, owner);
                 var exQuery = new TableQuery<Partition>().Where(query);
-                var filteredItems = table.ExecuteQuery(exQuery).Where(m => m.IsActive);
+                var unfiltered = await QueryHelper.ListAll(table, exQuery);
+                var filteredItems = unfiltered.Where(m => m.IsActive);
 
                 var active = filteredItems.FirstOrDefault();
                 if (active != null) {
@@ -39,7 +41,7 @@ namespace ItemSync.Shared.Utility
                         IsActive = true
                     };
 
-                    table.Execute(TableOperation.Insert(p));
+                    await table.ExecuteAsync(TableOperation.Insert(p));
                     return p;
                 }
             }
