@@ -28,7 +28,6 @@ namespace ItemSync.Items {
                 return new UnauthorizedResult();
             }
 
-
             string json = await req.ReadAsStringAsync();
             var items = JsonConvert.DeserializeObject<List<ItemJson>>(json);
             
@@ -45,7 +44,7 @@ namespace ItemSync.Items {
             var partition = await PartionUtility.GetUploadPartition(log, client, partitionKey);
             log.Info($"Received a request from {partitionKey} to upload {items.Count} items to {partition.RowKey}");
 
-            var itemTable = client.GetTableReference(Item.TableName);
+            var itemTable = client.GetTableReference(ItemV1.TableName);
             await itemTable.CreateIfNotExistsAsync();
             var itemMapping = await Insert(partitionKey, partition.RowKey, itemTable, items);
             log.Info($"Inserted {items} items over {itemMapping} batches");
@@ -66,13 +65,13 @@ namespace ItemSync.Items {
 
             var batch = new TableBatchOperation();
             foreach (var item in items) {
-                batch.Add(TableOperation.Insert(ItemBuilder.Create(partition, item)));
+                batch.Add(TableOperation.Insert(ItemBuilder.CreateV1(partition, item)));
             }
 
             var mapping = new List<UploadResultItem>();
             var results = await itemTable.ExecuteBatchAsync(batch);
             for (int i = 0; i < items.Count; i++) {
-                var saved = results[i].Result as Item;
+                var saved = results[i].Result as ItemV1;
                 mapping.Add(new UploadResultItem {
                     LocalId = items[i].LocalId,
                     Id = saved.RowKey,

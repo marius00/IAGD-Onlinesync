@@ -39,13 +39,13 @@ namespace ItemSync.Items {
             }
 
             log.Info($"Received a request from {partitionKey} to remove {data.Count} items");
-            var itemTable = client.GetTableReference(Item.TableName);
+            var itemTable = client.GetTableReference(ItemV1.TableName);
 
             DeleteByPartition(partitionKey, itemTable, data, log);
 
 
             var partition = await PartionUtility.GetUploadPartition(log, client, partitionKey);
-            var deletedItemsTable = client.GetTableReference(DeletedItem.TableName);
+            var deletedItemsTable = client.GetTableReference(DeletedItemV1.TableName);
             DeleteInActivePartition(partition.RowKey, deletedItemsTable, data);
             log.Info($"Marked {data.Count} items as deleted in the active partition {partition.RowKey}");
 
@@ -66,7 +66,7 @@ namespace ItemSync.Items {
         private static async void DeleteInActivePartition(string activePartitionKey, CloudTable itemTable, List<ItemToRemove> itemKeys) {
             var batch = new TableBatchOperation();
             foreach (var itemKey in itemKeys) {
-                batch.Add(TableOperation.InsertOrReplace(new DeletedItem {
+                batch.Add(TableOperation.InsertOrReplace(new DeletedItemV1 {
                     PartitionKey = activePartitionKey,
                     RowKey = Guid.NewGuid().ToString(),
                     ItemPartitionKey = itemKey.Partition,

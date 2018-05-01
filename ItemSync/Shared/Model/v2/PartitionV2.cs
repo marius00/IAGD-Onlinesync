@@ -7,10 +7,8 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace ItemSync.Shared.Model
 {
-    class DeletedItem : TableEntity {
-        public const string TableName = "deleteditem";
-
-        public string ItemPartitionKey { get; set; }
-        public string ItemRowKey { get; set; }
+    public class PartitionV2 : TableEntity {
+        public const string TableName = "partitionlistingv2";
+        public bool IsActive { get; set; }
     }
 }

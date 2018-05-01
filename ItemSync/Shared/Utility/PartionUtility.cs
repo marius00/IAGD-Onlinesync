@@ -19,14 +19,14 @@ namespace ItemSync.Shared.Utility
         /// <param name="client"></param>
         /// <param name="owner"></param>
         /// <returns></returns>
-        public static async Task<Partition> GetUploadPartition(TraceWriter log, CloudTableClient client, string owner) {
+        public static async Task<PartitionV1> GetUploadPartition(TraceWriter log, CloudTableClient client, string owner) {
             try {
-                var table = client.GetTableReference(Partition.TableName);
+                var table = client.GetTableReference(PartitionV1.TableName);
                 await table.CreateIfNotExistsAsync();
 
 
                 var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, owner);
-                var exQuery = new TableQuery<Partition>().Where(query);
+                var exQuery = new TableQuery<PartitionV1>().Where(query);
                 var unfiltered = await QueryHelper.ListAll(table, exQuery);
                 var filteredItems = unfiltered.Where(m => m.IsActive);
 
@@ -35,7 +35,7 @@ namespace ItemSync.Shared.Utility
                     return active;
                 }
                 else {
-                    Partition p = new Partition {
+                    PartitionV1 p = new PartitionV1 {
                         PartitionKey = owner,
                         RowKey = $"{owner}-{DateTimeOffset.UtcNow.ToString("yyyy-MM")}-{Guid.NewGuid().ToString().Replace("-", "")}",
                         IsActive = true
@@ -48,6 +48,37 @@ namespace ItemSync.Shared.Utility
             catch (Exception ex) {
                 log.Warning(ex.Message, ex.ToString());
                 throw ex;
+            }
+        }
+        public static async Task<PartitionV2> GetUploadPartitionV2(TraceWriter log, CloudTableClient client, string owner) {
+            try {
+                var table = client.GetTableReference(PartitionV2.TableName);
+                await table.CreateIfNotExistsAsync();
+
+
+                var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, owner);
+                var exQuery = new TableQuery<PartitionV2>().Where(query);
+                var unfiltered = await QueryHelper.ListAll(table, exQuery);
+                var filteredItems = unfiltered.Where(m => m.IsActive);
+
+                var active = filteredItems.FirstOrDefault();
+                if (active != null) {
+                    return active;
+                }
+                else {
+                    PartitionV2 p = new PartitionV2 {
+                        PartitionKey = owner,
+                        RowKey = $"{owner}-{DateTimeOffset.UtcNow.ToString("yyyy-MM")}-{Guid.NewGuid().ToString().Replace("-", "")}",
+                        IsActive = true
+                    };
+
+                    await table.ExecuteAsync(TableOperation.Insert(p));
+                    return p;
+                }
+            }
+            catch (Exception ex) {
+                log.Warning(ex.Message, ex.ToString());
+                throw;
             }
         }
     }

@@ -28,7 +28,7 @@ namespace ItemSync.Items {
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
             TraceWriter log
         ) {
-            var email = req.Query["email"];
+            var email = req.Query["email"].FirstOrDefault()?.ToLower();
 
             if (string.IsNullOrWhiteSpace(email)) {
                 return new BadRequestObjectResult("The query parameter \"email\" is empty or missing");

@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace ItemSync.Shared.Model {
-    public class Item : TableEntity {
+    public class ItemV1 : TableEntity {
         public const string TableName = "item";
         public bool IsActive { get; set; }
 

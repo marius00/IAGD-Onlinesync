@@ -40,11 +40,11 @@ namespace ItemSync.Items {
                 }
 
                 log.Info($"User {userKey} has requested an item download for sub partition {subPartition}");
-                var itemTable = client.GetTableReference(Item.TableName);
+                var itemTable = client.GetTableReference(ItemV1.TableName);
 
                 var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal,
                     userKey + subPartition);
-                var exQuery = new TableQuery<Item>().Where(query);
+                var exQuery = new TableQuery<ItemV1>().Where(query);
 
                 var unfilteredItems = await QueryHelper.ListAll(itemTable, exQuery);
                 var filteredItems = unfilteredItems.Where(m => m.IsActive).ToList();
@@ -56,7 +56,7 @@ namespace ItemSync.Items {
 
                 if (filteredItems.Count > 80) {
                     log.Info($"Disabling partition {subPartition} for {userKey} (may already be disabled)");
-                    var table = client.GetTableReference(Partition.TableName);
+                    var table = client.GetTableReference(PartitionV1.TableName);
                     await table.CreateIfNotExistsAsync();
                     DisablePartition(userKey, subPartition, table);
                 }
@@ -74,34 +74,34 @@ namespace ItemSync.Items {
             }
         }
 
-        private static DownloadItemJson Map(string owner, Item item) {
+        private static DownloadItemJson Map(string owner, ItemV1 itemV1) {
             return new DownloadItemJson {
-                Partition = item.PartitionKey.Replace(owner, ""),
-                Id = item.RowKey,
-                BaseRecord = item.BaseRecord,
-                EnchantmentRecord = item.EnchantmentRecord,
-                EnchantmentSeed = item.EnchantmentSeed,
-                IsHardcore = item.IsHardcore,
-                MateriaCombines = item.MateriaCombines,
-                MateriaRecord = item.MateriaRecord,
-                Mod = item.Mod,
-                ModifierRecord = item.ModifierRecord,
-                PrefixRecord = item.PrefixRecord,
-                RelicCompletionBonusRecord = item.RelicCompletionBonusRecord,
-                RelicSeed = item.RelicSeed,
-                Seed = item.Seed,
-                StackCount = item.StackCount,
-                SuffixRecord = item.SuffixRecord,
-                TransmuteRecord = item.TransmuteRecord
+                Partition = itemV1.PartitionKey.Replace(owner, ""),
+                Id = itemV1.RowKey,
+                BaseRecord = itemV1.BaseRecord,
+                EnchantmentRecord = itemV1.EnchantmentRecord,
+                EnchantmentSeed = itemV1.EnchantmentSeed,
+                IsHardcore = itemV1.IsHardcore,
+                MateriaCombines = itemV1.MateriaCombines,
+                MateriaRecord = itemV1.MateriaRecord,
+                Mod = itemV1.Mod,
+                ModifierRecord = itemV1.ModifierRecord,
+                PrefixRecord = itemV1.PrefixRecord,
+                RelicCompletionBonusRecord = itemV1.RelicCompletionBonusRecord,
+                RelicSeed = itemV1.RelicSeed,
+                Seed = itemV1.Seed,
+                StackCount = itemV1.StackCount,
+                SuffixRecord = itemV1.SuffixRecord,
+                TransmuteRecord = itemV1.TransmuteRecord
             };
         }
 
         private static async Task<List<DeletedItemDto>> GetDeletedItems(string partition, CloudTableClient client) {
-            var table = client.GetTableReference(DeletedItem.TableName);
+            var table = client.GetTableReference(DeletedItemV1.TableName);
             await table.CreateIfNotExistsAsync();
 
             var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partition);
-            var exQuery = new TableQuery<DeletedItem>().Where(query);
+            var exQuery = new TableQuery<DeletedItemV1>().Where(query);
 
 
             var unfiltered = await QueryHelper.ListAll(table, exQuery);

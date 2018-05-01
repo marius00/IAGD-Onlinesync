@@ -26,10 +26,10 @@ namespace ItemSync.Items {
             }
 
 
-            var itemTable = client.GetTableReference(Partition.TableName);
+            var itemTable = client.GetTableReference(PartitionV1.TableName);
 
             var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionKey);
-            var exQuery = new TableQuery<Partition>().Where(query);
+            var exQuery = new TableQuery<PartitionV1>().Where(query);
 
             var domainPartitions = await QueryHelper.ListAll(itemTable, exQuery);
             var partitions = domainPartitions
