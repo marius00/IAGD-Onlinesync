@@ -44,7 +44,7 @@ namespace ItemSync.Items
             }
             catch (Exception ex) {
                 log.Warning(ex.Message, ex.Source);
-                throw ex;
+                throw;
             }
 
             log.Info("Cleanup completed");

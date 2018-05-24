@@ -48,7 +48,7 @@ namespace ItemSync.Items.v2 {
             var itemTable = client.GetTableReference(ItemV2.TableName);
             await itemTable.CreateIfNotExistsAsync();
             var itemMapping = await Insert(partitionKey, partition.RowKey, itemTable, items);
-            log.Info($"Inserted {items} items over {itemMapping} batches");
+            log.Info($"Inserted {items.Count} items over {itemMapping.Count} batches");
 
             bool shouldClosePartition = items.Count >= 90;
             if (shouldClosePartition) {
