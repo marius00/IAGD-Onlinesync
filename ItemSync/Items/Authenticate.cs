@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -10,6 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace ItemSync.Items
 {
@@ -18,7 +21,8 @@ namespace ItemSync.Items
         [FunctionName("Authenticate")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.System, "get", "post", Route = null)]HttpRequest req,
-            [Table(Authentication.TableName)] ICollector<Authentication> collector,
+            [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
+            //[Table("testTable")] CloudTable testTable,
             TraceWriter log
         ) {
 #if DEBUG
@@ -39,7 +43,12 @@ namespace ItemSync.Items
                 RowKey = (Guid.NewGuid().ToString() + Guid.NewGuid().ToString()).Replace("-", ""),
                 Identity = user
             };
-            collector.Add(auth);
+
+
+            var client = storageAccount.CreateCloudTableClient();
+            var table = client.GetTableReference(EmailAuthToken.TableName);
+            await table.CreateIfNotExistsAsync();
+            await table.ExecuteAsync(TableOperation.Insert(auth));
 
             return new RedirectResult("https://auth.iagd.dreamcrash.org/token/" + auth.RowKey);
         }

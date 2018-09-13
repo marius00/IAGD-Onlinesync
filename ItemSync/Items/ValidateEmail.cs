@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -18,13 +19,13 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace ItemSync.Items {
     public static class ValidateEmail {
         [FunctionName("ValidateEmail")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = null)]HttpRequest req,
-            [Table(EmailAuthToken.TableName)] ICollector<EmailAuthToken> collector,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
             TraceWriter log
         ) {
@@ -35,7 +36,8 @@ namespace ItemSync.Items {
             }
 
             log.Info($"E-mail verification request received for {email}");
-            var throttleService = new ThrottleService(storageAccount.CreateCloudTableClient(), log);
+            var client = storageAccount.CreateCloudTableClient();
+            var throttleService = new ThrottleService(client, log);
             var throttled = (await throttleService.ThrottleOrIncrement(email)) || (await throttleService.ThrottleOrIncrement(IpUtility.GetClientIp(req)));
             if (throttled) {
                 return new StatusCodeResult(429);
@@ -49,7 +51,9 @@ namespace ItemSync.Items {
             
             var secret = Environment.GetEnvironmentVariable("email-secret", EnvironmentVariableTarget.Process);
             if (Upload(log, "http://grimdawn.dreamcrash.org/ia/backup/auth.php", $"token={secret}&target={email}&code={code}")) {
-                collector.Add(auth);
+                var table = client.GetTableReference(EmailAuthToken.TableName);
+                await table.CreateIfNotExistsAsync();
+                await table.ExecuteAsync(TableOperation.Insert(auth));
                 log.Info($"Successfully posted email for {email}");
             }
 
