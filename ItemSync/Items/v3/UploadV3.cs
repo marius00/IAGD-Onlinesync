@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -15,9 +16,9 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 
-namespace ItemSync.Items.v2 {
-    public static class UploadV2 {
-        [FunctionName("v2_Upload")]
+namespace ItemSync.Items.v3 {
+    public static class UploadV3 {
+        [FunctionName("v3_Upload")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")]HttpRequest req,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
@@ -30,7 +31,7 @@ namespace ItemSync.Items.v2 {
             }
 
             string json = await req.ReadAsStringAsync();
-            var items = JsonConvert.DeserializeObject<List<ItemJson>>(json);
+            var items = JsonConvert.DeserializeObject<List<ItemJsonV3>>(json);
             
             if (items == null) {
                 return new BadRequestObjectResult("Could not correctly parse the request parameters");
@@ -40,15 +41,20 @@ namespace ItemSync.Items.v2 {
             }
             else if (items.Count <= 0) {
                 return new BadRequestObjectResult("No items to store");
+            } else if (items.Select(item => item.RemotePartition).Distinct().Count() > 1) {
+                return new BadRequestObjectResult("Cannot store items from multiple partitions in a single call");
             }
             
-            var partition = await PartionUtility.GetUploadPartitionV2(log, client, partitionKey);
+            // Just ensuring that a partition entry exists, so that we can find it again later.
+            var partition = await PartionUtility.GetUploadPartitionV3(log, client, partitionKey, items.First().RemotePartition);
             log.Info($"Received a request from {partitionKey} to upload {items.Count} items to {partition.RowKey}");
+
+
 
             var itemTable = client.GetTableReference(ItemV2.TableName);
             await itemTable.CreateIfNotExistsAsync();
-            var itemMapping = await Insert(partitionKey, partition.RowKey, itemTable, items);
-            log.Info($"Inserted {items.Count} items over {itemMapping.Count} batches");
+            var itemMapping = await Insert(log, partition.RowKey, itemTable, items);
+            log.Info($"Inserted {items.Count} items");
 
             bool shouldClosePartition = items.Count >= 90;
             if (shouldClosePartition) {
@@ -58,9 +64,8 @@ namespace ItemSync.Items.v2 {
             }
 
             var result = new UploadResultDto {
-                Partition = itemMapping.First().Partition,
+                Partition = partition.RowKey.Remove(0, partitionKey.Length), // Strip the owner email from the partition
                 IsClosed = shouldClosePartition,
-                Items = itemMapping
             };
             return new OkObjectResult(result);
         }
@@ -68,38 +73,35 @@ namespace ItemSync.Items.v2 {
         class UploadResultDto {
             public string Partition { get; set; }
             public bool IsClosed { get; set; }
-            public List<UploadResultItem> Items { get; set; }
         }
 
-
-        class UploadResultItem {
-            public long LocalId { get; set; }
-            public string Id { get; set; }
-            public string Partition { get; set; }
-        }
-
-        private static async Task<List<UploadResultItem>> Insert(string owner, string partition, CloudTable itemTable, List<ItemJson> items) {
+        private static async Task<bool> Insert(TraceWriter log, string partition, CloudTable itemTable, List<ItemJsonV3> items) {
             Debug.Assert(items.Count <= 100);
-            var ouputKey = partition.Remove(0, owner.Length);
 
             var batch = new TableBatchOperation();
             foreach (var item in items) {
-                batch.Add(TableOperation.Insert(ItemBuilder.CreateV2(partition, item)));
+                batch.Add(TableOperation.Insert(ItemBuilder.CreateV3(partition, item.RemoteId, item)));
             }
 
-            var mapping = new List<UploadResultItem>();
-            var results = await itemTable.ExecuteBatchAsync(batch);
-            for (int i = 0; i < items.Count; i++) {
-                var saved = results[i].Result as ItemV2;
-                mapping.Add(new UploadResultItem {
-                    LocalId = items[i].LocalId,
-                    Id = saved.RowKey,
-                    Partition = ouputKey // The email+whatever is only used to represent the item internally
-                });
-            }
             
+            try {
+                await itemTable.ExecuteBatchAsync(batch);
+            }
+            catch (StorageException ex) {
+                var ri = ex.RequestInformation;
+                if (ri.HttpStatusMessage == "0:The specified entity already exists." && ri.HttpStatusCode == 0x199) {
+                    log.Info("Items already stored, skipping insert and returning 200 OK");
+                    return true;
+                }
+                return false;
 
-            return mapping;
+            }
+            catch (Exception ex) {
+                log.Warning(ex.Message, ex.StackTrace);
+                return false;
+            }
+
+            return true;
         }
         
     }

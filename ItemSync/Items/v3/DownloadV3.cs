@@ -17,10 +17,10 @@ using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 
-namespace ItemSync.Items.v2 {
-    public static class DownloadV2 {
+namespace ItemSync.Items.v3 {
+    public static class DownloadV3 {
 
-        [FunctionName("v2_Download")]
+        [FunctionName("v3_Download")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]HttpRequest req,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
@@ -75,8 +75,9 @@ namespace ItemSync.Items.v2 {
         }
 
         private static DownloadItemJson Map(string owner, ItemV2 item) {
+            
             return new DownloadItemJson {
-                Partition = item.PartitionKey.Replace(owner, ""), // Issue: This returns a prefixed "-", fixed in v3.
+                Partition = item.PartitionKey.Substring(owner.Length + 1), // Remove owner@email and the "-" suffix
                 Id = item.RowKey,
                 BaseRecord = item.BaseRecord,
                 EnchantmentRecord = item.EnchantmentRecord,
@@ -114,12 +115,11 @@ namespace ItemSync.Items.v2 {
             public string Id { get; set; }
             public string Partition { get; set; }
         }
+
         public class DownloadResponse {
             public List<DownloadItemJson> Items { get; set; }
             public List<DeletedItemDto> Removed { get; set; }
         }
-
-
 
         private static async void DisablePartition(string owner, string rowkey, CloudTable table) {
             var entity = new DynamicTableEntity(owner, owner + rowkey);

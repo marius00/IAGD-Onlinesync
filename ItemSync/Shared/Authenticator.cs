@@ -12,6 +12,10 @@ using Microsoft.AspNetCore.Http;
 namespace ItemSync.Shared {
     public static class Authenticator {
         public static async Task<string> Authenticate(CloudTableClient client, HttpRequest request) {
+#if DEBUG
+            return "localdev@example.com";
+#endif
+
             string key;
             if (request.Headers.ContainsKey("Simple-Auth")) {
                 key = request.Headers["Simple-Auth"];

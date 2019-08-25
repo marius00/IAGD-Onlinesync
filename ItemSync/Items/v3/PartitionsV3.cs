@@ -11,9 +11,9 @@ using ItemSync.Shared.AzureCloudTable;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ItemSync.Items.v2 {
-    public static class PartitionsV2 {
-        [FunctionName("v2_Partitions")]
+namespace ItemSync.Items.v3 {
+    public static class PartitionsV3 {
+        [FunctionName("v3_Partitions")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get")]HttpRequest req,
             [StorageAccount("StorageConnectionString")] CloudStorageAccount storageAccount,
@@ -34,13 +34,12 @@ namespace ItemSync.Items.v2 {
 
             var domainPartitions = await QueryHelper.ListAll(itemTable, exQuery);
             var partitions = domainPartitions
-                .Select(p => new PartitionResponse { Partition = p.RowKey.Replace(partitionKey, ""), IsActive = p.IsActive} )
+                .Select(p => new PartitionResponse { Partition = p.RowKey.Replace($"{partitionKey}-", ""), IsActive = p.IsActive} )
                 .ToList();
 
 
             log.Info($"A total of {partitions.Count} partitions were returned");
             return new OkObjectResult(partitions);
-            //return req.CreateResponse(HttpStatusCode.OK, partitions, Json.JsonFormatter);
         }
 
         public class PartitionResponse {
