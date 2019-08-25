@@ -24,6 +24,7 @@ namespace ItemSync.Items
                 var client = storageAccount.CreateCloudTableClient();
                 string partitionKey = await Authenticator.Authenticate(client, req);
 
+
                 if (string.IsNullOrEmpty(partitionKey)) {
                     log.Warning($"{ip}: Authentication failure");
                     return new UnauthorizedResult();
