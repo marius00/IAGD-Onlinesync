@@ -43,7 +43,7 @@ namespace ItemSync.Items.v3 {
                 var itemTable = client.GetTableReference(ItemV2.TableName);
 
                 var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal,
-                    userKey + subPartition);
+                    userKey + "-" + subPartition);
                 var exQuery = new TableQuery<ItemV2>().Where(query);
 
                 var unfilteredItems = await QueryHelper.ListAll(itemTable, exQuery);
@@ -122,7 +122,7 @@ namespace ItemSync.Items.v3 {
         }
 
         private static async void DisablePartition(string owner, string rowkey, CloudTable table) {
-            var entity = new DynamicTableEntity(owner, owner + rowkey);
+            var entity = new DynamicTableEntity(owner, owner + "-" + rowkey);
             entity.ETag = "*";
             entity.Properties.Add("IsActive", new EntityProperty(false));
             await table.ExecuteAsync(TableOperation.Merge(entity));
