@@ -86,6 +86,14 @@ namespace ItemSync.Items.v2 {
             }
         }
 
+        private static string Padded(string partition) {
+            if (partition.StartsWith("-"))
+                return partition;
+            else {
+                return "-" + partition;
+            }
+        }
+
         /// <summary>
         /// Mark the items as deleted in their residing partitions (this prevents download on fresh syncs)
         /// </summary>
@@ -109,7 +117,8 @@ namespace ItemSync.Items.v2 {
                     numOperations++;
                 }
 
-                var entity = new DynamicTableEntity(partitionKey + itemKey.Partition, itemKey.Id);
+
+                var entity = new DynamicTableEntity(partitionKey + Padded(itemKey.Partition), itemKey.Id);
                 entity.ETag = "*";
                 entity.Properties.Add("IsActive", new EntityProperty(false));
                 batch.Add(TableOperation.Merge(entity));
