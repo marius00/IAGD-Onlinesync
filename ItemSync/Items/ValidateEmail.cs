@@ -1,18 +1,13 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Runtime.Serialization;
-using System.Security.Claims;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Web.Http;
 using ItemSync.Shared;
 using ItemSync.Shared.Model;
 using ItemSync.Shared.Service;
+using ItemSync.Shared.Utility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -20,6 +15,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 
 namespace ItemSync.Items {
     public static class ValidateEmail {
@@ -48,9 +44,15 @@ namespace ItemSync.Items {
             var auth = new EmailAuthToken(email, token, code) {
                 Expiration = DateTimeOffset.UtcNow.AddHours(4),
             };
-            
+
+            var body = JsonConvert.SerializeObject(new EmailDto {
+                Email = email,
+                Code = code
+            }, JsonSettings.JsonSerializerSettings);
+
             var secret = Environment.GetEnvironmentVariable("email-secret", EnvironmentVariableTarget.Process);
-            if (Upload(log, "http://grimdawn.dreamcrash.org/ia/backup/auth.php", $"token={secret}&target={email}&code={code}")) {
+            var url = Environment.GetEnvironmentVariable("email-url", EnvironmentVariableTarget.Process);
+            if (Upload(log, url, secret, body)) {
                 var table = client.GetTableReference(EmailAuthToken.TableName);
                 await table.CreateIfNotExistsAsync();
                 await table.ExecuteAsync(TableOperation.Insert(auth));
@@ -63,15 +65,16 @@ namespace ItemSync.Items {
         }
 
 
-        private static bool Upload(TraceWriter log, string url, string postData) {
+        private static bool Upload(TraceWriter log, string url, string secret, string postData) {
             HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
             var encoding = new UTF8Encoding();
             byte[] data = encoding.GetBytes(postData);
 
             request.Method = "POST";
-            request.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip, deflate");
-            request.Headers.Add(HttpRequestHeader.ContentEncoding, "gzip");
-            request.ContentType = "application/x-www-form-urlencoded";
+            /*request.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip, deflate");
+            request.Headers.Add(HttpRequestHeader.ContentEncoding, "gzip");*/
+            request.Headers.Add(HttpRequestHeader.Authorization, secret);
+            request.ContentType = "application/json";
 
             using (Stream stream = request.GetRequestStream()) {
                 stream.Write(data, 0, data.Length);
@@ -88,6 +91,11 @@ namespace ItemSync.Items {
 
         }
 
+    }
+
+    class EmailDto {
+        public string Email { get; set; }
+        public String Code { get; set; }
     }
 
     class ResponseDto {
