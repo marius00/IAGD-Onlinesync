@@ -19,6 +19,13 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace ItemSync.Items.v3 {
     public static class DownloadV3 {
+        private static string Combine(string userKey, string partitionKey) {
+            if (userKey.EndsWith("-") || partitionKey.StartsWith("-"))
+                return userKey + partitionKey;
+            else {
+                return userKey + "-" + partitionKey;
+            }
+        }
 
         [FunctionName("v3_Download")]
         public static async Task<IActionResult> Run(
@@ -34,7 +41,6 @@ namespace ItemSync.Items.v3 {
                 }
                 
                 var subPartition = req.Query["partition"];
-
                 if (string.IsNullOrWhiteSpace(subPartition)) {
                     return new BadRequestObjectResult("The query parameter \"partition\" empty or missing");
                 }
@@ -42,8 +48,7 @@ namespace ItemSync.Items.v3 {
                 log.Info($"User {userKey} has requested an item download for sub partition {subPartition}");
                 var itemTable = client.GetTableReference(ItemV2.TableName);
 
-                var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal,
-                    userKey + subPartition);
+                var query = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Combine(userKey, subPartition));
                 var exQuery = new TableQuery<ItemV2>().Where(query);
 
                 var unfilteredItems = await QueryHelper.ListAll(itemTable, exQuery);
@@ -51,7 +56,7 @@ namespace ItemSync.Items.v3 {
                 log.Info($"A total of {filteredItems.Count} items were returned");
 
 
-                var deleted = await GetDeletedItems(userKey + subPartition, client);
+                var deleted = await GetDeletedItems(Combine(userKey, subPartition), client);
                 log.Info($"A total of {deleted.Count} items were marked for deletion");
 
                 if (filteredItems.Count > 80) {
