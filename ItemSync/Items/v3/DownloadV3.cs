@@ -19,7 +19,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace ItemSync.Items.v3 {
     public static class DownloadV3 {
-        private static string Combine(string userKey, string partitionKey) {
+        public static string Combine(string userKey, string partitionKey) {
             if (userKey.EndsWith("-") || partitionKey.StartsWith("-"))
                 return userKey + partitionKey;
             else {
