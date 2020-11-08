@@ -1,0 +1,75 @@
+
+# For full config options, check the docs:
+#    docs.serverless.com
+
+service: myservice
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+frameworkVersion: '>=1.28.0 <2.0.0'
+
+provider:
+  name: aws
+  runtime: go1.x
+  stage: dev
+  region: us-east-1
+  vpc:
+    securityGroupIds:
+      - sg-0b126c5c
+  environment:
+    DATABASE_USER: ${ssm:database_user}
+    DATABASE_PASSWORD: ${ssm:database_password}
+    DATABASE_HOST: ${ssm:database_host}
+    DATABASE_NAME: ${ssm:database_name}
+    LAMBDA_HOST: ${ssm:lambda_host}
+    ALLOWED_ORIGIN: ${ssm:allowed_origin}
+
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+custom:
+  appName: myAppName
+  stage: ${opt:stage, self:provider.stage}
+  client:
+    bucketName: myservice-frontend-s3 # Must be globally unique
+    distributionFolder: client/build
+
+functions:
+  EventsCreate:
+    handler: bin/secured
+    events:
+      - http:
+          path: /secured
+          method: get
+  Index:
+    handler: bin/index
+    events:
+      - http:
+          path: index
+          method: get
+          cors: true
+  SessionLogin:
+    handler: bin/session_login
+    events:
+      - http:
+          path: login
+          method: post
+          cors: true
+  SessionLogout:
+    handler: bin/session_logout
+    events:
+      - http:
+          path: logout
+          method: post
+
+
+# you can add CloudFormation resource templates here
+plugins:
+  - serverless-finch
+resources:
+  - ${file(resources/s3-bucket.yml)}
