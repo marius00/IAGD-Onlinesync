@@ -2,6 +2,7 @@ package eventbus
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/marmyr/myservice/internal/storage"
 	"os"
 )
 
@@ -14,14 +15,33 @@ const (
 
 func MountPublicRoute(path string, method string, fn gin.HandlerFunc) *gin.Engine {
 	engine := buildEngine()
+	AddPublicRoute(engine, path, method, fn)
+	return engine
+}
+
+func AddProtectedRoute(engine *gin.Engine, path string, method string, fn gin.HandlerFunc) *gin.Engine {
+	authDb := &storage.AuthDb{}
 	group := engine.Group("/")
+	group.Use(authorizedHandler(authDb))
 	setMethodHandlerForGroup(method, path, fn, group)
 	return engine
 }
 
-func AddPublicRoute(engine *gin.Engine, path string, method string, fn gin.HandlerFunc) {
+func MountProtectedRoute(path string, method string, fn gin.HandlerFunc) *gin.Engine {
+	engine := buildEngine()
+	AddProtectedRoute(engine, path, method, fn)
+	return engine
+}
+
+func Build() *gin.Engine {
+	engine := buildEngine()
+	return engine
+}
+
+func AddPublicRoute(engine *gin.Engine, path string, method string, fn gin.HandlerFunc) *gin.Engine {
 	group := engine.Group("/")
 	setMethodHandlerForGroup(method, path, fn, group)
+	return engine
 }
 
 func CORSMiddleware() gin.HandlerFunc {

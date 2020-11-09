@@ -1,5 +1,5 @@
 
-# For full config options, check the docs:
+# For full storage options, check the docs:
 #    docs.serverless.com
 
 service: myservice

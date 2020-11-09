@@ -1,9 +1,8 @@
-package config
+package storage
 
 import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"log"
 	"reflect"
@@ -13,37 +12,24 @@ import (
 type PersistentStorage struct {
 }
 
-var Session *dynamodb.DynamoDB // TODO: Don't export?
 const (
 	TableEntries = "Entries"
 )
 
-func init() {
-	s := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	Session = dynamodb.New(s)
-
-	fmt.Println("Initialized session towards DynamoDB")
-}
-
-
-
 func (*PersistentStorage) StoreSlice(data []map[string]interface{}, tableName string) error {
 	items := make([]*dynamodb.TransactWriteItem, len(data))
 	for idx, item := range data {
-		input := convertToPut(item, tableName)
+		input := toPut(item, tableName)
 		items[idx] = &dynamodb.TransactWriteItem {
 			Put: input,
 		}
 	}
 
-
 	transactionItems := &dynamodb.TransactWriteItemsInput{
 		TransactItems: items,
 	}
 
-	output, err := Session.TransactWriteItems(transactionItems)
+	output, err := sess.TransactWriteItems(transactionItems)
 
 	if err != nil {
 		fmt.Println("Got error calling PutItem:")
@@ -57,10 +43,11 @@ func (*PersistentStorage) StoreSlice(data []map[string]interface{}, tableName st
 	return nil
 }
 
+// Store will store arbitrary key:value data as JSON to the specified DynamoDB table
 func (*PersistentStorage) Store(data map[string]interface{}, tableName string) error {
-	input := convert(data, tableName)
+	input := toPutItemInput(data, tableName)
 
-	output, err := Session.PutItem(input)
+	output, err := sess.PutItem(input)
 	if err != nil {
 		fmt.Println("Got error calling PutItem:")
 		fmt.Println(err.Error())
@@ -73,6 +60,7 @@ func (*PersistentStorage) Store(data map[string]interface{}, tableName string) e
 	return nil
 }
 
+// convertData converts key:value data to a typesafe format DynamoDB can understand
 func convertData(data map[string]interface{}) map[string]*dynamodb.AttributeValue {
 	var vv = make(map[string]*dynamodb.AttributeValue)
 	for k, v := range data {
@@ -93,6 +81,7 @@ func convertData(data map[string]interface{}) map[string]*dynamodb.AttributeValu
 			xx := &(x)
 			vv[k] = &dynamodb.AttributeValue{N: xx,}
 		} else {
+			// TODO: Tests for this
 			log.Printf("Unknown type: %s", reflect.ValueOf(v).Kind().String())
 		}
 	}
@@ -100,7 +89,7 @@ func convertData(data map[string]interface{}) map[string]*dynamodb.AttributeValu
 	return vv
 }
 
-func convertToPut(data map[string]interface{}, tableName string) *dynamodb.Put {
+func toPut(data map[string]interface{}, tableName string) *dynamodb.Put {
 	params := &dynamodb.Put{
 		Item:      convertData(data),
 		TableName: aws.String(tableName),
@@ -109,7 +98,7 @@ func convertToPut(data map[string]interface{}, tableName string) *dynamodb.Put {
 	return params
 }
 
-func convert(data map[string]interface{}, tableName string) *dynamodb.PutItemInput {
+func toPutItemInput(data map[string]interface{}, tableName string) *dynamodb.PutItemInput {
 	params := &dynamodb.PutItemInput{
 		Item:      convertData(data),
 		TableName: aws.String(tableName),
