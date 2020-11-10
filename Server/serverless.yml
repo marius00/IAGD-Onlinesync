@@ -41,10 +41,10 @@ custom:
 
 functions:
   EventsCreate:
-    handler: bin/secured
+    handler: bin/partition
     events:
       - http:
-          path: /secured
+          path: /partition
           method: get
   Index:
     handler: bin/index

@@ -7,6 +7,7 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 type PersistentStorage struct {
@@ -105,4 +106,15 @@ func toPutItemInput(data map[string]interface{}, tableName string) *dynamodb.Put
 	}
 
 	return params
+}
+
+// SanitizePartition will remove the "owner:" prefix from a provided partition
+func SanitizePartition(partition string) string {
+	idx := strings.Index(partition, ":")
+	return partition[idx+1:]
+}
+
+// ApplyOwner will append a prefix to the partition-entry to be used for Item Insertions
+func ApplyOwner(partition Partition, owner string) string {
+	return fmt.Sprintf("%s:%s", owner, partition.Partition)
 }

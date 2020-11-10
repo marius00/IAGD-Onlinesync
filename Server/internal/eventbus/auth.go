@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-
+const AuthUserKey = "AuthUserKey"
 type Authorizer interface {
 	IsValid(email string, token string) (bool, error)
 }
@@ -41,6 +41,7 @@ func authorizedHandler(authDb Authorizer) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: Authorization token invalid"})
 			c.Abort()
 		} else {
+			c.Set(AuthUserKey, user)
 			c.Next()
 		}
 	}

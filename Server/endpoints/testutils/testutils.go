@@ -44,3 +44,9 @@ func Expect(t *testing.T, w *httptest.ResponseRecorder, expectedStatus int, expe
 		t.Fatalf("Expected body `%v`, got `%v`", expectedBody, body)
 	}
 }
+
+func ExpectEquals(t *testing.T, expected string, v string) {
+	if expected != v {
+		t.Fatalf(`Expected "%v" got "%v"`, expected, v)
+	}
+}
