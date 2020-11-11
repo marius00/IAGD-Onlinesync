@@ -25,7 +25,6 @@ func processRequest(partitionDb DB) gin.HandlerFunc {
 				logger := logging.Logger(c)
 				logger.Warn("Error fetching partitions", zap.Error(err), zap.String("user", user.(string)))
 				c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching partitions"})
-
 			}
 			c.JSON(http.StatusOK, partitions)
 		} else {

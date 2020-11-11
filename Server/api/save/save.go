@@ -63,7 +63,7 @@ func ProcessRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, nil)
 }*/
 
-// TODO: Tests
+// validate ensures that the input data is valid-ish
 func validate(data []map[string]interface{}) string {
 	for _, m := range data {
 		if _, ok := m["id"]; !ok {
