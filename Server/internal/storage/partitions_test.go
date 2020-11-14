@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"github.com/marmyr/myservice/endpoints/testutils"
 	"log"
 	"os"
@@ -24,6 +25,24 @@ func TestGeneratePartitionKeyExceedingIterations(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	when := time.Date(2018, time.April, 2, 12, 0, 0, 0, loc)
 	testutils.ExpectEquals(t, "2018:14:1015", GeneratePartitionKey(when, 1015))
+}
+
+func TestExtractIteration(t *testing.T) {
+	p := Partition{Partition: "2018:14:1015"}
+	it, err := GetIteration(p)
+	if err != nil {
+		t.Fatal("Expected err to be nil")
+	}
+	testutils.ExpectEquals(t, "1015", fmt.Sprintf("%d", it))
+}
+
+func TestExtractIterationInvalid(t *testing.T) {
+	p := Partition{Partition: "2018:14:stuff"}
+	it, err := GetIteration(p)
+	if err == nil {
+		t.Fatal("Expected err to be returned")
+	}
+	testutils.ExpectEquals(t, "0", fmt.Sprintf("%d", it))
 }
 
 func TestEntirePartitionIntegration(t *testing.T) {

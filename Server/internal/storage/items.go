@@ -15,6 +15,8 @@ type PersistentStorage struct {
 
 const (
 	TableEntries = "Entries"
+	ColumnId = "id"
+	ColumnPartition = "partition"
 )
 
 func (*PersistentStorage) StoreSlice(data []map[string]interface{}, tableName string) error {
@@ -44,6 +46,7 @@ func (*PersistentStorage) StoreSlice(data []map[string]interface{}, tableName st
 	return nil
 }
 
+// TODO: Should maybe take owner+partition as input, and be responsible for ApplyOwner and Sanitize?
 // Store will store arbitrary key:value data as JSON to the specified DynamoDB table
 func (*PersistentStorage) Store(data map[string]interface{}, tableName string) error {
 	input := toPutItemInput(data, tableName)
@@ -100,7 +103,7 @@ func toPut(data map[string]interface{}, tableName string) *dynamodb.Put {
 }
 
 func toPutItemInput(data map[string]interface{}, tableName string) *dynamodb.PutItemInput {
-	params := &dynamodb.PutItemInput{
+	params := &dynamodb.PutItemInput{ // TODO: Would be nice to validate that the partition matches the format "owner:Year:week:it"
 		Item:      convertData(data),
 		TableName: aws.String(tableName),
 	}
@@ -116,5 +119,8 @@ func SanitizePartition(partition string) string {
 
 // ApplyOwner will append a prefix to the partition-entry to be used for Item Insertions
 func ApplyOwner(partition Partition, owner string) string {
-	return fmt.Sprintf("%s:%s", owner, partition.Partition)
+	return ApplyOwnerS(partition.Partition, owner)
+}
+func ApplyOwnerS(partition string, owner string) string {
+	return fmt.Sprintf("%s:%s", owner, partition)
 }

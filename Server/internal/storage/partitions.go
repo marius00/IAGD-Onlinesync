@@ -1,11 +1,14 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -27,7 +30,6 @@ type Partition struct {
 	NumItems  int    `json:"numItems"`  // The _estimated_ number of items in this partition, consumer is responsible for updating the value and does not account for race conditions.
 }
 
-// TODO: Test
 // Inserts a new partition and marks other partitions as inactive
 func (x *PartitionDb) Insert(email string, partition string, numItems int) error {
 	p := Partition{
@@ -52,7 +54,6 @@ func (x *PartitionDb) Insert(email string, partition string, numItems int) error
 		return err
 	}
 
-	// TODO: Loop all active partitions and set to inactive
 	x.deactivateAllPartitionsExcept(email, partition)
 	return nil
 }
@@ -66,14 +67,12 @@ func (x *PartitionDb) deactivateAllPartitionsExcept(email string, partition stri
 	for _, p := range partitions {
 		if p.IsActive && p.Partition != partition {
 			x.markInactive(p.Email, p.Partition)
-			// TODO: Deactivate
 		}
 	}
 
 	return nil
 }
 
-// TODO: Test
 // markInactive will update a given partition with IsActive=false
 func (*PartitionDb) markInactive(email string, partition string) error {
 	input := &dynamodb.UpdateItemInput{
@@ -103,7 +102,6 @@ func (*PartitionDb) markInactive(email string, partition string) error {
 	return nil
 }
 
-// TODO: Test
 // SetNumItems will update the estimated number of items in a given partition
 func (*PartitionDb) SetNumItems(email string, partition string, numItems int) error {
 	input := &dynamodb.UpdateItemInput{
@@ -134,7 +132,6 @@ func (*PartitionDb) SetNumItems(email string, partition string, numItems int) er
 	return nil
 }
 
-// TODO: Test
 // Delete will delete a given partition entry for a user
 func (*PartitionDb) Delete(email string, partition string) error {
 	// TODO: Delete entire partition from item table [or delegate to item db? -- delegating may simplify testing]
@@ -213,4 +210,17 @@ func (*PartitionDb) List(email string) ([]Partition, error) {
 func GeneratePartitionKey(time time.Time, iteration int) string {
 	y, w := time.ISOWeek()
 	return fmt.Sprintf("%04d:%02d:%02d", y, w, iteration)
+}
+
+func ExceedsThreshold(partition *Partition, numItemsToInsert int) bool {
+	return partition == nil || partition.NumItems + numItemsToInsert > 1000 // TODO: Should not be hardcoded, figure out a good number. Test to ensure its <1MB
+}
+
+func GetIteration(partition Partition) (int, error) {
+	idx := strings.LastIndex(partition.Partition, ":")
+	if idx != -1 {
+		return strconv.Atoi(partition.Partition[idx+1:])
+	} else {
+		return 0, errors.New("invalid format")
+	}
 }

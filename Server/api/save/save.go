@@ -5,7 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/marmyr/myservice/endpoints/utils"
 	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -14,23 +16,47 @@ const Method = eventbus.POST
 
 
 func ProcessRequest(c *gin.Context) {
+	logger := logging.Logger(c)
+
+	u, exists := c.Get(eventbus.AuthUserKey)
+	if !exists {
+		logger.Warn("Error parsing user credentials")
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error retrieving user credentials"})
+		return
+	}
+	user := u.(string)
+
 	// Parse JSON
 	data, err := utils.GetJsonDataSlice(c.Request.Body)
 	if err != nil {
+		logger.Info("Error parsing JSON body", zap.Error(err), zap.String("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
 	}
 
 	// Validate JSON
 	if validationError := validate(data); validationError != "" {
+		logger.Info("Error validating JSON body", zap.String("validation", validationError), zap.String("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": validationError})
 		return
 	}
 
+
 	// Store to DB
 	db := &storage.PersistentStorage{}
-	for _, entry := range data {
+	partitionDb := &storage.PartitionDb{}
 
+	partition, err := getPartition(partitionDb, user, len(data))
+	if err != nil {
+		logger.Error("Error validating JSON body", zap.Error(err), zap.String("user", user))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching a valid upload partition"})
+		return
+	}
+
+	// Item table expects partitions to be prefixed with "user:" to avoid needing globally unique partitions across players.
+	partitionWithOwner := storage.ApplyOwnerS(user, partition)
+	for _, entry := range data {
+		entry[storage.ColumnPartition] = partitionWithOwner // TODO: We're not setting Timestamp!
 		err = db.Store(entry, storage.TableEntries)
 
 		// TODO: Better error handling, what if 1/30 fails?
@@ -40,8 +66,10 @@ func ProcessRequest(c *gin.Context) {
 		}
 	}
 
+	// TODO: Return the partition they were stored to -- for each item prolly.
 	c.JSON(http.StatusOK, nil)
 }
+
 
 /*
 func ProcessRequest(c *gin.Context) {
@@ -66,11 +94,11 @@ func ProcessRequest(c *gin.Context) {
 // validate ensures that the input data is valid-ish
 func validate(data []map[string]interface{}) string {
 	for _, m := range data {
-		if _, ok := m["id"]; !ok {
+		if _, ok := m[storage.ColumnId]; !ok {
 			return `One or more items is missing the property "id"`
 		}
 
-		if _, ok := m["partition"]; ok {
+		if _, ok := m[storage.ColumnPartition]; ok {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "partition"`, m["id"].(string))
 		}
 	}

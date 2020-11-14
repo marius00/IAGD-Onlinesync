@@ -1,4 +1,4 @@
-package logincheck
+package download
 
 import (
 	"github.com/gin-gonic/gin"
@@ -6,10 +6,9 @@ import (
 	"net/http"
 )
 
-const Path = "/logincheck"
+const Path = "/download"
 const Method = eventbus.GET
 
 func ProcessRequest(c *gin.Context) {
-	// TODO: Should this maybe return limits?
-	c.JSON(http.StatusOK, gin.H{"msg": "Logged in and all that good stuff."})
+	c.JSON(http.StatusInternalServerError, gin.H{"msg": "Not implemented"})
 }

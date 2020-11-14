@@ -36,7 +36,7 @@ func authorizedHandler(authDb Authorizer) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": "API: Error validating authorization token"})
 			c.Abort()
 		} else if !isValid {
-			logger := logging.Logger(c)
+			logger := logging.Logger(c) // TODO: Rate limiting
 			logger.Warn("Received an invalid auth token", zap.String("user", user))
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: Authorization token invalid"})
 			c.Abort()
