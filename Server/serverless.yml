@@ -2,8 +2,8 @@
 # For full storage options, check the docs:
 #    docs.serverless.com
 
-service: myservice
-# app and org for use with dashboard.serverless.com
+service: iabackup
+# app and org for use with dashboard.serverless.com TODO: Look into this?
 #app: your-app-name
 #org: your-org-name
 
@@ -18,10 +18,6 @@ provider:
     securityGroupIds:
       - sg-0b126c5c
   environment:
-    DATABASE_USER: ${ssm:database_user}
-    DATABASE_PASSWORD: ${ssm:database_password}
-    DATABASE_HOST: ${ssm:database_host}
-    DATABASE_NAME: ${ssm:database_name}
     LAMBDA_HOST: ${ssm:lambda_host}
     ALLOWED_ORIGIN: ${ssm:allowed_origin}
 
@@ -33,40 +29,49 @@ package:
     - ./bin/**
 
 custom:
-  appName: myAppName
+  appName: iabackup
   stage: ${opt:stage, self:provider.stage}
   client:
-    bucketName: myservice-frontend-s3 # Must be globally unique
+    bucketName: iabackup-bucket # Must be globally unique
     distributionFolder: client/build
 
 functions:
-  EventsCreate:
-    handler: bin/partition
+  ListPartitions:
+    handler: bin/partitions
     events:
       - http:
-          path: /partition
+          path: /partitions
           method: get
-  Index:
-    handler: bin/index
+  UploadItems:
+    handler: bin/upload
     events:
-      - http:
-          path: index
-          method: get
-          cors: true
-  SessionLogin:
-    handler: bin/session_login
+    - http:
+        path: /upload
+        method: post
+  DownloadItems:
+    handler: bin/download
     events:
-      - http:
-          path: login
-          method: post
-          cors: true
-  SessionLogout:
-    handler: bin/session_logout
+    - http:
+        path: /download
+        method: get
+  RemoveItems:
+    handler: bin/remove
     events:
-      - http:
-          path: logout
-          method: post
-
+    - http:
+        path: /remove
+        method: post
+  LoginCheck:
+    handler: bin/logincheck
+    events:
+    - http:
+        path: /logincheck
+        method: get
+  AzureMigration:
+    handler: bin/migrate
+    events:
+    - http:
+        path: /migrate
+        method: post
 
 # you can add CloudFormation resource templates here
 plugins:
