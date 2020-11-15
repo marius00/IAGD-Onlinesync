@@ -1,4 +1,4 @@
-package save
+package upload
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const Path = "/save"
+const Path = "/upload"
 const Method = eventbus.POST
 
 type responseType struct {

@@ -1,4 +1,4 @@
-package save
+package upload
 
 import (
 	"github.com/marmyr/myservice/internal/storage"
