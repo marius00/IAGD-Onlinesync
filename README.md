@@ -1,4 +1,6 @@
 # IAGD-Onlinesync
 Backend part of the Grim Dawn Item Assistant backup solution.
 
-Keywords: Azure Functions V2, .Net core, Azure Tables
+* Server: Backend, AWS
+* Client: Frontend (will eventually allow downloads of IA backups)
+* IAGD-Emails: Login service consumed by the old backup solution in Azure
