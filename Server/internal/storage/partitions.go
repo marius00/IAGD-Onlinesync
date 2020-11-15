@@ -203,6 +203,41 @@ func (*PartitionDb) List(email string) ([]Partition, error) {
 	return partitionArr, nil
 }
 
+// Get a single partition for a given user
+func (*PartitionDb) Get(user string, partition string) (*Partition, error) {
+	primaryKeyExpr := expression.Key(columnEmail).Equal(expression.Value(user))
+	sortKeyExpr := expression.Key(columnPartition).Equal(expression.Value(partition))
+
+	expr, err := expression.NewBuilder().WithKeyCondition(primaryKeyExpr.And(sortKeyExpr)).Build()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := sess.Query(&dynamodb.QueryInput{
+		TableName:                 aws.String(tablePartitions),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var partitionArr []Partition
+	err = dynamodbattribute.UnmarshalListOfMaps(resp.Items, &partitionArr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(partitionArr) > 0 {
+		return &partitionArr[0], nil
+	}
+
+	return nil, nil
+}
+
 // GeneratePartitionKey will generate a partition key for the provided time period and iteration. (Iteration is arbitrary, allowing multiple partitions for a given time period, to prevent them growing too large)
 func GeneratePartitionKey(time time.Time, iteration int) string {
 	y, w := time.ISOWeek()

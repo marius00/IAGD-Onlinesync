@@ -79,6 +79,17 @@ func TestEntirePartitionIntegration(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	{ // Test "GET" single partition
+		fetched, err := db.Get(email, p)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		if fetched == nil {
+			t.Fatal("Fetched zero partitions")
+		}
+	}
+
 	// Test fetch created partition
 	{
 		fetchedPartition, err := db.GetActivePartition(email)
