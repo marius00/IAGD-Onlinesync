@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -49,4 +50,8 @@ func ExpectEquals(t *testing.T, expected string, v string) {
 	if expected != v {
 		t.Fatalf(`Expected "%v" got "%v"`, expected, v)
 	}
+}
+
+func RunAgainstRealDatabase() bool {
+	return os.Getenv("WINDIR") == "C:\\WINDOWS"
 }

@@ -9,13 +9,20 @@ import (
 	"github.com/marmyr/myservice/internal/storage"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 const Path = "/save"
 const Method = eventbus.POST
 
+type responseType struct {
+	Partition   string   `json:"partition"`   // Partition items were stored to
+	Unprocessed []string `json:"unprocessed"` // Items which remains unprocessed due to errors
+}
 
+// Accepts a POST request with a JSON body of format [{}, {}, {}] -- Any fields containing numbers should be sent in as strings
 func ProcessRequest(c *gin.Context) {
+	t := time.Now().UnixNano()
 	logger := logging.Logger(c)
 
 	u, exists := c.Get(eventbus.AuthUserKey)
@@ -41,55 +48,44 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-
 	// Store to DB
-	db := &storage.PersistentStorage{}
+	db := &storage.ItemDb{}
 	partitionDb := &storage.PartitionDb{}
 
-	partition, err := getPartition(partitionDb, user, len(data))
+	partitionNoPrefix, err := getPartition(partitionDb, user, len(data))
 	if err != nil {
 		logger.Error("Error validating JSON body", zap.Error(err), zap.String("user", user))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching a valid upload partition"})
 		return
 	}
 
-	// Item table expects partitions to be prefixed with "user:" to avoid needing globally unique partitions across players.
-	partitionWithOwner := storage.ApplyOwnerS(user, partition)
+	var unprocessed []string
+	numErrors := 0 // If everything is failing, just give up.
 	for _, entry := range data {
-		entry[storage.ColumnPartition] = partitionWithOwner // TODO: We're not setting Timestamp!
-		err = db.Store(entry, storage.TableEntries)
+		if numErrors < 5 {
+			entry[storage.ColumnTimestamp] = fmt.Sprintf("%d", t)
+			err = db.Insert(user, partitionNoPrefix, entry)
+		}
 
-		// TODO: Better error handling, what if 1/30 fails?
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
-			return
+		if err != nil || numErrors >= 5 {
+			unprocessed = append(unprocessed, entry[storage.ColumnId].(string))
+			numErrors = numErrors + 1
+			logger.Warn("Unable to store new item", zap.Error(err), zap.String("user", user), zap.String("id", entry[storage.ColumnId].(string)), zap.String("partition", partitionNoPrefix)) // TODO: May get some log spam if this happens.. since err continues to be !=nil
 		}
 	}
 
-	// TODO: Return the partition they were stored to -- for each item prolly.
-	c.JSON(http.StatusOK, nil)
+	r := responseType{
+		Partition:   partitionNoPrefix,
+		Unprocessed: unprocessed,
+	}
+
+	if len(unprocessed) == len(data) {
+		logger.Warn("Returning 500 internal server error, failed to process all items", zap.String("user", user), zap.Int("numItems", len(data)))
+		c.JSON(http.StatusInternalServerError, r)
+	} else {
+		c.JSON(http.StatusOK, r)
+	}
 }
-
-
-/*
-func ProcessRequest(c *gin.Context) {
-	data, err := utils.GetJsonData(c)
-	if err != nil {
-		c.Status(http.StatusBadRequest)
-		utils.WriteErrorMessage(c, err.Error())
-		return
-	}
-
-	storage := &storage.PersistentStorage{}
-	err = storage.Store(data, storage.TableEntries)
-	if err != nil {
-		c.Status(http.StatusBadRequest)
-		utils.WriteErrorMessage(c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, nil)
-}*/
 
 // validate ensures that the input data is valid-ish
 func validate(data []map[string]interface{}) string {
@@ -98,8 +94,16 @@ func validate(data []map[string]interface{}) string {
 			return `One or more items is missing the property "id"`
 		}
 
+		if len(m[storage.ColumnId].(string)) < 32 {
+			return `The field "id" must be of length 32 or longer.`
+		}
+
 		if _, ok := m[storage.ColumnPartition]; ok {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "partition"`, m["id"].(string))
+		}
+
+		if _, ok := m[storage.ColumnTimestamp]; ok {
+			return fmt.Sprintf(`Item with id="%s" contains invalid property "_timestamp"`, m["id"].(string))
 		}
 	}
 

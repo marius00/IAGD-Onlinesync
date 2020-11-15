@@ -11,6 +11,7 @@ type PartitionStorage interface {
 	Insert(email string, partition string, numItems int) error
 }
 
+// getPartition will return the current active partition, or a new one if the current active one is too full.
 func getPartition(db PartitionStorage, user string, numItems int) (string, error) {
 	activePartition, err := db.GetActivePartition(user)
 	if err != nil {

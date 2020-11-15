@@ -16,7 +16,7 @@ func expect(t *testing.T, m map[string]interface{}, field string, expected strin
 	}
 }
 
-func TestDeserializeJsonItem(t *testing.T) { // TODO: (18014398509481984 + 1) numbers which cannot be represented in double64
+func TestDeserializeJsonItem(t *testing.T) {
 	json := `
 {
 	"PartitionKey": "Some partition!",

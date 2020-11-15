@@ -4,22 +4,83 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
-type PersistentStorage struct {
+type ItemDb struct {
 }
 
 const (
-	TableEntries = "Entries"
+	tableItems = "Items"
 	ColumnId = "id"
 	ColumnPartition = "partition"
+	ColumnTimestamp = "_timestamp"
 )
 
-func (*PersistentStorage) StoreSlice(data []map[string]interface{}, tableName string) error {
+type Item = map[string]interface{}
+
+
+// Delete will delete a an item for a user
+func (*ItemDb) Delete(user string, partition string, id string) error {
+	input := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			ColumnPartition: {
+				S: aws.String(ApplyOwnerS(user, partition)),
+			},
+			ColumnId: {
+				S: aws.String(id),
+			},
+		},
+		TableName: aws.String(tableItems),
+	}
+
+	_, err := sess.DeleteItem(input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+// Fetch all items in a partition for a given user
+func (*ItemDb) List(user string, partition string) ([]Item, error) {
+	pKey := ApplyOwnerS(user, partition)
+	userPrimaryKeyExpr := expression.Key(ColumnPartition).Equal(expression.Value(pKey))
+
+	expr, err := expression.NewBuilder().WithKeyCondition(userPrimaryKeyExpr).Build()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := sess.Query(&dynamodb.QueryInput{
+		TableName:                 aws.String(tableItems),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var items []Item
+	err = dynamodbattribute.UnmarshalListOfMaps(resp.Items, &items)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+/*
+func (*ItemDb) StoreSlice(data []map[string]interface{}, tableName string) error {
 	items := make([]*dynamodb.TransactWriteItem, len(data))
 	for idx, item := range data {
 		input := toPut(item, tableName)
@@ -44,23 +105,25 @@ func (*PersistentStorage) StoreSlice(data []map[string]interface{}, tableName st
 
 	fmt.Println("Successfully added input to table " + tableName)
 	return nil
-}
+}*/
 
-// TODO: Should maybe take owner+partition as input, and be responsible for ApplyOwner and Sanitize?
 // Store will store arbitrary key:value data as JSON to the specified DynamoDB table
-func (*PersistentStorage) Store(data map[string]interface{}, tableName string) error {
-	input := toPutItemInput(data, tableName)
+func (*ItemDb) Insert(user string, partition string, data Item) error {
+	// Convert the arbitrary data and override partition
+	cnv := convertData(data)
+	p := ApplyOwnerS(user, partition)
+	cnv[ColumnPartition] = &dynamodb.AttributeValue{S: &p,}
 
-	output, err := sess.PutItem(input)
+	input := &dynamodb.PutItemInput{ // TODO: Would be nice to validate that the partition matches the format "owner:Year:week:it"
+		Item:      cnv,
+		TableName: aws.String(tableItems),
+	}
+
+	_, err := sess.PutItem(input)
 	if err != nil {
-		fmt.Println("Got error calling PutItem:")
-		fmt.Println(err.Error())
 		return err
 	}
 
-	output.String()
-
-	fmt.Println("Successfully added input to table " + tableName)
 	return nil
 }
 
@@ -92,7 +155,7 @@ func convertData(data map[string]interface{}) map[string]*dynamodb.AttributeValu
 
 	return vv
 }
-
+/*
 func toPut(data map[string]interface{}, tableName string) *dynamodb.Put {
 	params := &dynamodb.Put{
 		Item:      convertData(data),
@@ -101,15 +164,7 @@ func toPut(data map[string]interface{}, tableName string) *dynamodb.Put {
 
 	return params
 }
-
-func toPutItemInput(data map[string]interface{}, tableName string) *dynamodb.PutItemInput {
-	params := &dynamodb.PutItemInput{ // TODO: Would be nice to validate that the partition matches the format "owner:Year:week:it"
-		Item:      convertData(data),
-		TableName: aws.String(tableName),
-	}
-
-	return params
-}
+*/
 
 // SanitizePartition will remove the "owner:" prefix from a provided partition
 func SanitizePartition(partition string) string {
@@ -118,9 +173,11 @@ func SanitizePartition(partition string) string {
 }
 
 // ApplyOwner will append a prefix to the partition-entry to be used for Item Insertions
-func ApplyOwner(partition Partition, owner string) string {
-	return ApplyOwnerS(partition.Partition, owner)
+func ApplyOwner(user string, partition Partition) string {
+	return ApplyOwnerS(user, partition.Partition)
 }
-func ApplyOwnerS(partition string, owner string) string {
-	return fmt.Sprintf("%s:%s", owner, partition)
+
+// ApplyOwner will append a prefix to the partition-entry to be used for Item Insertions
+func ApplyOwnerS(user string, partition string) string {
+	return fmt.Sprintf("%s:%s", user, partition)
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/marmyr/myservice/endpoints/testutils"
 	"log"
-	"os"
 	"testing"
 	"time"
 )
@@ -45,11 +44,33 @@ func TestExtractIterationInvalid(t *testing.T) {
 	testutils.ExpectEquals(t, "0", fmt.Sprintf("%d", it))
 }
 
+func TestIsValidFormat(t *testing.T) {
+	if !IsValidFormat("2020:05:123") {
+		t.Fatal("Expected valid format")
+	}
+	if IsValidFormat("2020:53:123") {
+		t.Fatal("Expected invalid format")
+	}
+	if IsValidFormat("2020:-1:123") {
+		t.Fatal("Expected invalid format")
+	}
+	if IsValidFormat("2019:15:123") {
+		t.Fatal("Expected invalid format")
+	}
+	if IsValidFormat("2020:15:-1") {
+		t.Fatal("Expected invalid format")
+	}
+	if IsValidFormat("user@example.com:2020:15:123") {
+		t.Fatal("Expected invalid format")
+	}
+}
+
 func TestEntirePartitionIntegration(t *testing.T) {
-	if os.Getenv("WINDIR") != "C:\\WINDOWS" {
+	if !testutils.RunAgainstRealDatabase() {
 		log.Println("Skipping DB test again DynamoDb") // TODO: Get a CI instance up and running
 		return
 	}
+
 	db := &PartitionDb{}
 	email := "testerson@example.com"
 	tm := time.Now()

@@ -20,6 +20,7 @@ const (
 	columnNumItems  = "numItems"
 )
 
+// Using a struct for namespacing, using a different package name would create a folder nightmare.
 type PartitionDb struct {
 }
 
@@ -134,8 +135,6 @@ func (*PartitionDb) SetNumItems(email string, partition string, numItems int) er
 
 // Delete will delete a given partition entry for a user
 func (*PartitionDb) Delete(email string, partition string) error {
-	// TODO: Delete entire partition from item table [or delegate to item db? -- delegating may simplify testing]
-
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			columnEmail: {
@@ -158,8 +157,6 @@ func (*PartitionDb) Delete(email string, partition string) error {
 
 // Will get the first active partition for a given user, may return nil
 func (x *PartitionDb) GetActivePartition(email string) (*Partition, error) {
-	// TODO: On caller: If itemCount > Permitted, caller should close and create new. [simplifies testing]
-
 	partitionArr, err := x.List(email)
 	if err != nil {
 		return nil, err
@@ -223,4 +220,29 @@ func GetIteration(partition Partition) (int, error) {
 	} else {
 		return 0, errors.New("invalid format")
 	}
+}
+
+// IsValidFormat verifies that an externally provided partition is valid. This will reject internal partitions of user:year:week:idx format
+func IsValidFormat(partition string) bool {
+	s := strings.Split(partition, ":")
+	if len(s) != 3 {
+		return false
+	}
+
+	year, err := strconv.Atoi(s[0])
+	if err != nil || year < 2020 || year > 2050 {
+		return false
+	}
+
+	week, err := strconv.Atoi(s[1])
+	if err != nil || week < 0 || week > 52 {
+		return false
+	}
+
+	idx, err := strconv.Atoi(s[2])
+	if err != nil || idx < 0 {
+		return false
+	}
+
+	return true
 }
