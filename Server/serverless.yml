@@ -4,8 +4,8 @@
 
 service: iabackup
 # app and org for use with dashboard.serverless.com TODO: Look into this?
-#app: your-app-name
-#org: your-org-name
+app: iabackup
+org: marius00
 
 frameworkVersion: '>=1.28.0 <2.0.0'
 
@@ -15,8 +15,6 @@ provider:
   stage: dev
   region: us-east-1
   vpc:
-    securityGroupIds:
-      - sg-0b126c5c
   environment:
     LAMBDA_HOST: ${ssm:lambda_host}
     ALLOWED_ORIGIN: ${ssm:allowed_origin}

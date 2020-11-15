@@ -10,6 +10,6 @@
         /// Unique persistent identifier for this entry, defined by the callee.
         /// Typically Guid.NewGuid().ToString(), persisted to a local database.
         /// </summary>
-        public string Id { get; set; }
+        public string Key { get; set; }
     }
 }
