@@ -52,7 +52,7 @@ func (x *DeletedItemDb) Insert(partition Partition, item DeletedItem) error {
 
 // Fetch all items queued to be deleted for a given partition
 func (*DeletedItemDb) List(user string, partition string) ([]DeletedItem, error) {
-	userPrimaryKeyExpr := expression.Key(columnEmail).Equal(expression.Value(ApplyOwnerS(user, partition)))
+	userPrimaryKeyExpr := expression.Key(columnDeletedItemPartition).Equal(expression.Value(ApplyOwnerS(user, partition)))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(userPrimaryKeyExpr).Build()
 	if err != nil {
