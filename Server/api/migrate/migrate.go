@@ -11,6 +11,5 @@ const Method = eventbus.POST
 
 // Migrate a token from Azure to AWS
 func ProcessRequest(c *gin.Context) {
-	// TODO: Should this maybe return limits?
 	c.JSON(http.StatusInternalServerError, gin.H{"msg": "Not implemented"})
 }

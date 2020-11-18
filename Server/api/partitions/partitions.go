@@ -11,6 +11,7 @@ import (
 
 const Path = "/partitions"
 const Method = eventbus.GET
+var ProcessRequest = processRequest(&storage.PartitionDb{})
 
 type DB interface {
 	List(email string) ([]storage.Partition, error)
@@ -32,5 +33,3 @@ func processRequest(partitionDb DB) gin.HandlerFunc {
 		}
 	}
 }
-
-var ProcessRequest = processRequest(&storage.PartitionDb{})

@@ -77,5 +77,12 @@ func (*DeletedItemDb) List(user string, partition string) ([]DeletedItem, error)
 		return nil, err
 	}
 
-	return partitionArr, nil
+	return SanitizeDeletedItemPartition(partitionArr), nil
+}
+
+func SanitizeDeletedItemPartition(items []DeletedItem) []DeletedItem {
+	for _, item := range items {
+		item.Partition = SanitizePartition(item.Partition)
+	}
+	return items
 }

@@ -2,7 +2,7 @@ package storage
 
 import (
 	"fmt"
-	"github.com/marmyr/myservice/endpoints/testutils"
+	"github.com/marmyr/myservice/internal/testutils"
 	"log"
 	"testing"
 	"time"
@@ -37,8 +37,8 @@ func TestCreateListDeleteItem(t *testing.T) {
 	p := "2020:15:1"
 	id := "C11A9D5D-F92F-4079-AC68-C44ED2D36B10"
 	item := map[string]interface{}{
-		ColumnId:        id,
-		ColumnTimestamp: fmt.Sprintf("%d", time.Now().UnixNano()),
+		ItemColumnId:        id,
+		ItemColumnTimestamp: fmt.Sprintf("%d", time.Now().UnixNano()),
 		"stuff":         "fun stuff here",
 	}
 
@@ -56,7 +56,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 		t.Fatalf("Expected 1 item, got %d", len(items))
 	}
 
-	if items[0][ColumnId] != item[ColumnId] || items[0][ColumnTimestamp] != item[ColumnTimestamp] || items[0]["stuff"] != item["stuff"] {
+	if items[0][ItemColumnId] != item[ItemColumnId] || items[0][ItemColumnTimestamp] != item[ItemColumnTimestamp] || items[0]["stuff"] != item["stuff"] {
 		t.Fatal("The returned item is not the same as stored to DB")
 	}
 
@@ -64,5 +64,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 		t.Fatalf("Error deleting item %v", err)
 	}
 }
+
+// TODO: Testing that partitions are returned without owner prefix
 
 // TODO: A test which stores an array of real items to determine total size.

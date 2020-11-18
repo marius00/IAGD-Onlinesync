@@ -2,7 +2,7 @@ package storage
 
 import (
 	"fmt"
-	"github.com/marmyr/myservice/endpoints/testutils"
+	"github.com/marmyr/myservice/internal/testutils"
 	"log"
 	"testing"
 	"time"

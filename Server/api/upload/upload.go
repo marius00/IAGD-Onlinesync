@@ -63,14 +63,14 @@ func ProcessRequest(c *gin.Context) {
 	numErrors := 0 // If everything is failing, just give up.
 	for _, entry := range data {
 		if numErrors < 5 {
-			entry[storage.ColumnTimestamp] = fmt.Sprintf("%d", t)
+			entry[storage.ItemColumnTimestamp] = fmt.Sprintf("%d", t)
 			err = db.Insert(user, partitionNoPrefix, entry)
 		}
 
 		if err != nil || numErrors >= 5 {
-			unprocessed = append(unprocessed, entry[storage.ColumnId].(string))
+			unprocessed = append(unprocessed, entry[storage.ItemColumnId].(string))
 			numErrors = numErrors + 1
-			logger.Warn("Unable to store new item", zap.Error(err), zap.String("user", user), zap.String("id", entry[storage.ColumnId].(string)), zap.String("partition", partitionNoPrefix)) // TODO: May get some log spam if this happens.. since err continues to be !=nil
+			logger.Warn("Unable to store new item", zap.Error(err), zap.String("user", user), zap.String("id", entry[storage.ItemColumnId].(string)), zap.String("partition", partitionNoPrefix)) // TODO: May get some log spam if this happens.. since err continues to be !=nil
 		}
 	}
 
@@ -90,19 +90,19 @@ func ProcessRequest(c *gin.Context) {
 // validate ensures that the input data is valid-ish
 func validate(data []map[string]interface{}) string {
 	for _, m := range data {
-		if _, ok := m[storage.ColumnId]; !ok {
+		if _, ok := m[storage.ItemColumnId]; !ok {
 			return `One or more items is missing the property "id"`
 		}
 
-		if len(m[storage.ColumnId].(string)) < 32 {
+		if len(m[storage.ItemColumnId].(string)) < 32 {
 			return `The field "id" must be of length 32 or longer.`
 		}
 
-		if _, ok := m[storage.ColumnPartition]; ok {
+		if _, ok := m[storage.ItemColumnPartition]; ok {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "partition"`, m["id"].(string))
 		}
 
-		if _, ok := m[storage.ColumnTimestamp]; ok {
+		if _, ok := m[storage.ItemColumnTimestamp]; ok {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "_timestamp"`, m["id"].(string))
 		}
 	}

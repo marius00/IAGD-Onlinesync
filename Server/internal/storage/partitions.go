@@ -14,10 +14,10 @@ import (
 
 const (
 	tablePartitions = "Partitionss" // TODO: Fix this when AWS stops being anal about just having deleted a table
-	columnEmail     = "email"
-	columnPartition = "partition"
-	columnIsActive  = "isActive"
-	columnNumItems  = "numItems"
+	partitionsColumnEmail     = "email"
+	partitionsColumnPartition = "partition"
+	partitionsColumnIsActive  = "isActive"
+	partitionsColumnNumItems  = "numItems"
 )
 
 // Using a struct for namespacing, using a different package name would create a folder nightmare.
@@ -84,15 +84,15 @@ func (*PartitionDb) markInactive(email string, partition string) error {
 		},
 		TableName: aws.String(tablePartitions),
 		Key: map[string]*dynamodb.AttributeValue{
-			columnEmail: {
+			partitionsColumnEmail: {
 				S: aws.String(email),
 			},
-			columnPartition: {
+			partitionsColumnPartition: {
 				S: aws.String(partition),
 			},
 		},
 		ReturnValues:     aws.String("UPDATED_NEW"),
-		UpdateExpression: aws.String(fmt.Sprintf("set %s = :a", columnIsActive)),
+		UpdateExpression: aws.String(fmt.Sprintf("set %s = :a", partitionsColumnIsActive)),
 	}
 
 	_, err := sess.UpdateItem(input)
@@ -113,15 +113,15 @@ func (*PartitionDb) SetNumItems(email string, partition string, numItems int) er
 		},
 		TableName: aws.String(tablePartitions),
 		Key: map[string]*dynamodb.AttributeValue{
-			columnEmail: {
+			partitionsColumnEmail: {
 				S: aws.String(email),
 			},
-			columnPartition: {
+			partitionsColumnPartition: {
 				S: aws.String(partition),
 			},
 		},
 		ReturnValues:     aws.String("UPDATED_NEW"),
-		UpdateExpression: aws.String(fmt.Sprintf("set %s = :n", columnNumItems)),
+		UpdateExpression: aws.String(fmt.Sprintf("set %s = :n", partitionsColumnNumItems)),
 	}
 
 	_, err := sess.UpdateItem(input)
@@ -137,10 +137,10 @@ func (*PartitionDb) SetNumItems(email string, partition string, numItems int) er
 func (*PartitionDb) Delete(email string, partition string) error {
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			columnEmail: {
+			partitionsColumnEmail: {
 				S: aws.String(email),
 			},
-			columnPartition: {
+			partitionsColumnPartition: {
 				S: aws.String(partition),
 			},
 		},
@@ -174,7 +174,7 @@ func (x *PartitionDb) GetActivePartition(email string) (*Partition, error) {
 
 // Fetch all partitions for a given user
 func (*PartitionDb) List(email string) ([]Partition, error) {
-	userPrimaryKeyExpr := expression.Key(columnEmail).Equal(expression.Value(email))
+	userPrimaryKeyExpr := expression.Key(partitionsColumnEmail).Equal(expression.Value(email))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(userPrimaryKeyExpr).Build()
 	if err != nil {
@@ -205,8 +205,8 @@ func (*PartitionDb) List(email string) ([]Partition, error) {
 
 // Get a single partition for a given user
 func (*PartitionDb) Get(user string, partition string) (*Partition, error) {
-	primaryKeyExpr := expression.Key(columnEmail).Equal(expression.Value(user))
-	sortKeyExpr := expression.Key(columnPartition).Equal(expression.Value(partition))
+	primaryKeyExpr := expression.Key(partitionsColumnEmail).Equal(expression.Value(user))
+	sortKeyExpr := expression.Key(partitionsColumnPartition).Equal(expression.Value(partition))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(primaryKeyExpr.And(sortKeyExpr)).Build()
 	if err != nil {

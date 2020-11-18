@@ -17,9 +17,9 @@ type ItemDb struct {
 
 const (
 	tableItems = "Items"
-	ColumnId = "id"
-	ColumnPartition = "partition"
-	ColumnTimestamp = "_timestamp"
+	ItemColumnId = "id"
+	ItemColumnPartition = "partition"
+	ItemColumnTimestamp = "_timestamp"
 )
 
 type Item = map[string]interface{}
@@ -29,10 +29,10 @@ type Item = map[string]interface{}
 func (*ItemDb) Delete(user string, partition string, id string) error {
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			ColumnPartition: {
+			ItemColumnPartition: {
 				S: aws.String(ApplyOwnerS(user, partition)),
 			},
-			ColumnId: {
+			ItemColumnId: {
 				S: aws.String(id),
 			},
 		},
@@ -51,7 +51,7 @@ func (*ItemDb) Delete(user string, partition string, id string) error {
 // Fetch all items in a partition for a given user
 func (*ItemDb) List(user string, partition string) ([]Item, error) {
 	pKey := ApplyOwnerS(user, partition)
-	userPrimaryKeyExpr := expression.Key(ColumnPartition).Equal(expression.Value(pKey))
+	userPrimaryKeyExpr := expression.Key(ItemColumnPartition).Equal(expression.Value(pKey))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(userPrimaryKeyExpr).Build()
 	if err != nil {
@@ -76,7 +76,7 @@ func (*ItemDb) List(user string, partition string) ([]Item, error) {
 		return nil, err
 	}
 
-	return items, nil
+	return SanitizeItemPartition(items), nil
 }
 
 /*
@@ -112,7 +112,7 @@ func (*ItemDb) Insert(user string, partition string, data Item) error {
 	// Convert the arbitrary data and override partition
 	cnv := convertData(data)
 	p := ApplyOwnerS(user, partition)
-	cnv[ColumnPartition] = &dynamodb.AttributeValue{S: &p,}
+	cnv[ItemColumnPartition] = &dynamodb.AttributeValue{S: &p,}
 
 	input := &dynamodb.PutItemInput{ // TODO: Would be nice to validate that the partition matches the format "owner:Year:week:it"
 		Item:      cnv,
@@ -165,6 +165,14 @@ func toPut(data map[string]interface{}, tableName string) *dynamodb.Put {
 	return params
 }
 */
+
+// SanitizePartition will remove the "owner:" prefix from the partition of the items
+func SanitizeItemPartition(items []Item) []Item {
+	for _, item := range items {
+		item[ItemColumnPartition] = SanitizePartition(item[ItemColumnPartition].(string))
+	}
+	return items
+}
 
 // SanitizePartition will remove the "owner:" prefix from a provided partition
 func SanitizePartition(partition string) string {

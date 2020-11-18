@@ -2,7 +2,7 @@ package eventbus
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/endpoints/testutils"
+	"github.com/marmyr/myservice/internal/testutils"
 	"net/http"
 	"testing"
 )
