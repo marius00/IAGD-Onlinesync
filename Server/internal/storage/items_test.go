@@ -1,53 +1,36 @@
 package storage
 
 import (
-	"fmt"
 	"github.com/marmyr/myservice/internal/testutils"
 	"log"
 	"testing"
 	"time"
 )
 
-func TestSanitizePartition(t *testing.T) {
-	testutils.ExpectEquals(t, "b:c", SanitizePartition("a:b:c"))
-	testutils.ExpectEquals(t, "c", SanitizePartition("c"))
-	testutils.ExpectEquals(t, "c", SanitizePartition("b:c"))
-	testutils.ExpectEquals(t, "a:b:c", SanitizePartition("x:a:b:c"))
-}
-
-func TestApplyOwner(t *testing.T) {
-	testutils.ExpectEquals(t, "a:b:c", ApplyOwner("a", Partition{Partition: "b:c"}))
-
-	initial := "b:c"
-	owner := "owner@example.com"
-	combined := ApplyOwner(owner, Partition{Partition: initial})
-	testutils.ExpectEquals(t, owner+":"+initial, combined)
-
-	sanitized := SanitizePartition(combined)
-	testutils.ExpectEquals(t, initial, sanitized)
-}
-
 func TestCreateListDeleteItem(t *testing.T) {
 	if !testutils.RunAgainstRealDatabase() {
-		log.Println("Skipping DB test again DynamoDb")
+		log.Println("Skipping DB test")
 		return
 	}
 
+	ts := time.Now().Unix()
 	user := "item@example.com"
-	p := "2020:15:1"
-	id := "C11A9D5D-F92F-4079-AC68-C44ED2D36B10"
-	item := map[string]interface{}{
-		ItemColumnId:        id,
-		ItemColumnTimestamp: fmt.Sprintf("%d", time.Now().UnixNano()),
-		"stuff":         "fun stuff here",
+	item := Item {
+		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
+		Ts: ts,
+		BaseRecord: "my base record",
 	}
 
 	db := ItemDb{}
-	if err := db.Insert(user, p, item); err != nil {
+	if err := db.PurgeUser(user); err != nil {
+		t.Fatal("Failed to purge user")
+	}
+
+	if err := db.Insert(user, item); err != nil {
 		t.Fatalf("Error inserting item %v", err)
 	}
 
-	items, err := db.List(user, p)
+	items, err := db.List(user, ts-1)
 	if err != nil {
 		t.Fatalf("Error fetching items %v", err)
 	}
@@ -56,13 +39,15 @@ func TestCreateListDeleteItem(t *testing.T) {
 		t.Fatalf("Expected 1 item, got %d", len(items))
 	}
 
-	if items[0][ItemColumnId] != item[ItemColumnId] || items[0][ItemColumnTimestamp] != item[ItemColumnTimestamp] || items[0]["stuff"] != item["stuff"] {
+	if items[0].Id != item.Id || items[0].BaseRecord != item.BaseRecord || items[0].Ts != item.Ts {
 		t.Fatal("The returned item is not the same as stored to DB")
 	}
 
-	if err := db.Delete(user, p, id); err != nil {
+	if err := db.Delete(user, item.Id, ts); err != nil {
 		t.Fatalf("Error deleting item %v", err)
 	}
+
+	// TODO: Check that a deleted entry exists?
 }
 
 // TODO: Testing that partitions are returned without owner prefix

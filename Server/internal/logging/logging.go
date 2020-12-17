@@ -15,18 +15,18 @@ func init() {
 	var err error
 	logger, err = zap.NewProduction()
 	if err != nil {
-		log.Printf("Well this is embarassing.. error initializing logging: %v", err)
+		log.Printf("Well this is embarrassing.. error initializing logging: %v", err)
 	}
 }
 
 func Logger(ctx *gin.Context) zap.Logger {
 	newLogger := logger
-	if requestId, ok := ctx.Value(RequestID).(string); ok {
-		newLogger = newLogger.With(zap.String("req", requestId))
+	if requestID, ok := ctx.Value(RequestID).(string); ok {
+		newLogger = newLogger.With(zap.String("req", requestID))
 	} else {
-		requestId := uuid.NewV4().String()
-		ctx.Set(RequestID, requestId)
-		newLogger = newLogger.With(zap.String("req", requestId))
+		requestID := uuid.NewV4().String()
+		ctx.Set(RequestID, requestID)
+		newLogger = newLogger.With(zap.String("req", requestID))
 	}
 
 	return *newLogger

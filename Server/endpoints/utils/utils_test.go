@@ -26,7 +26,7 @@ func TestDeserializeJsonItem(t *testing.T) {
 }`
 
 	body := ioutil.NopCloser(strings.NewReader(json))
-	m, err := GetJsonData(body)
+	m, err := GetJSONData(body)
 	if err != nil {
 		expected(t, "err", "!nil", err.Error())
 	}
@@ -52,7 +52,7 @@ func TestDeserializeJsonItemArray(t *testing.T) {
 }]`
 
 	body := ioutil.NopCloser(strings.NewReader(json))
-	arr, err := GetJsonDataSlice(body)
+	arr, err := GetJSONDataSlice(body)
 	if err != nil {
 		expected(t, "err", "!nil", err.Error())
 	}

@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 )
 
-// GetJsonData extracts JSON from the POST body and returns it as a key:value map
-func GetJsonData(body io.ReadCloser) (map[string]interface{}, error) {
+// GetJSONData extracts JSON from the POST body and returns it as a key:value map
+func GetJSONData(body io.Reader) (map[string]interface{}, error) {
 	jsonMap := make(map[string]interface{})
 	data, err := ioutil.ReadAll(body)
 
@@ -22,7 +22,7 @@ func GetJsonData(body io.ReadCloser) (map[string]interface{}, error) {
 	return jsonMap, nil
 }
 
-func GetJsonDataSlice(body io.ReadCloser) ([]map[string]interface{}, error) {
+func GetJSONDataSlice(body io.Reader) ([]map[string]interface{}, error) {
 	jsonMap := make([]map[string]interface{}, 0)
 	data, err := ioutil.ReadAll(body)
 	if err != nil {

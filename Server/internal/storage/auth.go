@@ -1,38 +1,22 @@
 package storage
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/marmyr/myservice/internal/config"
 )
-
-const (
-	TableAccessToken = "AccessTokens"
-	ColumnEmail = "Email"
-	ColumnToken = "Token"
-)
-
 
 type AuthDb struct {
 }
 
-// TODO: Have tables be created automagically?
+type AuthEntry struct {
+	UserId  string `json:"userid"`
+	Token string `json:"-"`
+	Ts    int64  `json:"ts"`
+}
+
 // IsValid checks if an access token is valid for a given user
-func (*AuthDb) IsValid(email string, token string) (bool, error) {
-	result, err := sess.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String(TableAccessToken),
-		Key: map[string]*dynamodb.AttributeValue{
-			ColumnEmail: {
-				S: aws.String(email),
-			},
-			ColumnToken: {
-				S: aws.String(token),
-			},
-		},
-	})
+func (*AuthDb) IsValid(user string, token string) (bool, error) {
+	var sessions []AuthEntry
+	result := config.GetDatabaseInstance().Where("userid = ? AND token = ?", user, token).Find(&sessions)
 
-	if err != nil {
-		return false, err
-	}
-
-	return result.Item != nil, nil
+	return len(sessions) > 0, result.Error
 }

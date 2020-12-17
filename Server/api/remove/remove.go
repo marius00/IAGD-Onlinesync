@@ -17,10 +17,8 @@ const Path = "/remove"
 const Method = eventbus.POST
 
 type DeleteItemEntry struct {
-	Id        string `json:"id"`        // Item GUID
-	Partition string `json:"partition"` // Partition key, without owner prefix
+	ID        string `json:"id"`        // Item GUID
 }
-
 
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
@@ -40,68 +38,33 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-	// +++
 	itemDb := storage.ItemDb{}
-	partitionDb := storage.PartitionDb{}
-	deletedItemDb := storage.DeletedItemDb{}
-
-	activePartition, err := partitionDb.GetActivePartition(user)
-	if err != nil {
-		logger.Warn("Error fetching active partition", zap.Error(err), zap.String("user", user))
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching active partition"})
-		return
-	}
-
 	var successfulDeletes []DeleteItemEntry
 
-	t := time.Now().UnixNano()
+	t := time.Now().Unix()
 	for _, entry := range entries {
-		// The deletion entry goes in the active partition, to ensure other clients syncs it down.
-		var success = true
-		if err := deletedItemDb.Insert(*activePartition, storage.DeletedItem{Partition: entry.Partition, Id: entry.Id, Timestamp: t}); err != nil {
-			logger.Warn("Failed to insert deletion entry", zap.Error(err), zap.String("user", user), zap.String("id", entry.Id), zap.String("partition", entry.Partition))
-			success = false
-		}
-
-		// Delete the item from the ItemDB
-		if err := itemDb.Delete(user, storage.ApplyOwnerS(user, entry.Partition), entry.Id); err != nil {
-			logger.Warn("Failed to delete item", zap.Error(err), zap.String("user", user), zap.String("id", entry.Id), zap.String("partition", entry.Partition))
-			success = false
-		}
-
-		// If we actually managed to delete it..
-		if success {
+		// The deletion entry is used to ensure other clients deletes it
+		if err := itemDb.Delete(user, entry.ID, t); err != nil {
+			logger.Warn("Failed to delete item", zap.Error(err), zap.String("user", user), zap.String("id", entry.ID))
+		} else {
 			successfulDeletes = append(successfulDeletes, entry)
 		}
 	}
 
-	// TODO: Insert deletion entry
-	// TODO: Remove items from itemDb
-	// TODO: Update partition size?
-	// TODO: If partitionEmpty => Delete partition?
-
-
-	// TODO: Return
 	c.JSON(http.StatusOK, successfulDeletes)
 }
 
 func validate(entries []DeleteItemEntry) string {
 	for _, entry := range entries {
-		if len(entry.Id) < 32 {
+		if len(entry.ID) < 32 {
 			return `The field "id" must be of length 32 or longer.`
 		}
-
-		if !storage.IsValidFormat(entry.Partition) {
-			return `The field "partition" is of an invalid format"`
-		}
-
-		// TODO: Validate that the entries are sorted?
 	}
 
 	return ""
 }
 
-func decode(body io.ReadCloser) ([]DeleteItemEntry, error) {
+func decode(body io.Reader) ([]DeleteItemEntry, error) {
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
 		return nil, err

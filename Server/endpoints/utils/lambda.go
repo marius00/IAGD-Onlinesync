@@ -7,31 +7,20 @@ import (
 	"github.com/marmyr/myservice/internal/eventbus"
 )
 
-var initialized = false
 var ginLambda *ginadapter.GinLambda
 
 func CreatePrivateLambdaEntrypoint(path string, method string, fn gin.HandlerFunc) interface{} {
-	Handler := func(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-		if !initialized {
-			ginEngine := eventbus.MountProtectedRoute(path, method, fn)
-			ginLambda = ginadapter.New(ginEngine)
-			initialized = true
-		}
+	return func(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		ginEngine := eventbus.MountProtectedRoute(path, method, fn)
+		ginLambda = ginadapter.New(ginEngine)
 		return ginLambda.Proxy(req)
 	}
-
-	return Handler
 }
 
 func CreatePublicLambdaEntrypoint(path string, method string, fn gin.HandlerFunc) interface{} {
-	Handler := func(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-		if !initialized {
-			ginEngine := eventbus.MountPublicRoute(path, method, fn)
-			ginLambda = ginadapter.New(ginEngine)
-			initialized = true
-		}
+	return func(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		ginEngine := eventbus.MountPublicRoute(path, method, fn)
+		ginLambda = ginadapter.New(ginEngine)
 		return ginLambda.Proxy(req)
 	}
-
-	return Handler
 }

@@ -1,191 +1,115 @@
 package storage
 
 import (
-	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	"log"
-	"reflect"
-	"strconv"
-	"strings"
+	"errors"
+	"github.com/jinzhu/gorm"
+	"github.com/lib/pq"
+	"github.com/marmyr/myservice/internal/config"
 )
 
 type ItemDb struct {
 }
 
+type Item struct {
+	UserId string `json:"-" gorm:"column:userid"`
+	Id     string `json:"id"`
+	Ts     int64  `json:"ts"`
+
+	Mod        string `json:"mod"`
+	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
+
+	BaseRecord                 string `json:"baseRecord" gorm:"column:baserecord"`
+	PrefixRecord               string `json:"prefixRecord" gorm:"column:prefixrecord"`
+	SuffixRecord               string `json:"suffixRecord" gorm:"column:suffixrecord"`
+	ModifierRecord             string `json:"modifierRecord" gorm:"column:modifierrecord"`
+	TransmuteRecord            string `json:"transmuteRecord" gorm:"column:transmuterecord"`
+	MateriaRecord              string `json:"materiaRecord" gorm:"column:materiarecord"`
+	RelicCompletionBonusRecord string `json:"relicCompletionBonusRecord" gorm:"column:reliccompletionbonusrecord"`
+	EnchantmentRecord          string `json:"enchantmentRecord" gorm:"column:enchantmentrecord"`
+
+	Seed            int64 `json:"seed"`
+	RelicSeed       int64 `json:"relicSeed" gorm:"column:relicseed"`
+	EnchantmentSeed int64 `json:"enchantmentSeed" gorm:"column:enchantmentseed"`
+	MateriaCombines int64 `json:"materiaCombines" gorm:"column:materiacombines"`
+	StackCount      int64 `json:"stackCount" gorm:"column:stackcount"`
+}
+
+type DeletedItem struct {
+	UserId string `json:"-" gorm:"column:userid"`
+	Id     string `json:"id"`
+	Ts     int64  `json:"ts"`
+}
+func (DeletedItem) TableName() string {
+	return "deleteditem"
+}
+
 const (
-	tableItems = "Items"
-	ItemColumnId = "id"
-	ItemColumnPartition = "partition"
-	ItemColumnTimestamp = "_timestamp"
+	// https://github.com/lib/pq/blob/master/error.go#L78
+	UNIQUE_VIOLATION = "23505"
 )
 
-type Item = map[string]interface{}
-
-
 // Delete will delete a an item for a user
-func (*ItemDb) Delete(user string, partition string, id string) error {
-	input := &dynamodb.DeleteItemInput{
-		Key: map[string]*dynamodb.AttributeValue{
-			ItemColumnPartition: {
-				S: aws.String(ApplyOwnerS(user, partition)),
-			},
-			ItemColumnId: {
-				S: aws.String(id),
-			},
-		},
-		TableName: aws.String(tableItems),
+func (*ItemDb) Delete(user string, id string, timestamp int64) error {
+	DB := config.GetDatabaseInstance()
+
+	obj := Item{Id: id, UserId: user}
+	result := DB.Delete(&obj)
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return result.Error
 	}
 
-	_, err := sess.DeleteItem(input)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	result = DB.Create(&DeletedItem{UserId: user, Id: id, Ts: timestamp})
+	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION)
 }
 
+func ReturnOrIgnore(err error, ignore pq.ErrorCode) error {
+	if err != nil {
+		err := err.(*pq.Error)
+		if err.Code == ignore {
+			return nil
+		}
+	}
+
+	return err
+}
+
+func (*ItemDb) Insert(user string, item Item) error {
+	DB := config.GetDatabaseInstance()
+
+	item.UserId = user
+	result := DB.Create(&item)
+	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION)
+}
 
 // Fetch all items in a partition for a given user
-func (*ItemDb) List(user string, partition string) ([]Item, error) {
-	pKey := ApplyOwnerS(user, partition)
-	userPrimaryKeyExpr := expression.Key(ItemColumnPartition).Equal(expression.Value(pKey))
-
-	expr, err := expression.NewBuilder().WithKeyCondition(userPrimaryKeyExpr).Build()
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := sess.Query(&dynamodb.QueryInput{
-		TableName:                 aws.String(tableItems),
-		KeyConditionExpression:    expr.KeyCondition(),
-		ExpressionAttributeNames:  expr.Names(),
-		ExpressionAttributeValues: expr.Values(),
-	})
-
-	if err != nil {
-		return nil, err
-	}
+func (*ItemDb) List(user string, lastTimestamp int64) ([]Item, error) {
+	DB := config.GetDatabaseInstance()
 
 	var items []Item
-	err = dynamodbattribute.UnmarshalListOfMaps(resp.Items, &items)
+	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Find(&items)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return SanitizeItemPartition(items), nil
+	return items, result.Error
 }
 
-/*
-func (*ItemDb) StoreSlice(data []map[string]interface{}, tableName string) error {
-	items := make([]*dynamodb.TransactWriteItem, len(data))
-	for idx, item := range data {
-		input := toPut(item, tableName)
-		items[idx] = &dynamodb.TransactWriteItem {
-			Put: input,
-		}
-	}
+// Fetch all items queued to be deleted
+func (*ItemDb) ListDeletedItems(user string, lastTimestamp int64) ([]DeletedItem, error) {
+	DB := config.GetDatabaseInstance()
 
-	transactionItems := &dynamodb.TransactWriteItemsInput{
-		TransactItems: items,
-	}
-
-	output, err := sess.TransactWriteItems(transactionItems)
-
-	if err != nil {
-		fmt.Println("Got error calling PutItem:")
-		fmt.Println(err.Error())
-		return err
-	}
-
-	output.String()
-
-	fmt.Println("Successfully added input to table " + tableName)
-	return nil
-}*/
-
-// Store will store arbitrary key:value data as JSON to the specified DynamoDB table
-func (*ItemDb) Insert(user string, partition string, data Item) error {
-	// Convert the arbitrary data and override partition
-	cnv := convertData(data)
-	p := ApplyOwnerS(user, partition)
-	cnv[ItemColumnPartition] = &dynamodb.AttributeValue{S: &p,}
-
-	input := &dynamodb.PutItemInput{ // TODO: Would be nice to validate that the partition matches the format "owner:Year:week:it"
-		Item:      cnv,
-		TableName: aws.String(tableItems),
-	}
-
-	_, err := sess.PutItem(input)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	var deletedItems []DeletedItem
+	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Find(&deletedItems)
+	return deletedItems, result.Error
 }
 
-// convertData converts key:value data to a typesafe format DynamoDB can understand
-func convertData(data map[string]interface{}) map[string]*dynamodb.AttributeValue {
-	var vv = make(map[string]*dynamodb.AttributeValue)
-	for k, v := range data {
-		if reflect.ValueOf(v).Kind() == reflect.String {
-			x := v.(string)
-			xx := &(x)
-			vv[k] = &dynamodb.AttributeValue{S: xx,}
-		} else if reflect.ValueOf(v).Kind() == reflect.Float64 {
-			x := fmt.Sprintf("%f", v.(float64))
-			xx := &(x)
-			vv[k] = &dynamodb.AttributeValue{N: xx,}
-		} else if reflect.ValueOf(v).Kind() == reflect.Float32 {
-			x := fmt.Sprintf("%f", v.(float32))
-			xx := &(x)
-			vv[k] = &dynamodb.AttributeValue{N: xx,}
-		} else if reflect.ValueOf(v).Kind() == reflect.Int64 || reflect.ValueOf(v).Kind() == reflect.Int32 { // Is this really a use-case? Can JSON props into an int64?
-			x := strconv.Itoa(v.(int))
-			xx := &(x)
-			vv[k] = &dynamodb.AttributeValue{N: xx,}
-		} else {
-			// TODO: Tests for this
-			log.Printf("Unknown type: %s", reflect.ValueOf(v).Kind().String())
-		}
+
+// Fetch all items queued to be deleted
+func (*ItemDb) PurgeUser(user string) error {
+	db := config.GetDatabaseInstance()
+
+	result := db.Where("userid = ?", user).Delete(Item{})
+	if result.Error != nil {
+		return result.Error
 	}
 
-	return vv
-}
-/*
-func toPut(data map[string]interface{}, tableName string) *dynamodb.Put {
-	params := &dynamodb.Put{
-		Item:      convertData(data),
-		TableName: aws.String(tableName),
-	}
-
-	return params
-}
-*/
-
-// SanitizePartition will remove the "owner:" prefix from the partition of the items
-func SanitizeItemPartition(items []Item) []Item {
-	for _, item := range items {
-		item[ItemColumnPartition] = SanitizePartition(item[ItemColumnPartition].(string))
-	}
-	return items
-}
-
-// SanitizePartition will remove the "owner:" prefix from a provided partition
-func SanitizePartition(partition string) string {
-	idx := strings.Index(partition, ":")
-	return partition[idx+1:]
-}
-
-// ApplyOwner will append a prefix to the partition-entry to be used for Item Insertions
-func ApplyOwner(user string, partition Partition) string {
-	return ApplyOwnerS(user, partition.Partition)
-}
-
-// ApplyOwner will append a prefix to the partition-entry to be used for Item Insertions
-func ApplyOwnerS(user string, partition string) string {
-	return fmt.Sprintf("%s:%s", user, partition)
+	result = db.Where("userid = ?", user).Delete(DeletedItem{})
+	return result.Error
 }
