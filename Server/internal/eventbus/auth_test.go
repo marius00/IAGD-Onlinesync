@@ -67,7 +67,7 @@ func TestValidTokenShouldReturn200(t *testing.T) {
 // Ensures that the context is Aborted when it's supposed to. Mocks a "happy day 200 OK" return when not aborted.
 func processRequest(isAborted bool, t *testing.T) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHandler := authorizedHandler(&testutils.DummyAuthorizer{})
+		authHandler := authorizedHandler(&testutils.DummyAuthorizer{}, &testutils.DummyThrottler{})
 		authHandler(c)
 		if c.IsAborted() != isAborted {
 			t.Fatalf("Expected context IsAborted=%v got IsAborted=%v", c.IsAborted(), isAborted)

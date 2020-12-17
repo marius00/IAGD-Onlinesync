@@ -34,6 +34,14 @@ func (*DummyAuthorizer) IsValid(email string, token string) (bool, error) {
 	return email == "test@example.com" && token == "123456", nil
 }
 
+type DummyThrottler struct {}
+func (*DummyThrottler) GetNumEntries(user string, ip string) (int, error) {
+	return 1, nil
+}
+func (*DummyThrottler) Insert(user string, ip string) error {
+	return nil
+}
+
 func Expect(t *testing.T, w *httptest.ResponseRecorder, expectedStatus int, expectedBody string) {
 	if w.Code != expectedStatus {
 		t.Fatalf("Expected status code %v, got status code %v", expectedStatus, w.Code)

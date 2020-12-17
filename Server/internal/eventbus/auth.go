@@ -7,13 +7,18 @@ import (
 	"net/http"
 )
 
+const MaxAttempts int = 15
 const AuthUserKey = "AuthUserKey"
 type Authorizer interface {
 	IsValid(email string, token string) (bool, error)
 }
+type Throttler interface {
+	GetNumEntries(user string, ip string) (int, error)
+	Insert(user string, ip string) error
+}
 
 // authorizedHandler ensures that all requests has a valid access token, rejected requests are aborted.
-func authorizedHandler(authDb Authorizer) gin.HandlerFunc {
+func authorizedHandler(authDb Authorizer, throttleDb Throttler) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if token == "" {
@@ -29,6 +34,16 @@ func authorizedHandler(authDb Authorizer) gin.HandlerFunc {
 			return
 		}
 
+		ip := c.Request.RemoteAddr // TODO: Is this correct on lambda? X-Forwarded-For?
+		numAttempts, err := throttleDb.GetNumEntries(user, ip)
+		if numAttempts >= MaxAttempts || err != nil {
+			logger := logging.Logger(c)
+			logger.Info("Throttling request due to excess attempts", zap.Error(err), zap.Int("numAttempts", numAttempts), zap.String("user", user), zap.String("ip", ip))
+			c.JSON(http.StatusTooManyRequests, gin.H{"msg": "API: Throttled"})
+			c.Abort()
+			return
+		}
+
 		isValid, err := authDb.IsValid(user, token)
 		if err != nil {
 			logger := logging.Logger(c)
@@ -38,6 +53,7 @@ func authorizedHandler(authDb Authorizer) gin.HandlerFunc {
 		} else if !isValid {
 			logger := logging.Logger(c) // TODO: Rate limiting
 			logger.Warn("Received an invalid auth token", zap.String("user", user))
+			throttleDb.Insert(user, ip)
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: Authorization token invalid"})
 			c.Abort()
 		} else {

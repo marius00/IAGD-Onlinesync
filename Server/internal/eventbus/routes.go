@@ -21,8 +21,9 @@ func MountPublicRoute(path string, method string, fn gin.HandlerFunc) *gin.Engin
 
 func AddProtectedRoute(engine *gin.Engine, path string, method string, fn gin.HandlerFunc) *gin.Engine {
 	authDb := &storage.AuthDb{}
+	throttleDb := &storage.ThrottleDb{}
 	group := engine.Group("/")
-	group.Use(authorizedHandler(authDb))
+	group.Use(authorizedHandler(authDb, throttleDb))
 	setMethodHandlerForGroup(method, path, fn, group)
 	return engine
 }
