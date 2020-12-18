@@ -19,8 +19,9 @@ func (ThrottleEntry) TableName() string {
 	return "throttleentry"
 }
 
+// GetNumEntries returns the number of failed attempts by a user, in the past 2 hours
 func (*ThrottleDb) GetNumEntries(user string, ip string) (int, error) {
-	var entries []ThrottleEntry
+	var entries []ThrottleEntry // TODO: A delete job
 	result := config.GetDatabaseInstance().Where("(userid = ? OR ip = ?) AND created_at > NOW() - INTERVAL '240 minutes'", user, ip).Find(&entries)
 
 	return len(entries), result.Error

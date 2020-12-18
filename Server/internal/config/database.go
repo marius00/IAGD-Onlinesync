@@ -10,9 +10,7 @@ import (
 )
 
 var db *gorm.DB
-// TODO: Just use github.com/jackc/pgx instead
-// https://github.com/jackc/pgx
-// https://medium.com/avitotech/how-to-work-with-postgres-in-go-bad2dabd13e4
+
 func GetDatabaseInstance() *gorm.DB {
 	if db == nil {
 		log.Printf("Opening database connection to %s, db %s..\n", os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_NAME"))

@@ -13,3 +13,10 @@ const Method = eventbus.POST
 func ProcessRequest(c *gin.Context) {
 	c.JSON(http.StatusInternalServerError, gin.H{"msg": "Not implemented"})
 }
+// TODO: Endpoint which takes EMAIL and returns a TOKEN (stores token+pin + sends email)
+// https://github.com/marius00/IAGD-Onlinesync/blob/master/ItemSync/Items/ValidateEmail.cs
+
+// TODO: Endpoint which verifies pin for token (pin+token => secret, if new player, insert buddy id)
+// https://github.com/marius00/IAGD-Onlinesync/blob/master/ItemSync/Items/VerifyEmailToken.cs
+
+// TODO:

@@ -39,7 +39,7 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 
 		lastTimestamp, err := strconv.ParseInt(lastTimestampStr, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "ts" is not a valid long`})
+			c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "ts" is not a valid timestamp`})
 			return
 		}
 

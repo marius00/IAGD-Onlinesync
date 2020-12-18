@@ -51,7 +51,7 @@ func authorizedHandler(authDb Authorizer, throttleDb Throttler) gin.HandlerFunc 
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": "API: Error validating authorization token"})
 			c.Abort()
 		} else if !isValid {
-			logger := logging.Logger(c) // TODO: Rate limiting
+			logger := logging.Logger(c)
 			logger.Warn("Received an invalid auth token", zap.String("user", user))
 			throttleDb.Insert(user, ip)
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: Authorization token invalid"})
