@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 const Path = "/login"
@@ -86,4 +87,10 @@ func isEmailValid(e string) bool {
 // generateRandomCode generates a random 9 digit pincode
 func generateRandomCode() string {
 	return fmt.Sprintf("%d", 100000000 + rand.Intn(99999999))
+}
+
+
+// init ensures that the random function is seeded at startup, so the pin codes are not generated in a predictable sequence.
+func init() {
+	rand.Seed(time.Now().Unix())
 }

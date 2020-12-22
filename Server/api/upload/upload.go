@@ -18,7 +18,6 @@ const Path = "/upload"
 const Method = eventbus.POST
 
 type responseType struct {
-	Partition   string   `json:"partition"`   // Partition items were stored to
 	Unprocessed []string `json:"unprocessed"` // Items which remains unprocessed due to errors
 }
 

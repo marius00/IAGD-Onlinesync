@@ -20,8 +20,8 @@ func main() {
 	eventbus.AddProtectedRoute(ginEngine, download.Path, download.Method, download.ProcessRequest)
 	eventbus.AddProtectedRoute(ginEngine, migrate.Path, migrate.Method, migrate.ProcessRequest)
 	eventbus.AddProtectedRoute(ginEngine, remove.Path, remove.Method, remove.ProcessRequest)
-	eventbus.AddProtectedRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
-	eventbus.AddProtectedRoute(ginEngine, login.Path, login.Method, login.ProcessRequest)
+	eventbus.AddPublicRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
+	eventbus.AddPublicRoute(ginEngine, login.Path, login.Method, login.ProcessRequest)
 	eventbus.AddProtectedRoute(ginEngine, logincheck.Path, logincheck.Method, logincheck.ProcessRequest)
 	eventbus.AddProtectedRoute(ginEngine, upload.Path, upload.Method, upload.ProcessRequest)
 

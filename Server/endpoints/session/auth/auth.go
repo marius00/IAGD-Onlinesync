@@ -8,6 +8,6 @@ import (
 )
 
 func main() {
-	handler := utils.CreatePrivateLambdaEntrypoint(api.Path, api.Method, api.ProcessRequest)
+	handler := utils.CreatePublicLambdaEntrypoint(api.Path, api.Method, api.ProcessRequest)
 	lambda.Start(handler)
 }

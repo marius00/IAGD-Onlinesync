@@ -90,7 +90,7 @@ func (*ItemDb) Insert(user string, item Item) error {
 	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION)
 }
 
-// Fetch all items in a partition for a given user
+// Fetch all items for a given user, since the provided timestamp
 func (*ItemDb) List(user string, lastTimestamp int64) ([]Item, error) {
 	DB := config.GetDatabaseInstance()
 

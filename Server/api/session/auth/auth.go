@@ -17,8 +17,8 @@ const Method = eventbus.POST
 // Input: key=yourToken&code=123123
 // Output: {"token": "yourAccessToken"}
 func ProcessRequest(c *gin.Context) {
-	key := c.Query("key")
-	code := c.Query("code")
+	key := c.PostForm("key")
+	code := c.PostForm("code")
 	logger := logging.Logger(c)
 	throttle := storage.ThrottleDb{}
 
