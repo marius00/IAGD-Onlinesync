@@ -11,6 +11,14 @@ const Method = eventbus.POST
 
 // Migrate a token from Azure to AWS
 func ProcessRequest(c *gin.Context) {
+	// TODO: Accept token
+	// TODO: Verify token (length etc)
+	// TODO: Throttle
+	// TODO: Ask azure endpoint
+
+	// TODO: Make azure endpoint :D
+
+	// TODO: Return new token + email
 	c.JSON(http.StatusInternalServerError, gin.H{"msg": "Not implemented"})
 }
 // TODO: Endpoint which takes EMAIL and returns a TOKEN (stores token+pin + sends email)

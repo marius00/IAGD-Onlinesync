@@ -9,10 +9,11 @@ type AuthDb struct {
 }
 
 type AuthEntry struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Token  string `json:"-"`
-	Ts     time.Time  `json:"ts"`
+	UserId string    `json:"-" gorm:"column:userid"`
+	Token  string    `json:"-"`
+	Ts     time.Time `json:"ts"`
 }
+
 func (AuthEntry) TableName() string {
 	return "authentry"
 }
@@ -23,6 +24,7 @@ type AuthAttempt struct {
 	Code      string    `json:"-"`
 	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
 }
+
 func (AuthAttempt) TableName() string {
 	return "authattempt"
 }
@@ -38,7 +40,14 @@ func (*AuthDb) IsValid(user string, accessToken string) (bool, error) {
 // InitiateAuthentication initializes an authentication with key/code
 func (*AuthDb) InitiateAuthentication(entry AuthAttempt) error {
 	db := config.GetDatabaseInstance()
-	result := db.Create(&entry) // TODO: A delete job
+	result := db.Create(&entry)
+	return result.Error
+}
+
+// Maintenance performs maintenance work such as deleting expired entries
+func (*AuthDb) Maintenance() error {
+	db := config.GetDatabaseInstance()
+	result := db.Where("created_at < NOW() - interval '1 day'").Delete(AuthAttempt{})
 	return result.Error
 }
 
@@ -57,7 +66,7 @@ func (*AuthDb) GetAuthenticationAttempt(key string, code string) (*AuthAttempt, 
 // StoreSuccessfulAuth stores an access token and deletes the login attempt entry
 func (*AuthDb) StoreSuccessfulAuth(user string, key string, authToken string) error {
 	db := config.GetDatabaseInstance()
-	result := db.Create(&AuthEntry{UserId: user, Token: authToken, Ts: time.Now()}) // TODO: Move to db?
+	result := db.Create(&AuthEntry{UserId: user, Token: authToken, Ts: time.Now()})
 	if result.Error != nil {
 		return result.Error
 	}

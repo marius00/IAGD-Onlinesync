@@ -65,7 +65,12 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-	// TODO: send Email!
+	// Send email with the login code
+	if err := sendMail(logger, attempt.UserId, attempt.Code); err != nil {
+		logger.Warn("Error sending email, initializing user authentication failed")
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (sendmail)`})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"key": attempt.Key})
 }
@@ -78,7 +83,7 @@ func isEmailValid(e string) bool {
 	return emailRegex.MatchString(e)
 }
 
-// generateRandomCode generates a random 8 digit pincode
+// generateRandomCode generates a random 9 digit pincode
 func generateRandomCode() string {
-	return fmt.Sprintf("%d", 10000000 + rand.Intn(9999999))
+	return fmt.Sprintf("%d", 100000000 + rand.Intn(99999999))
 }

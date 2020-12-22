@@ -34,41 +34,53 @@ custom:
     distributionFolder: client/build
 
 functions:
-  ListPartitions:
-    handler: bin/partitions
+  DeleteAccount:
+    handler: bin/delete
     events:
       - http:
-          path: /partitions
+          path: /delete
+          method: delete
+  DownloadItems:
+    handler: bin/download
+    events:
+      - http:
+          path: /download
+          method: get
+  AzureMigration:
+    handler: bin/migrate
+    events:
+      - http:
+          path: /migrate
+          method: post
+  RemoveItems:
+    handler: bin/remove
+    events:
+      - http:
+          path: /remove
+          method: post
+  Auth:
+    handler: bin/auth
+    events:
+      - http:
+          path: /auth
+          method: post
+  Login:
+    handler: bin/login
+    events:
+      - http:
+          path: /login
+          method: get
+  LoginCheck:
+    handler: bin/logincheck
+    events:
+      - http:
+          path: /logincheck
           method: get
   UploadItems:
     handler: bin/upload
     events:
     - http:
         path: /upload
-        method: post
-  DownloadItems:
-    handler: bin/download
-    events:
-    - http:
-        path: /download
-        method: get
-  RemoveItems:
-    handler: bin/remove
-    events:
-    - http:
-        path: /remove
-        method: post
-  LoginCheck:
-    handler: bin/logincheck
-    events:
-    - http:
-        path: /logincheck
-        method: get
-  AzureMigration:
-    handler: bin/migrate
-    events:
-    - http:
-        path: /migrate
         method: post
 
 # you can add CloudFormation resource templates here

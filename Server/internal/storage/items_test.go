@@ -47,9 +47,64 @@ func TestCreateListDeleteItem(t *testing.T) {
 		t.Fatalf("Error deleting item %v", err)
 	}
 
-	// TODO: Check that a deleted entry exists?
+	deletedItems, err := db.ListDeletedItems(user, ts-1)
+	if err != nil {
+		t.Fatalf("Error fetching deleted items %v", err)
+	}
+
+	if len(deletedItems) != 1 {
+		t.Fatalf("Expected 1 deleted item, got %d", len(items))
+	}
+
+	if deletedItems[0].Id != item.Id {
+		t.Fatalf("Expected deleted item id %s, got id %s", item.Id, deletedItems[0].Id)
+	}
 }
 
-// TODO: Testing that partitions are returned without owner prefix
+func TestDoesNotFetchItemInThePast(t *testing.T) {
+	if !testutils.RunAgainstRealDatabase() {
+		log.Println("Skipping DB test")
+		return
+	}
 
-// TODO: A test which stores an array of real items to determine total size.
+	ts := time.Now().Unix()
+	user := "past-item@example.com"
+	item := Item {
+		Id: "C11A9D5D-F92F-4079-AC68-AAAAAAAAAAAA",
+		Ts: ts,
+		BaseRecord: "my base record",
+	}
+
+	db := ItemDb{}
+	if err := db.PurgeUser(user); err != nil {
+		t.Fatal("Failed to purge user")
+	}
+
+	if err := db.Insert(user, item); err != nil {
+		t.Fatalf("Error inserting item %v", err)
+	}
+
+	// Same timestamp
+	items, err := db.List(user, ts)
+	if err != nil {
+		t.Fatalf("Error fetching items %v", err)
+	}
+
+	if len(items) != 0 {
+		t.Fatalf("Expected 0 item, got %d", len(items))
+	}
+
+	// Newer timestamp
+	items, err = db.List(user, ts+1)
+	if err != nil {
+		t.Fatalf("Error fetching items %v", err)
+	}
+
+	if len(items) != 0 {
+		t.Fatalf("Expected 0 item, got %d", len(items))
+	}
+
+	if err := db.PurgeUser(user); err != nil {
+		t.Fatal("Failed to purge user")
+	}
+}

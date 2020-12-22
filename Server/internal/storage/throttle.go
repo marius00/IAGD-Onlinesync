@@ -21,7 +21,7 @@ func (ThrottleEntry) TableName() string {
 
 // GetNumEntries returns the number of failed attempts by a user, in the past 2 hours
 func (*ThrottleDb) GetNumEntries(user string, ip string) (int, error) {
-	var entries []ThrottleEntry // TODO: A delete job
+	var entries []ThrottleEntry
 	result := config.GetDatabaseInstance().Where("(userid = ? OR ip = ?) AND created_at > NOW() - INTERVAL '240 minutes'", user, ip).Find(&entries)
 
 	return len(entries), result.Error
@@ -42,5 +42,12 @@ func (*ThrottleDb) Insert(user string, ip string) error {
 func (*ThrottleDb) Purge(user string, ip string) error {
 	db := config.GetDatabaseInstance()
 	result := db.Where("userid = ? OR ip = ?", user, ip).Delete(ThrottleEntry{})
+	return result.Error
+}
+
+// Maintenance performs maintenance work such as deleting expired entries
+func (*ThrottleDb) Maintenance() error {
+	db := config.GetDatabaseInstance()
+	result := db.Where("created_at < NOW() - interval '1 day'").Delete(ThrottleEntry{})
 	return result.Error
 }

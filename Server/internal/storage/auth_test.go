@@ -129,6 +129,4 @@ func TestAuthFlowWrongKey(t *testing.T) {
 	}
 }
 
-// TODO: API should throttle attempts with code to prevent brute force
-
 // TODO: Test validate expired?
