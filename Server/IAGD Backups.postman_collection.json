@@ -1,0 +1,192 @@
+{
+	"info": {
+		"_postman_id": "13b7fc75-3e5c-445e-8288-e6cd9c86056d",
+		"name": "IAGD Backups",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Check if logged in",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "magictoken",
+						"type": "text"
+					},
+					{
+						"key": "X-Api-User",
+						"value": "test@example.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{Hostname}}/logincheck",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"logincheck"
+					]
+				},
+				"description": "Check if logged in"
+			},
+			"response": []
+		},
+		{
+			"name": "Login (request pincode)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{Hostname}}/login?email=",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"login"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": ""
+						}
+					]
+				},
+				"description": "GET /login?email=someone@example.com\r\n\r\nResponse: JSON {\"key\": \"somevalue\"}\r\n\r\nA pincode is sent to the provided e-mail address.\r\nThis pincode and the returned key must be provide to the /auth endpoint."
+			},
+			"response": []
+		},
+		{
+			"name": "Auth (Enter Pincode)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "key",
+							"value": "91626d90-5026-463e-a0f1-7ef6902bd868",
+							"type": "text"
+						},
+						{
+							"key": "code",
+							"value": "198498093",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{Hostname}}/auth",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"auth"
+					]
+				},
+				"description": "Input: Key + Pincode\r\nResponse: Auth token for the API\r\n\r\nThe key is provided by the /login endpoint, and the pincode delivered via email, sent by /login."
+			},
+			"response": []
+		},
+		{
+			"name": "Download items",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "magictoken",
+						"type": "text"
+					},
+					{
+						"key": "X-Api-User",
+						"value": "test@example.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{Hostname}}/download?ts=0",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"download"
+					],
+					"query": [
+						{
+							"key": "ts",
+							"value": "0"
+						}
+					]
+				},
+				"description": "Download all the items since the provided timestamp"
+			},
+			"response": []
+		},
+		{
+			"name": "Upload items",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "magictoken",
+						"type": "text"
+					},
+					{
+						"key": "X-Api-User",
+						"value": "test@example.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{Hostname}}/upload",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"upload"
+					]
+				},
+				"description": "Upload items"
+			},
+			"response": []
+		},
+		{
+			"name": "Delete items",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "magictoken",
+						"type": "text"
+					},
+					{
+						"key": "X-Api-User",
+						"value": "test@example.com",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[{\"id\": \"someid1231231231222222222231232131\"}]"
+				},
+				"url": {
+					"raw": "{{Hostname}}/remove",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"remove"
+					]
+				},
+				"description": "Delete items\r\n\r\nExpected input body:\r\n[{\"id\": \"someid\"}]"
+			},
+			"response": []
+		}
+	]
+}
