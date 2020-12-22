@@ -5,6 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"github.com/marmyr/myservice/internal/config"
+	"time"
 )
 
 type ItemDb struct {
@@ -60,6 +61,14 @@ func (*ItemDb) Delete(user string, id string, timestamp int64) error {
 
 	result = DB.Create(&DeletedItem{UserId: user, Id: id, Ts: timestamp})
 	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION)
+}
+
+// Maintenance deletes 'delete item' entries older than a year
+func (*ItemDb) Maintenance() error {
+	db := config.GetDatabaseInstance()
+	when := time.Now().AddDate(-1, 0, 0)
+	result := db.Where("ts < ?", when).Delete(DeletedItem{})
+	return result.Error
 }
 
 func ReturnOrIgnore(err error, ignore pq.ErrorCode) error {

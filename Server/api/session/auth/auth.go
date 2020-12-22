@@ -28,7 +28,7 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-	if len(code) != 8 {
+	if len(code) != 9 {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": `POST parameter "code" does not appear to contain a valid pin code`})
 		return
 	}

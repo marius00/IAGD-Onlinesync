@@ -14,10 +14,12 @@ provider:
   runtime: go1.x
   stage: dev
   region: us-east-1
-  vpc:
   environment:
-    LAMBDA_HOST: ${ssm:lambda_host}
-    ALLOWED_ORIGIN: ${ssm:allowed_origin}
+    DATABASE_USER: ${ssm:/gd/ia/backup/config/db/user}
+    DATABASE_PASSWORD: ${ssm:/gd/ia/backup/config/db/password}
+    DATABASE_HOST: ${ssm:/gd/ia/backup/config/db/hostname}
+    DATABASE_NAME: ${ssm:/gd/ia/backup/config/db/database}
+    ALLOWED_ORIGIN: ${ssm:/gd/ia/backup/config/allowed_origin}
 
 
 package:
