@@ -2,9 +2,9 @@ package storage
 
 import (
 	"github.com/marmyr/myservice/internal/testutils"
+	"github.com/marmyr/myservice/internal/util"
 	"log"
 	"testing"
-	"time"
 )
 
 func TestCreateListDeleteItem(t *testing.T) {
@@ -13,7 +13,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 		return
 	}
 
-	ts := time.Now().Unix()
+	ts := util.GetTimestamp()
 	user := "item@example.com"
 	item := Item {
 		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
@@ -67,7 +67,7 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 		return
 	}
 
-	ts := time.Now().Unix()
+	ts := util.GetTimestamp()
 	user := "past-item@example.com"
 	item := Item {
 		Id: "C11A9D5D-F92F-4079-AC68-AAAAAAAAAAAA",

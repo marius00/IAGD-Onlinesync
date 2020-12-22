@@ -51,7 +51,7 @@ functions:
     events:
       - http:
           path: /migrate
-          method: post
+          method: get
   RemoveItems:
     handler: bin/remove
     events:

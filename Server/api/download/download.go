@@ -5,6 +5,7 @@ import (
 	"github.com/marmyr/myservice/internal/eventbus"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
+	"github.com/marmyr/myservice/internal/util"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -16,8 +17,9 @@ const Method = eventbus.GET
 var ProcessRequest = processRequest(&storage.ItemDb{})
 
 type responseType struct {
-	Items   []storage.Item        `json:"items"`
-	Deleted []storage.DeletedItem `json:"deleted"`
+	Items     []storage.Item        `json:"items"`
+	Deleted   []storage.DeletedItem `json:"deleted"`
+	Timestamp int64                 `json:"timestamp"`
 }
 
 type ItemProvider interface {
@@ -31,6 +33,7 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 		u, _ := c.Get(eventbus.AuthUserKey)
 		user := u.(string)
 
+		currentTimestamp := util.GetTimestamp()
 		lastTimestampStr, ok := c.GetQuery("ts")
 		if !ok {
 			c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "ts" is missing`})
@@ -60,6 +63,7 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 		r := responseType{
 			Items:   items,
 			Deleted: deleted,
+			Timestamp: currentTimestamp,
 		}
 
 		c.JSON(http.StatusOK, r)

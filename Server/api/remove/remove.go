@@ -6,11 +6,11 @@ import (
 	"github.com/marmyr/myservice/internal/eventbus"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
+	"github.com/marmyr/myservice/internal/util"
 	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
 )
 
 const Path = "/remove"
@@ -41,10 +41,10 @@ func ProcessRequest(c *gin.Context) {
 	itemDb := storage.ItemDb{}
 	var successfulDeletes []DeleteItemEntry
 
-	t := time.Now().Unix()
+	timeOfRemove := util.GetTimestamp()
 	for _, entry := range entries {
 		// The deletion entry is used to ensure other clients deletes it
-		if err := itemDb.Delete(user, entry.ID, t); err != nil {
+		if err := itemDb.Delete(user, entry.ID, timeOfRemove); err != nil {
 			logger.Warn("Failed to delete item", zap.Error(err), zap.String("user", user), zap.String("id", entry.ID))
 		} else {
 			successfulDeletes = append(successfulDeletes, entry)

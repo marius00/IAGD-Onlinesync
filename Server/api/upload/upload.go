@@ -7,11 +7,11 @@ import (
 	"github.com/marmyr/myservice/internal/eventbus"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
+	"github.com/marmyr/myservice/internal/util"
 	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
 )
 
 const Path = "/upload"
@@ -24,7 +24,7 @@ type responseType struct {
 
 // Accepts a POST request with a JSON body of format [{}, {}, {}] -- Any fields containing numbers should be sent in as strings
 func ProcessRequest(c *gin.Context) {
-	t := time.Now().Unix()
+	timeOfUpload := util.GetTimestamp()
 	logger := logging.Logger(c)
 
 	u, exists := c.Get(eventbus.AuthUserKey)
@@ -57,7 +57,7 @@ func ProcessRequest(c *gin.Context) {
 	numErrors := 0 // If everything is failing, just give up.
 	for _, item := range data {
 		if numErrors < 5 {
-			item.Ts = t
+			item.Ts = timeOfUpload
 			err = db.Insert(user, item)
 		}
 
