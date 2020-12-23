@@ -44,8 +44,15 @@ func ProcessRequest(c *gin.Context) {
 
 
 	// TODO: Ask azure endpoint
+	user := "askAzure"
 
 	// TODO: Make azure endpoint :D
+
+
+	userDb := storage.UserDb{}
+	if err := userDb.Insert(storage.UserEntry{UserId: user}); err != nil {
+		logger.Warn("Error inserting user entry", zap.String("user", user), zap.Error(err))
+	}
 
 	// TODO: Return new token + email
 	c.JSON(http.StatusInternalServerError, gin.H{"msg": "Not implemented"})

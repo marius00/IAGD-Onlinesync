@@ -72,6 +72,21 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
+	// Create a user entry for the user, if one does not exist.
+	var existing = "EXISTING"
+	userDb := storage.UserDb{}
+	u, err := userDb.Get(fetched.UserId)
+	if err != nil {
+		logger.Warn("Error fetching user entry", zap.String("user", fetched.UserId), zap.Error(err))
+	}
+	if u == nil {
+		// TODO: Check if items exists in Azure?
+		existing = "NEW"
+		if err := userDb.Insert(storage.UserEntry{UserId: fetched.UserId}); err != nil {
+			logger.Warn("Error inserting user entry", zap.String("user", fetched.UserId), zap.Error(err))
+		}
+	}
+
 	logger.Debug("Login succeeded", zap.String("user", fetched.UserId))
-	c.JSON(http.StatusOK, gin.H{"token": accessToken, "usertype": "EXISTING"}) // TODO: Real usertype
+	c.JSON(http.StatusOK, gin.H{"token": accessToken, "usertype": existing}) // TODO: Real usertype
 }
