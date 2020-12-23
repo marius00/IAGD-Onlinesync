@@ -52,7 +52,7 @@ func testHandler() gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		c.Set(eventbus.AuthUserKey, "download@example.com")
+		c.Set(routing.AuthUserKey, "download@example.com")
 		p := processRequest(&itemDb)
 		p(c)
 	}

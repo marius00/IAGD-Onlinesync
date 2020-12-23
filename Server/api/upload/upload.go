@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
 	"github.com/marmyr/myservice/internal/util"
@@ -15,7 +15,7 @@ import (
 )
 
 const Path = "/upload"
-const Method = eventbus.POST
+const Method = routing.POST
 
 type responseType struct {
 	Unprocessed []string `json:"unprocessed"` // Items which remains unprocessed due to errors
@@ -26,7 +26,7 @@ func ProcessRequest(c *gin.Context) {
 	timeOfUpload := util.GetTimestamp()
 	logger := logging.Logger(c)
 
-	u, exists := c.Get(eventbus.AuthUserKey)
+	u, exists := c.Get(routing.AuthUserKey)
 	if !exists {
 		logger.Warn("Error parsing user credentials")
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error retrieving user credentials"})

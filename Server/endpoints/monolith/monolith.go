@@ -9,21 +9,21 @@ import (
 	"github.com/marmyr/myservice/api/session/login"
 	"github.com/marmyr/myservice/api/session/logincheck"
 	"github.com/marmyr/myservice/api/upload"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"log"
 )
 
 // Runs the entire application as a single application. Useful for local testing, or deploying outside of AWS Lambda.
 func main() {
-	ginEngine := eventbus.Build()
-	eventbus.AddProtectedRoute(ginEngine, delete.Path, delete.Method, delete.ProcessRequest)
-	eventbus.AddProtectedRoute(ginEngine, download.Path, download.Method, download.ProcessRequest)
-	eventbus.AddProtectedRoute(ginEngine, migrate.Path, migrate.Method, migrate.ProcessRequest)
-	eventbus.AddProtectedRoute(ginEngine, remove.Path, remove.Method, remove.ProcessRequest)
-	eventbus.AddPublicRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
-	eventbus.AddPublicRoute(ginEngine, login.Path, login.Method, login.ProcessRequest)
-	eventbus.AddProtectedRoute(ginEngine, logincheck.Path, logincheck.Method, logincheck.ProcessRequest)
-	eventbus.AddProtectedRoute(ginEngine, upload.Path, upload.Method, upload.ProcessRequest)
+	ginEngine := routing.Build()
+	routing.AddProtectedRoute(ginEngine, delete.Path, delete.Method, delete.ProcessRequest)
+	routing.AddProtectedRoute(ginEngine, download.Path, download.Method, download.ProcessRequest)
+	routing.AddProtectedRoute(ginEngine, migrate.Path, migrate.Method, migrate.ProcessRequest)
+	routing.AddProtectedRoute(ginEngine, remove.Path, remove.Method, remove.ProcessRequest)
+	routing.AddPublicRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
+	routing.AddPublicRoute(ginEngine, login.Path, login.Method, login.ProcessRequest)
+	routing.AddProtectedRoute(ginEngine, logincheck.Path, logincheck.Method, logincheck.ProcessRequest)
+	routing.AddProtectedRoute(ginEngine, upload.Path, upload.Method, upload.ProcessRequest)
 
 	if err := ginEngine.Run(); err != nil {
 		log.Printf("Error starting gin %v", err)

@@ -3,7 +3,7 @@ package migrate
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
 	"go.uber.org/zap"
@@ -11,7 +11,7 @@ import (
 )
 
 const Path = "/migrate"
-const Method = eventbus.GET
+const Method = routing.GET
 
 // Migrate a token from Azure to the new backup system
 // Input: GET /migrate?token=tokenInAzure

@@ -3,7 +3,7 @@ package remove
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
 	"github.com/marmyr/myservice/internal/util"
@@ -14,7 +14,7 @@ import (
 )
 
 const Path = "/remove"
-const Method = eventbus.POST
+const Method = routing.POST
 
 type DeleteItemEntry struct {
 	ID        string `json:"id"`        // Item GUID
@@ -22,7 +22,7 @@ type DeleteItemEntry struct {
 
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	u, _ := c.Get(eventbus.AuthUserKey)
+	u, _ := c.Get(routing.AuthUserKey)
 	user := u.(string)
 
 	entries, err := decode(c.Request.Body)

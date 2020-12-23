@@ -2,7 +2,7 @@ package delete
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
 	"go.uber.org/zap"
@@ -10,12 +10,12 @@ import (
 )
 
 const Path = "/delete"
-const Method = eventbus.DELETE
+const Method = routing.DELETE
 
 // Deletes an account and all its items
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	u, _ := c.Get(eventbus.AuthUserKey)
+	u, _ := c.Get(routing.AuthUserKey)
 	user := u.(string)
 	var success = true
 	

@@ -3,7 +3,7 @@ package auth
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
 	"github.com/satori/go.uuid"
@@ -12,7 +12,7 @@ import (
 )
 
 const Path = "/auth"
-const Method = eventbus.POST
+const Method = routing.POST
 
 // Input: key=yourToken&code=123123
 // Output: {"token": "yourAccessToken", "type": "usertype"}

@@ -2,7 +2,7 @@ package download
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
 	"github.com/marmyr/myservice/internal/storage"
 	"github.com/marmyr/myservice/internal/util"
@@ -12,7 +12,7 @@ import (
 )
 
 const Path = "/download"
-const Method = eventbus.GET
+const Method = routing.GET
 
 var ProcessRequest = processRequest(&storage.ItemDb{})
 
@@ -30,7 +30,7 @@ type ItemProvider interface {
 func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger := logging.Logger(c)
-		u, _ := c.Get(eventbus.AuthUserKey)
+		u, _ := c.Get(routing.AuthUserKey)
 		user := u.(string)
 
 		currentTimestamp := util.GetTimestamp()

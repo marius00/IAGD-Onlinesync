@@ -2,12 +2,12 @@ package logincheck
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/eventbus"
+	"github.com/marmyr/myservice/internal/routing"
 	"net/http"
 )
 
 const Path = "/logincheck"
-const Method = eventbus.GET
+const Method = routing.GET
 
 type LimitEntry struct {
 	Delete   int64 `json:"delete"`
