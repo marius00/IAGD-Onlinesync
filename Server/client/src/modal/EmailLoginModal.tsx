@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Modal from 'react-modal';
-import FaClose from 'react-icons/lib/fa/close';
+import { FaWindowClose } from 'react-icons/fa';
 import './EmailLoginModal.css';
 import EmailStage from './EmailStage';
 import PincodeStage from './PincodeStage';
@@ -66,7 +66,7 @@ class EmailLoginModal extends React.Component<Props> {
         >
           <div className="email-modal">
             <span className="modal-btn-close" onClick={() => this.props.onClose()}>
-              <FaClose/>
+              <FaWindowClose />
             </span>
 
             {stage === Stage.Email && <EmailStage onCompletion={(email, token) => this.onEmailStageComplete(email, token)} />}

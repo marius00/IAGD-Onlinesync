@@ -1,36 +1,55 @@
 import * as React from 'react';
-import FaEnvelope from 'react-icons/lib/fa/envelope';
+import { FaEnvelope } from 'react-icons/fa';
 
 import './App.css';
 import EmailLoginModal from './modal/EmailLoginModal';
 
+declare abstract class cefSharp {
+}
+
+export const isEmbedded = typeof cefSharp === 'object';
+
+
+interface IntegrationInterface {
+  requestStats(): string;
+}
+
+declare let core: IntegrationInterface;
+
 interface State {
   modalVisible: boolean;
 }
+
 class App extends React.Component {
   state: State;
 
   constructor(props: {}) {
     super(props);
-    this.state = { modalVisible: false };
+    this.state = {modalVisible: false};
   }
 
   onModalClose() {
-    this.setState({ modalVisible: false });
+    this.setState({modalVisible: false});
   }
 
   public render() {
+    if (isEmbedded) {
+      core.requestStats();
+    }
+
     return (
       <div className="App">
+        {!isEmbedded && <h1>You do not appear to be in a view embedded inside IA. Login will mostly fail (for now)</h1>}
         <h1 className="logo header">Sign-In for Online Backups for GD Item Assistant</h1>
         <i>Keeping your items safe.</i>
 
         <div className="login-container">
-          <a className="btn btn-block btn-social btn-email" href="#" onClick={() => this.setState({modalVisible: true})} >
-            <FaEnvelope className="fa"/> Sign in with E-Mail
+          <a className="btn btn-block btn-social btn-email" href="#"
+             onClick={() => this.setState({modalVisible: true})}>
+            <FaEnvelope /> Sign in with E-Mail
           </a>
         </div>
-        {this.state.modalVisible ? <EmailLoginModal onClose={() => this.onModalClose()} visible={true} /> : ''}
+        {this.state.modalVisible ? <EmailLoginModal onClose={() => this.onModalClose()} visible={true}/> : ''}
 
         <div className="disclaimer">
           <b>By using this service, the following details will be stored about you:</b><br/>
@@ -46,7 +65,9 @@ class App extends React.Component {
         <br/><br/>
 
         <footer>
-          <i><b>If you run into issues, hop unto the <a href="https://discord.com/invite/5wuCPbB" rel="noopener noreferrer" target="_blank">IA discord.</a></b></i>
+          <i><b>If you run into issues, hop unto the <a href="https://discord.com/invite/5wuCPbB"
+                                                        rel="noopener noreferrer" target="_blank">IA
+            discord.</a></b></i>
         </footer>
       </div>
     );

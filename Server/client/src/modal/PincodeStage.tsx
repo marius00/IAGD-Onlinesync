@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './EmailLoginModal.css';
-import SrcReactCodeInput from 'react-code-input';
+import SrcReactCodeInput, {InputModeTypes} from 'react-code-input';
 
 interface Props {
   email: string;
@@ -75,7 +75,9 @@ class PincodeStage extends React.Component<Props> {
         <div className="code-input">
           <SrcReactCodeInput
             type="text"
+            inputMode={'numeric'}
             fields={9}
+            name='codeinput'
             onChange={(e) => this.setState({code: e})}
           />
           {showNonNumericError && <div className="alert alert-warning">The code can only consist of numbers</div>}
