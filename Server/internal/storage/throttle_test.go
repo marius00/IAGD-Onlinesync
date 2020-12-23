@@ -73,3 +73,50 @@ func TestCreateThrottleEntries(t *testing.T) {
 		}
 	}
 }
+
+
+func TestShouldThrottleWhenExceeding(t *testing.T) {
+	db := ThrottleDb{}
+	user := "throttle-exceed@example.com"
+	ip := "127.0.0.1"
+	db.Purge(user, ip)
+	defer db.Purge(user, ip)
+
+	throttled, err := db.Throttle(user, ip, 1)
+	if throttled || err != nil {
+		t.Fatalf("Expected success=true and err=nil, got success=%v, err=%v", throttled, err)
+	}
+
+	throttled, err = db.Throttle(user, ip, 1)
+	if throttled || err != nil {
+		t.Fatalf("Expected success=true and err=nil, got success=%v, err=%v", throttled, err)
+	}
+
+	throttled, err = db.Throttle(user, ip, 1)
+	if !throttled || err != nil {
+		t.Fatalf("Expected success=false and err=nil, got success=%v, err=%v", throttled, err)
+	}
+}
+
+func TestShouldNotThrottleWhenBelowLimit(t *testing.T) {
+	db := ThrottleDb{}
+	user := "throttle-below@example.com"
+	ip := "127.0.0.1"
+	db.Purge(user, ip)
+	defer db.Purge(user, ip)
+
+	throttled, err := db.Throttle(user, ip, 3)
+	if throttled || err != nil {
+		t.Fatalf("Expected success=true and err=nil, got success=%v, err=%v", throttled, err)
+	}
+
+	throttled, err = db.Throttle(user, ip, 3)
+	if throttled || err != nil {
+		t.Fatalf("Expected success=true and err=nil, got success=%v, err=%v", throttled, err)
+	}
+
+	throttled, err = db.Throttle(user, ip, 3)
+	if throttled || err != nil {
+		t.Fatalf("Expected success=true and err=nil, got success=%v, err=%v", throttled, err)
+	}
+}

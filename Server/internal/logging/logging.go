@@ -22,11 +22,11 @@ func init() {
 func Logger(ctx *gin.Context) zap.Logger {
 	newLogger := logger
 	if requestID, ok := ctx.Value(RequestID).(string); ok {
-		newLogger = newLogger.With(zap.String("req", requestID)).With(zap.String("ip", ctx.Request.RemoteAddr))
+		newLogger = newLogger.With(zap.String("req", requestID)).With(zap.String("ip", ctx.ClientIP()))
 	} else {
 		requestID := uuid.NewV4().String()
 		ctx.Set(RequestID, requestID)
-		newLogger = newLogger.With(zap.String("req", requestID)).With(zap.String("ip", ctx.Request.RemoteAddr))
+		newLogger = newLogger.With(zap.String("req", requestID)).With(zap.String("ip", ctx.ClientIP()))
 	}
 
 	return *newLogger

@@ -30,21 +30,15 @@ func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
 	throttleDb := storage.ThrottleDb{}
 	tokenEntry := fmt.Sprintf("token:%s", token)
-	numAttempts, err := throttleDb.GetNumEntries(tokenEntry, c.Request.RemoteAddr)
+	throttled, err := throttleDb.Throttle(tokenEntry, c.ClientIP(), 3)
 	if err != nil {
 		logger.Warn("Error verifying throttle entry for migration", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})
 		return
 	}
-	if numAttempts > 3 {
+	if throttled {
 		logger.Warn("Too many migration attempts", zap.Error(err))
 		c.JSON(http.StatusTooManyRequests, gin.H{"msg": `Too many attempts, try again later. Much, much later.`})
-		return
-	}
-
-	if err := throttleDb.Insert(tokenEntry, c.Request.RemoteAddr); err != nil {
-		logger.Warn("Error inserting throttle entry for migration", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})
 		return
 	}
 

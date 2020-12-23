@@ -38,6 +38,23 @@ func (*ThrottleDb) Insert(user string, ip string) error {
 	return result.Error
 }
 
+func (db *ThrottleDb) Throttle(user string, ip string, maxAttempts int) (bool, error) {
+	numAttempts, err := db.GetNumEntries(user, ip)
+	if err != nil {
+		return true, err
+	}
+
+	if numAttempts > maxAttempts {
+		return true, nil
+	}
+
+	if err := db.Insert(user, ip); err != nil {
+		return true, err
+	}
+
+	return false, nil
+}
+
 // Fetch all items queued to be deleted
 func (*ThrottleDb) Purge(user string, ip string) error {
 	db := config.GetDatabaseInstance()

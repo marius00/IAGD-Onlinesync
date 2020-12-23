@@ -30,25 +30,18 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	logger := logging.Logger(c)
-	throttle := storage.ThrottleDb{}
+	throttleDb := storage.ThrottleDb{}
 
 	throttleKey := fmt.Sprintf("sendmail:%s", email)
-	numRequests, err := throttle.GetNumEntries(throttleKey, c.Request.RemoteAddr)
+	throttled, err := throttleDb.Throttle(throttleKey, c.ClientIP(), 4)
 	if err != nil {
 		logger.Warn("Error fetching throttle entry", zap.String("user", email), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})
 		return
 	}
-
-	if numRequests > 4 {
-		logger.Warn("Error user throttled", zap.String("user", email), zap.Int("numRequests", numRequests))
+	if throttled {
+		logger.Warn("Error user throttled", zap.String("user", email))
 		c.JSON(http.StatusTooManyRequests, gin.H{"msg": `Too many attempts, try again later. Much, much later.`})
-		return
-	}
-
-	if throttle.Insert(throttleKey, c.Request.RemoteAddr) != nil {
-		logger.Warn("Error inserting throttle entry", zap.String("user", email), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})
 		return
 	}
 

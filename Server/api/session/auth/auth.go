@@ -15,12 +15,13 @@ const Path = "/auth"
 const Method = eventbus.POST
 
 // Input: key=yourToken&code=123123
-// Output: {"token": "yourAccessToken"}
+// Output: {"token": "yourAccessToken", "type": "usertype"}
+// Usertype is either NEW or EXISTING (NEW for newly created users)
 func ProcessRequest(c *gin.Context) {
 	key := c.PostForm("key")
 	code := c.PostForm("code")
 	logger := logging.Logger(c)
-	throttle := storage.ThrottleDb{}
+	throttleDb := storage.ThrottleDb{}
 
 	// Verify input args
 	if len(key) != 36 {
@@ -35,22 +36,15 @@ func ProcessRequest(c *gin.Context) {
 
 	// Handle throttling
 	throttleKey := fmt.Sprintf("verifyKey:%s", key)
-	numRequests, err := throttle.GetNumEntries(throttleKey, c.Request.RemoteAddr)
+	throttled, err := throttleDb.Throttle(throttleKey, c.ClientIP(), 4)
 	if err != nil {
 		logger.Warn("Error fetching throttle entry", zap.String("key", key), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})
 		return
 	}
-
-	if numRequests > 4 {
-		logger.Warn("Error user throttled", zap.String("key", key), zap.Int("numRequests", numRequests))
+	if throttled {
+		logger.Warn("Error user throttled", zap.String("key", key))
 		c.JSON(http.StatusTooManyRequests, gin.H{"msg": `Too many attempts, try again later. Much, much later.`})
-		return
-	}
-
-	if err = throttle.Insert(throttleKey, c.Request.RemoteAddr); err != nil {
-		logger.Warn("Error inserting throttle entry", zap.String("key", key), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})
 		return
 	}
 
@@ -79,5 +73,5 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	logger.Debug("Login succeeded", zap.String("user", fetched.UserId))
-	c.JSON(http.StatusOK, gin.H{"token": accessToken})
+	c.JSON(http.StatusOK, gin.H{"token": accessToken, "usertype": "EXISTING"}) // TODO: Real usertype
 }

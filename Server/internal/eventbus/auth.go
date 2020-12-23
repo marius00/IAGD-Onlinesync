@@ -34,7 +34,7 @@ func authorizedHandler(authDb Authorizer, throttleDb Throttler) gin.HandlerFunc 
 			return
 		}
 
-		ip := c.Request.RemoteAddr // TODO: Is this correct on lambda? X-Forwarded-For?
+		ip := c.ClientIP()
 		numAttempts, err := throttleDb.GetNumEntries(user, ip)
 		if numAttempts >= MaxAttempts || err != nil {
 			logger := logging.Logger(c)
