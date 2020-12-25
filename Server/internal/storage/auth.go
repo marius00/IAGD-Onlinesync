@@ -85,3 +85,10 @@ func (*AuthDb) Purge(user string) error {
 	}
 	return result2.Error
 }
+
+// Purge will remove all access tokens and login attempts for the provided user
+func (*AuthDb) Logout(user string, accessToken string) error {
+	db := config.GetDatabaseInstance()
+	result := db.Where("userid = ? AND token = ?", user, accessToken).Delete(AuthEntry{})
+	return result.Error
+}

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-const MaxAttempts int = 15
+const MaxAttempts int = 30
 const AuthUserKey = "AuthUserKey"
 type Authorizer interface {
 	IsValid(email string, token string) (bool, error)

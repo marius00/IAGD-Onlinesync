@@ -2,8 +2,8 @@ package download
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/storage"
 	"github.com/marmyr/myservice/internal/util"
 	"go.uber.org/zap"
@@ -18,7 +18,7 @@ var ProcessRequest = processRequest(&storage.ItemDb{})
 
 type responseType struct {
 	Items     []storage.Item        `json:"items"`
-	Deleted   []storage.DeletedItem `json:"deleted"`
+	Removed   []storage.DeletedItem `json:"removed"`
 	Timestamp int64                 `json:"timestamp"`
 }
 
@@ -61,8 +61,8 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 		}
 
 		r := responseType{
-			Items:   items,
-			Deleted: deleted,
+			Items:     items,
+			Removed:   deleted,
 			Timestamp: currentTimestamp,
 		}
 
