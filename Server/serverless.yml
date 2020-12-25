@@ -12,6 +12,7 @@ provider:
   runtime: go1.x
   stage: dev
   region: us-east-1
+  memorySize: 256 # 128?
   environment:
     DATABASE_USER: ${ssm:/gd/ia/backup/config/db/user}
     DATABASE_PASSWORD: ${ssm:/gd/ia/backup/config/db/password}
@@ -30,7 +31,7 @@ custom:
   appName: iabackup
   stage: ${opt:stage, self:provider.stage}
   client:
-    bucketName: iabackup-bucket # Must be globally unique
+    bucketName: iagd.evilsoft.net # Must be globally unique
     distributionFolder: client/build
 
 functions:
@@ -64,18 +65,26 @@ functions:
       - http:
           path: /auth
           method: post
+          cors: true
   Login:
     handler: bin/login
     events:
       - http:
           path: /login
           method: get
+          cors: true
   LoginCheck:
     handler: bin/logincheck
     events:
       - http:
           path: /logincheck
           method: get
+  Logout:
+    handler: bin/logout
+    events:
+      - http:
+          path: /logout
+          method: post
   UploadItems:
     handler: bin/upload
     events:
