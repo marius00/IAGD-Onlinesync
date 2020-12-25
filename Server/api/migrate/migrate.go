@@ -30,7 +30,8 @@ func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
 	throttleDb := storage.ThrottleDb{}
 	tokenEntry := fmt.Sprintf("token:%s", token)
-	throttled, err := throttleDb.Throttle(tokenEntry, c.ClientIP(), 3)
+	ipEntry := fmt.Sprintf("token:%s", c.ClientIP())
+	throttled, err := throttleDb.Throttle(tokenEntry, ipEntry, 3)
 	if err != nil {
 		logger.Warn("Error verifying throttle entry for migration", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})

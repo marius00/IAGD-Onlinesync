@@ -33,7 +33,8 @@ func ProcessRequest(c *gin.Context) {
 	throttleDb := storage.ThrottleDb{}
 
 	throttleKey := fmt.Sprintf("sendmail:%s", email)
-	throttled, err := throttleDb.Throttle(throttleKey, c.ClientIP(), 4)
+	throttleIp := fmt.Sprintf("sendmail:%s", c.ClientIP())
+	throttled, err := throttleDb.Throttle(throttleKey, throttleIp, 4)
 	if err != nil {
 		logger.Warn("Error fetching throttle entry", zap.String("user", email), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})

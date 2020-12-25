@@ -36,7 +36,8 @@ func ProcessRequest(c *gin.Context) {
 
 	// Handle throttling
 	throttleKey := fmt.Sprintf("verifyKey:%s", key)
-	throttled, err := throttleDb.Throttle(throttleKey, c.ClientIP(), 4)
+	authIp := fmt.Sprintf("verifyKey:%s", c.ClientIP())
+	throttled, err := throttleDb.Throttle(throttleKey, authIp, 4)
 	if err != nil {
 		logger.Warn("Error fetching throttle entry", zap.String("key", key), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (throttle)`})
