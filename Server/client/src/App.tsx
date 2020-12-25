@@ -1,12 +1,9 @@
 import * as React from 'react';
 import { FaEnvelope } from 'react-icons/fa';
-
 import './App.css';
 import EmailLoginModal from './modal/EmailLoginModal';
 
-declare abstract class cefSharp {
-}
-
+declare abstract class cefSharp {}
 export const isEmbedded = typeof cefSharp === 'object';
 
 
@@ -33,10 +30,6 @@ class App extends React.Component {
   }
 
   public render() {
-    if (isEmbedded) {
-      core.requestStats();
-    }
-
     return (
       <div className="App">
         {!isEmbedded && <h1>You do not appear to be in a view embedded inside IA. Login will mostly fail (for now)</h1>}

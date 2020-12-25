@@ -48,7 +48,7 @@ class EmailLoginModal extends React.Component<Props> {
 
   onCodeStageComplete(success: boolean, token?: string) {
     if (success) {
-      document.location.href = `https://auth.iagd.dreamcrash.org/token/${token}`;
+      document.location.href = `https://token.iagd.evilsoft.net/${token}`;
     } else {
       this.setState({stage: Stage.InvalidCode});
     }

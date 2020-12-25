@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './EmailLoginModal.css';
-import SrcReactCodeInput, {InputModeTypes} from 'react-code-input';
+import SrcReactCodeInput from 'react-code-input';
 
 interface Props {
   email: string;
@@ -29,15 +29,16 @@ class PincodeStage extends React.Component<Props> {
   onValidateCode() {
     let self = this;
     const token = this.props.token;
-    const uri = 'https://iagd.azurewebsites.net/api/VerifyEmailToken';
-    // const uri = 'http://localhost:7071/api/VerifyEmailToken';
+    const uri = 'https://api.iagd.evilsoft.net/auth';
+
     const code = this.state.code as string;
-    fetch(`${uri}?token=${token}&code=${code}`, {
+    fetch(uri, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'multipart/form-data'
+        },
+        body: `key=${token}&code=${code}`
       }
     )
       .then((response) => {
@@ -49,8 +50,8 @@ class PincodeStage extends React.Component<Props> {
       })
       .then((response) => response.json())
       .then((json) => {
-        if (json.Success !== undefined || json.success !== undefined) {
-          this.props.onCompletion(json.Success || json.success, json.Token || json.token);
+        if (json.token !== undefined) {
+          this.props.onCompletion(json.type, json.token);
         }
         else {
           console.warn('Attempted to authenticate code, but the result status was undefined.');
@@ -64,14 +65,14 @@ class PincodeStage extends React.Component<Props> {
   }
 
 
-
   render() {
     let re = /^\d+$/;
     const showNonNumericError = this.state.code !== undefined && !re.test(this.state.code);
 
     return (
       <div>
-        <h2>An E-Mail has been sent to <span className="email-label">{this.props.email}</span> with the verification code</h2>
+        <h2>An E-Mail has been sent to <span className="email-label">{this.props.email}</span> with the verification
+          code</h2>
         <div className="code-input">
           <SrcReactCodeInput
             type="text"

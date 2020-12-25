@@ -23,10 +23,10 @@ class EmailStage extends React.Component<Props> {
 
     if (this.validateEmail(email)) {
       let self = this;
-      const uri = 'https://iagd.azurewebsites.net/api/ValidateEmail';
+      const uri = 'https://api.iagd.evilsoft.net/login';
 
       fetch(`${uri}?email=${email}`, {
-          method: 'POST',
+          method: 'GET',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
