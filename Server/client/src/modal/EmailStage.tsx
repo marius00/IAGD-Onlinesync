@@ -42,11 +42,8 @@ class EmailStage extends React.Component<Props> {
         })
         .then((response) => response.json())
         .then((json) => {
-          if (json.Token !== undefined) {
-            this.props.onCompletion(email, json.Token);
-          } // Microsoft seems completely and utterly unable to help themselves, and may randomly change how json is generated in azure functions.
-          else if (json.token !== undefined) {
-            this.props.onCompletion(email, json.token);
+          if (json.key !== undefined) {
+            this.props.onCompletion(email, json.key);
           }
           else {
             console.warn('Attempted to fetch token for email, but token was undefined.');

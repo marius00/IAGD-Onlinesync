@@ -30,13 +30,13 @@ class PincodeStage extends React.Component<Props> {
     let self = this;
     const token = this.props.token;
     const uri = 'https://api.iagd.evilsoft.net/auth';
-
     const code = this.state.code as string;
+
     fetch(uri, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: `key=${token}&code=${code}`
       }
@@ -51,7 +51,7 @@ class PincodeStage extends React.Component<Props> {
       .then((response) => response.json())
       .then((json) => {
         if (json.token !== undefined) {
-          this.props.onCompletion(json.type, json.token);
+          this.props.onCompletion(true, json.token);
         }
         else {
           console.warn('Attempted to authenticate code, but the result status was undefined.');
