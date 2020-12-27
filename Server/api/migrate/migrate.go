@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 const Path = "/migrate"
@@ -59,7 +60,7 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-	client := &http.Client{}
+	client := &http.Client{ Timeout: time.Second * 5, }
 	req.Header.Set("Simple-Auth", token)
 	resp, err := client.Do(req)
 	if err != nil {
