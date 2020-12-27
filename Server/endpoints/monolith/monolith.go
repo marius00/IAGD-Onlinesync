@@ -19,7 +19,7 @@ func main() {
 	ginEngine := routing.Build()
 	routing.AddProtectedRoute(ginEngine, delete.Path, delete.Method, delete.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, download.Path, download.Method, download.ProcessRequest)
-	routing.AddProtectedRoute(ginEngine, migrate.Path, migrate.Method, migrate.ProcessRequest)
+	routing.AddPublicRoute(ginEngine, migrate.Path, migrate.Method, migrate.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, remove.Path, remove.Method, remove.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, login.Path, login.Method, login.ProcessRequest)

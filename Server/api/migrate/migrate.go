@@ -1,17 +1,26 @@
 package migrate
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/logging"
+	"github.com/marmyr/myservice/internal/routing"
 	"github.com/marmyr/myservice/internal/storage"
+	"github.com/satori/go.uuid"
 	"go.uber.org/zap"
+	"io"
+	"io/ioutil"
 	"net/http"
 )
 
 const Path = "/migrate"
 const Method = routing.GET
+
+type responseType struct {
+	Token string `json:"token"`
+	Email string `json:"email"`
+}
 
 // Migrate a token from Azure to the new backup system
 // Input: GET /migrate?token=tokenInAzure
@@ -43,18 +52,73 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
+	req, err := http.NewRequest("POST", "https://iagd.azurewebsites.net/api/Migrate", nil)
+	if err != nil {
+		logger.Warn("Error creating request against old system", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
+		return
+	}
 
-	// TODO: Ask azure endpoint
-	user := "askAzure"
+	client := &http.Client{}
+	req.Header.Set("Simple-Auth", token)
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Warn("Error executing request against old system", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
+		return
+	}
+	if resp.StatusCode != 200 {
+		logger.Warn("Error executing request against old system", zap.Int("statusCode", resp.StatusCode))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
+		return
+	}
 
-	// TODO: Make azure endpoint :D
+	decoded, err := decode(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		logger.Warn("Error parsing json reply from old system", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
+		return
+	}
 
+	user := decoded.User
 
+	authDb := storage.AuthDb{}
 	userDb := storage.UserDb{}
 	if err := userDb.Insert(storage.UserEntry{UserId: user}); err != nil {
 		logger.Warn("Error inserting user entry", zap.String("user", user), zap.Error(err))
 	}
 
-	// TODO: Return new token + email
-	c.JSON(http.StatusInternalServerError, gin.H{"msg": "Not implemented"})
+	accessToken := uuid.NewV4().String()
+	err = authDb.StoreSuccessfulAuth(user, "", accessToken)
+	if err != nil {
+		logger.Warn("Error storing auth token", zap.String("user", user), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
+		return
+	}
+
+	// Success!
+	r := responseType{
+		Email: user,
+		Token: accessToken,
+	}
+	c.JSON(http.StatusOK, r)
+}
+
+type AzureResponse struct {
+	User string `json:"user"`
+}
+
+func decode(body io.Reader) (AzureResponse, error) {
+	data, err := ioutil.ReadAll(body)
+	if err != nil {
+		return AzureResponse{}, err
+	}
+
+	var resp AzureResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return AzureResponse{}, err
+	}
+
+	return resp, nil
 }

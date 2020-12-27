@@ -71,7 +71,9 @@ func (*AuthDb) StoreSuccessfulAuth(user string, key string, authToken string) er
 		return result.Error
 	}
 
-	result = db.Where("userid = ? AND key = ?", user, key).Delete(AuthAttempt{})
+	if key != "" {
+		result = db.Where("userid = ? AND key = ?", user, key).Delete(AuthAttempt{})
+	}
 	return result.Error
 }
 

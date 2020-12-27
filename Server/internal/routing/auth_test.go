@@ -74,9 +74,9 @@ func processRequest(isAborted bool, t *testing.T) gin.HandlerFunc {
 		}
 
 		if !c.IsAborted() {
-			user, _ :=c.Get(AuthUserKey)
+			user, _ := c.Get(AuthUserKey)
 			if user != "test@example.com" {
-				t.Fatalf( `Expected user to be "test@example.com", got "%s"`, user)
+				t.Fatalf(`Expected user to be "test@example.com", got "%s"`, user)
 			}
 
 			c.JSON(http.StatusOK, gin.H{"msg": "Everything went OK"})
