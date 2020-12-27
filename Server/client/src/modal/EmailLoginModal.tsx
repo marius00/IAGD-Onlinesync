@@ -48,7 +48,8 @@ class EmailLoginModal extends React.Component<Props> {
 
   onCodeStageComplete(success: boolean, token?: string) {
     if (success) {
-      document.location.href = `https://token.iagd.evilsoft.net/${token}`;
+      // C# HttpUtility.ParseQueryString is utter shit and parses "?bug" as part of the URL.
+      document.location.href = `https://token.iagd.evilsoft.net/?bug=1&email=${this.state.email}&token=${token}`;
     } else {
       this.setState({stage: Stage.InvalidCode});
     }
