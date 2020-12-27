@@ -15,6 +15,13 @@
       }
     },
     {
+      "http_methods": [ "POST" ],
+      "path_prefix": "/api/Migrate",
+      "policies": {
+        "unauthenticated_action": "RedirectToLoginPage"
+      }
+    },
+    {
       "http_methods": [ "GET" ],
       "path_prefix": "/api/VerifyToken",
       "policies": {
