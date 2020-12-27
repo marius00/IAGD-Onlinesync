@@ -16,15 +16,14 @@ namespace ItemSync.Items.v2 {
             return new OkObjectResult(
                 new AzureLimitsDto {
                     Regular = new AzureLimitEntry {
-                        Delete = HoursToMilliseconds(6),
-                        Download = HoursToMilliseconds(6),
-                        Upload = HoursToMilliseconds(6)
+                        Delete = HoursToMilliseconds(3),
+                        Download = HoursToMilliseconds(3),
+                        Upload = HoursToMilliseconds(3)
                     },
                     MultiUsage = new AzureLimitEntry {
-                        Delete = MinutesToMilliseconds(15),
-                        Download = MinutesToMilliseconds(15),
-                        Upload = MinutesToMilliseconds(15)
-
+                        Delete = MinutesToMilliseconds(1),
+                        Download = MinutesToMilliseconds(2),
+                        Upload = MinutesToMilliseconds(2)
                     }
                 }
             );

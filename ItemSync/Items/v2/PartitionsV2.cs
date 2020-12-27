@@ -40,7 +40,7 @@ namespace ItemSync.Items.v2 {
 
             log.Info($"A total of {partitions.Count} partitions were returned");
             return new OkObjectResult(partitions);
-            //return req.CreateResponse(HttpStatusCode.OK, partitions, Json.JsonFormatter);
+            //return req.CreateResponse(HttpStatusCode.OK, partitions, JsonSettings.JsonFormatter);
         }
 
         public class PartitionResponse {

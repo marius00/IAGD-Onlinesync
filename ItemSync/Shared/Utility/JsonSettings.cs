@@ -11,7 +11,7 @@ using Newtonsoft.Json.Serialization;
 namespace ItemSync.Shared.Utility
 {
 
-    public static class Json {
+    public static class JsonSettings {
         public static JsonSerializerSettings JsonSerializerSettings => new JsonSerializerSettings {
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Formatting = Formatting.Indented,
