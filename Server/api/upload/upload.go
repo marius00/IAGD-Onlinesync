@@ -99,9 +99,10 @@ func validate(data []storage.Item) string {
 		if len(m.BaseRecord) < 6 {
 			return fmt.Sprintf(`Item with id="%s" contains is missing the field "baseRecord"`, m.Id)
 		}
+		/* Apparantly 0 is a valid seed, salt bag.
 		if m.Seed == 0 {
 			return fmt.Sprintf(`Item with id="%s" contains is missing the field "seed"`, m.Id)
-		}
+		}*/
 		if m.StackCount <= 0 {
 			return fmt.Sprintf(`Item with id="%s" has a non-positive stack count`, m.Id)
 		}
