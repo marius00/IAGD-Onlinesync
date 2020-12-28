@@ -33,6 +33,19 @@ type Item struct {
 	EnchantmentSeed int64 `json:"enchantmentSeed" gorm:"column:enchantmentseed"`
 	MateriaCombines int64 `json:"materiaCombines" gorm:"column:materiacombines"`
 	StackCount      int64 `json:"stackCount" gorm:"column:stackcount"`
+
+	// Used in IA for sorting/filtering
+	CreatedAt int64 `json:"createdAt" gorm:"column:created_at"`
+
+	// Metadata
+	Name             string  `json:"name" gorm:"column:name"`
+	NameLowercase    string  `json:"nameLowercase" gorm:"column:namelowercase"`
+	Rarity           string  `json:"rarity" gorm:"column:rarity"`
+	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
+
+	// TODO: Don't return this to IA, too much bloat
+	SearchableText string `json:"searchableText" gorm:"column:searchabletext"`
+	CachedStats    string `json:"cachedStats" gorm:"column:cachedstats"`
 }
 
 type DeletedItem struct {
@@ -40,6 +53,7 @@ type DeletedItem struct {
 	Id     string `json:"id"`
 	Ts     int64  `json:"ts"`
 }
+
 func (DeletedItem) TableName() string {
 	return "deleteditem"
 }
@@ -108,7 +122,6 @@ func (*ItemDb) ListDeletedItems(user string, lastTimestamp int64) ([]DeletedItem
 	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Find(&deletedItems)
 	return deletedItems, result.Error
 }
-
 
 // Fetch all items queued to be deleted
 func (*ItemDb) PurgeUser(user string) error {
