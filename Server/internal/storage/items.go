@@ -2,9 +2,11 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"github.com/marmyr/myservice/internal/config"
+	"strings"
 	"time"
 )
 
@@ -163,12 +165,18 @@ func (*ItemDb) List(user string, lastTimestamp int64) ([]OutputItem, error) {
 }
 
 // Fetch all items for a given user, since the provided timestamp
-func (*ItemDb) ListBuddyItems(user string) ([]BuddyItem, error) {
+func (*ItemDb) ListBuddyItems(user string, query []string, offset int64) ([]BuddyItem, error) {
 	DB := config.GetDatabaseInstance()
 
 	var items []BuddyItem
-	result := DB.Where("userid = ?", user).Limit(500).Find(&items)
 
+	var name = fmt.Sprintf("%%%s%%", strings.Join(query, " "))
+	var db = DB.Where("userid = ?", user)
+	for _, q := range query {
+		db = db.Where("(searchabletext like ? OR namelowercase LIKE ?)", fmt.Sprintf("%%%s%%", q), name)
+	}
+
+	result := db.Order("name asc").Limit(50).Offset(offset).Find(&items)
 	return items, result.Error
 }
 
