@@ -40,6 +40,7 @@ func TestShouldPassValidationWithNoErrors(t *testing.T) {
 			BaseRecord: "my base record",
 			Seed: 12345,
 			StackCount: 1,
+			CachedStats: "abc",
 		},
 	}
 

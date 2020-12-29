@@ -21,13 +21,23 @@ func (UserEntry) TableName() string {
 }
 
 func (*UserDb) Get(user string) (*UserEntry, error) {
-	var users []UserEntry
-	result := config.GetDatabaseInstance().Where("userid = ?", user).Find(&users)
-	if len(users) > 0 {
-		return &users[0], result.Error
+	var userEntry UserEntry
+	result := config.GetDatabaseInstance().Where("userid = ?", user).Take(&userEntry)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return nil, result.Error
+	return &userEntry, result.Error
+}
+
+func (*UserDb) GetFromBuddyId(user string) (*UserEntry, error) {
+	var userEntry UserEntry
+	result := config.GetDatabaseInstance().Where("buddy_id = ?", user).Take(&userEntry)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &userEntry, result.Error
 }
 
 func (*UserDb) Insert(entry UserEntry) error {
@@ -52,7 +62,6 @@ func (*UserDb) Insert(entry UserEntry) error {
 		}
 	}
 	result := db.Create(entry)
-
 
 	return result.Error
 }

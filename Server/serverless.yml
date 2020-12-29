@@ -35,6 +35,12 @@ custom:
     distributionFolder: client/build
 
 functions:
+  DownloadBuddyItems:
+    handler: bin/buddy
+    events:
+      - http:
+          path: /buddy
+          method: get
   DeleteAccount:
     handler: bin/delete
     events:
@@ -46,6 +52,12 @@ functions:
     events:
       - http:
           path: /download
+          method: get
+  GetBuddyId:
+    handler: bin/getbuddyid
+    events:
+      - http:
+          path: /buddyId
           method: get
   AzureMigration:
     handler: bin/migrate

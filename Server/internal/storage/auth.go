@@ -31,10 +31,10 @@ func (AuthAttempt) TableName() string {
 
 // IsValid checks if an access token is valid for a given user
 func (*AuthDb) IsValid(user string, accessToken string) (bool, error) {
-	var sessions []AuthEntry
-	result := config.GetDatabaseInstance().Where("userid = ? AND token = ?", user, accessToken).Find(&sessions)
+	var session AuthEntry
+	result := config.GetDatabaseInstance().Where("userid = ? AND token = ?", user, accessToken).Take(&session)
 
-	return len(sessions) > 0, result.Error
+	return result.Error == nil, result.Error
 }
 
 // InitiateAuthentication initializes an authentication with key/code
@@ -53,14 +53,13 @@ func (*AuthDb) Maintenance() error {
 
 // GetAuthenticationAttempt fetches an auth attempt based on key and code
 func (*AuthDb) GetAuthenticationAttempt(key string, code string) (*AuthAttempt, error) {
-	var attempts []AuthAttempt
-	result := config.GetDatabaseInstance().Where("key = ? AND code = ? AND created_at > NOW() - INTERVAL '15 minutes'", key, code).Find(&attempts)
-
-	if len(attempts) > 0 {
-		return &attempts[0], result.Error
+	var attempt AuthAttempt
+	result := config.GetDatabaseInstance().Where("key = ? AND code = ? AND created_at > NOW() - INTERVAL '15 minutes'", key, code).Take(&attempt)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return nil, result.Error
+	return &attempt, result.Error
 }
 
 // StoreSuccessfulAuth stores an access token and deletes the login attempt entry

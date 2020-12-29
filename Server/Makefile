@@ -5,8 +5,10 @@ test:
 
 build:
 	rm -f bin/*
+	env GOOS=linux go build -ldflags="-s -w" -o bin/buddy endpoints/buddy/buddy.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/delete endpoints/delete/delete.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/download endpoints/download/download.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/getbuddyid endpoints/getbuddyid/getbuddyid.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/migrate endpoints/migrate/migrate.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/remove endpoints/remove/remove.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/auth endpoints/session/auth/auth.go

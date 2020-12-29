@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/satori/go.uuid"
 	"math/rand"
 	"testing"
@@ -59,7 +60,7 @@ func TestValidateInexistingAccessToken(t *testing.T) {
 	db := AuthDb{}
 
 	isValid, err := db.IsValid("noauth@example.com", "invalidtoken")
-	if err != nil {
+	if err != gorm.ErrRecordNotFound {
 		t.Fatalf("Error validating access token: %v", err)
 	}
 	if isValid {
@@ -85,7 +86,7 @@ func TestAuthFlowWrongPincode(t *testing.T) {
 
 	// User enters wrong code
 	fetched, err := db.GetAuthenticationAttempt(attempt.Key, "55554444")
-	if err != nil {
+	if err != gorm.ErrRecordNotFound {
 		t.Fatalf("Error fetching attempt: %v", err)
 	}
 
@@ -116,7 +117,7 @@ func TestAuthFlowWrongKey(t *testing.T) {
 
 	// User sends in wrong key
 	fetched, err := db.GetAuthenticationAttempt("not my key", code)
-	if err != nil {
+	if err != gorm.ErrRecordNotFound {
 		t.Fatalf("Error fetching attempt: %v", err)
 	}
 

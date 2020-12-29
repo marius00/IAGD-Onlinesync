@@ -17,13 +17,13 @@ const Method = routing.GET
 var ProcessRequest = processRequest(&storage.ItemDb{})
 
 type responseType struct {
-	Items     []storage.Item        `json:"items"`
+	Items     []storage.OutputItem  `json:"items"`
 	Removed   []storage.DeletedItem `json:"removed"`
 	Timestamp int64                 `json:"timestamp"`
 }
 
 type ItemProvider interface {
-	List(user string, lastTimestamp int64) ([]storage.Item, error)
+	List(user string, lastTimestamp int64) ([]storage.OutputItem, error)
 	ListDeletedItems(user string, lastTimestamp int64) ([]storage.DeletedItem, error)
 }
 

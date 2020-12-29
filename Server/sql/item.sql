@@ -57,3 +57,6 @@ ALTER TABLE public.item
     CLUSTER ON idx_item_userid_ts;
 	
 ALTER TABLE public.item ALTER COLUMN levelrequirement TYPE integer;
+
+ALTER TABLE public.item ADD COLUMN searchabletext character varying(4096);
+ALTER TABLE public.item ADD COLUMN cachedstats character varying(4096);

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"github.com/marmyr/myservice/api/buddy"
 	"github.com/marmyr/myservice/api/delete"
 	"github.com/marmyr/myservice/api/download"
+	"github.com/marmyr/myservice/api/getbuddyid"
 	"github.com/marmyr/myservice/api/migrate"
 	"github.com/marmyr/myservice/api/remove"
 	"github.com/marmyr/myservice/api/session/auth"
@@ -17,8 +19,10 @@ import (
 // Runs the entire application as a single application. Useful for local testing, or deploying outside of AWS Lambda.
 func main() {
 	ginEngine := routing.Build()
+	routing.AddPublicRoute(ginEngine, buddy.Path, buddy.Method, buddy.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, delete.Path, delete.Method, delete.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, download.Path, download.Method, download.ProcessRequest)
+	routing.AddProtectedRoute(ginEngine, getbuddyid.Path, getbuddyid.Method, getbuddyid.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, migrate.Path, migrate.Method, migrate.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, remove.Path, remove.Method, remove.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
