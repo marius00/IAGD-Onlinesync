@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/marmyr/myservice/internal/config"
 	"time"
 )
@@ -33,6 +34,9 @@ func (AuthAttempt) TableName() string {
 func (*AuthDb) IsValid(user string, accessToken string) (bool, error) {
 	var session AuthEntry
 	result := config.GetDatabaseInstance().Where("userid = ? AND token = ?", user, accessToken).Take(&session)
+	if result.Error == gorm.ErrRecordNotFound {
+		return false, nil
+	}
 
 	return result.Error == nil, result.Error
 }
@@ -56,6 +60,9 @@ func (*AuthDb) GetAuthenticationAttempt(key string, code string) (*AuthAttempt, 
 	var attempt AuthAttempt
 	result := config.GetDatabaseInstance().Where("key = ? AND code = ? AND created_at > NOW() - INTERVAL '15 minutes'", key, code).Take(&attempt)
 	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, result.Error
 	}
 

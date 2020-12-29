@@ -176,7 +176,7 @@ func (*ItemDb) ListBuddyItems(user string, query []string, offset int64) ([]Budd
 		db = db.Where("(searchabletext like ? OR namelowercase LIKE ?)", fmt.Sprintf("%%%s%%", q), name)
 	}
 
-	result := db.Order("name asc").Limit(50).Offset(offset).Find(&items)
+	result := db.Order("name asc").Limit(35).Offset(offset).Find(&items)
 	return items, result.Error
 }
 

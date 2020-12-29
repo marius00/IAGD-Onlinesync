@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"github.com/marmyr/myservice/internal/config"
 	"math/rand"
@@ -24,6 +25,10 @@ func (*UserDb) Get(user string) (*UserEntry, error) {
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("userid = ?", user).Take(&userEntry)
 	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+
 		return nil, result.Error
 	}
 
@@ -34,6 +39,9 @@ func (*UserDb) GetFromBuddyId(user string) (*UserEntry, error) {
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("buddy_id = ?", user).Take(&userEntry)
 	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, result.Error
 	}
 

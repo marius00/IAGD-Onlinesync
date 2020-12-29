@@ -73,8 +73,9 @@ func ProcessRequest(c *gin.Context) {
 }
 
 func split(text string) []string {
+
 	if text == "" {
 		return make([]string, 0)
 	}
-	return strings.SplitN(text, " ", 8)
+	return strings.SplitN(strings.ReplaceAll(text, "%", "%%"), " ", 8)
 }
