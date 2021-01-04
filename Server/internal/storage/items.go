@@ -69,6 +69,7 @@ type OutputItem struct {
 	RelicCompletionBonusRecord string `json:"relicCompletionBonusRecord" gorm:"column:reliccompletionbonusrecord"`
 	EnchantmentRecord          string `json:"enchantmentRecord" gorm:"column:enchantmentrecord"`
 
+	// TODO: Buddy items does not need seed, but is it worth a new struct just to exclude it?
 	Seed            int64 `json:"seed"`
 	RelicSeed       int64 `json:"relicSeed" gorm:"column:relicseed"`
 	EnchantmentSeed int64 `json:"enchantmentSeed" gorm:"column:enchantmentseed"`

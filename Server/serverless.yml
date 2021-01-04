@@ -36,6 +36,12 @@ custom:
 
 functions:
   DownloadBuddyItems:
+    handler: bin/buddyitems
+    events:
+      - http:
+          path: /buddyitems
+          method: get
+  SearchOnlineItems:
     handler: bin/search
     events:
       - http:

@@ -14,7 +14,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 		return
 	}
 
-	ts := util.GetTimestamp()
+	ts := util.GetCurrentTimestamp()
 	user := "item@example.com"
 	item := Item {
 		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
@@ -68,7 +68,7 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 		return
 	}
 
-	ts := util.GetTimestamp()
+	ts := util.GetCurrentTimestamp()
 	user := "past-item@example.com"
 	item := Item {
 		Id: "C11A9D5D-F92F-4079-AC68-AAAAAAAAAAAA",
@@ -112,7 +112,7 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 
 func TestInsertSameItemTwice(t *testing.T) {
 	db := ItemDb{}
-	ts := util.GetTimestamp()
+	ts := util.GetCurrentTimestamp()
 	user := "insert-twice@example.com"
 	item := Item {
 		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
@@ -145,7 +145,7 @@ func TestInsertSameItemTwice(t *testing.T) {
 
 func TestSearchForOnlineItem(t *testing.T) {
 	db := ItemDb{}
-	ts := util.GetTimestamp()
+	ts := util.GetCurrentTimestamp()
 	user := "online-search@example.com"
 	item := Item {
 		Id: "C11A9D5D-F92F-CCCC-CCCC-C44ED2D36B10",

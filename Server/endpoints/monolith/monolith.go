@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/marmyr/myservice/api/buddy"
+	"github.com/marmyr/myservice/api/buddyitems"
 	"github.com/marmyr/myservice/api/delete"
 	"github.com/marmyr/myservice/api/download"
 	"github.com/marmyr/myservice/api/getbuddyid"
@@ -21,6 +21,7 @@ import (
 func main() {
 	ginEngine := routing.Build()
 	routing.AddPublicRoute(ginEngine, search.Path, search.Method, search.ProcessRequest)
+	routing.AddPublicRoute(ginEngine, buddyitems.Path, buddyitems.Method, buddyitems.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, delete.Path, delete.Method, delete.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, download.Path, download.Method, download.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, getbuddyid.Path, getbuddyid.Method, getbuddyid.ProcessRequest)

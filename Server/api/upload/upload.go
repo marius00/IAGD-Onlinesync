@@ -23,7 +23,7 @@ type responseType struct {
 
 // Accepts a POST request with a JSON body of format [{}, {}, {}] -- Any fields containing numbers should be sent in as strings
 func ProcessRequest(c *gin.Context) {
-	timeOfUpload := util.GetTimestamp()
+	timeOfUpload := util.GetCurrentTimestamp()
 	logger := logging.Logger(c)
 
 	u, exists := c.Get(routing.AuthUserKey)

@@ -8,7 +8,6 @@ import (
 	"github.com/marmyr/myservice/internal/util"
 	"go.uber.org/zap"
 	"net/http"
-	"strconv"
 )
 
 const Path = "/download"
@@ -33,16 +32,9 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 		u, _ := c.Get(routing.AuthUserKey)
 		user := u.(string)
 
-		currentTimestamp := util.GetTimestamp()
-		lastTimestampStr, ok := c.GetQuery("ts")
+		currentTimestamp := util.GetCurrentTimestamp()
+		lastTimestamp, ok := util.GetTimestamp(c)
 		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "ts" is missing`})
-			return
-		}
-
-		lastTimestamp, err := strconv.ParseInt(lastTimestampStr, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "ts" is not a valid timestamp`})
 			return
 		}
 

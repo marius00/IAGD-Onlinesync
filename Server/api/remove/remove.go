@@ -41,7 +41,7 @@ func ProcessRequest(c *gin.Context) {
 	itemDb := storage.ItemDb{}
 	var successfulDeletes []DeleteItemEntry
 
-	timeOfRemove := util.GetTimestamp()
+	timeOfRemove := util.GetCurrentTimestamp()
 	for _, entry := range entries {
 		// The deletion entry is used to ensure other clients deletes it
 		if err := itemDb.Delete(user, entry.ID, timeOfRemove); err != nil {
