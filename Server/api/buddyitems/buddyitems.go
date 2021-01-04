@@ -39,7 +39,7 @@ func ProcessRequest(c *gin.Context) {
 	// Fetch user from buddy id
 	userDb := storage.UserDb{}
 	user, err := userDb.GetFromBuddyId(buddyId)
-	if err != nil {
+	if err != nil || user == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": `Could not find buddy with this id`})
 		return
 	}
