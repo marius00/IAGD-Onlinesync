@@ -187,6 +187,141 @@
 				"description": "Delete items\r\n\r\nExpected input body:\r\n[{\"id\": \"someid\"}]"
 			},
 			"response": []
+		},
+		{
+			"name": "CheckLoginOptions",
+			"request": {
+				"method": "OPTIONS",
+				"header": [],
+				"url": {
+					"raw": "https://api.iagd.evilsoft.net/login?email=email@example.com",
+					"protocol": "https",
+					"host": [
+						"api",
+						"iagd",
+						"evilsoft",
+						"net"
+					],
+					"path": [
+						"login"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "email@example.com"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "AzureMigrate(AZ)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": ""
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Migrate access token",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": ""
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Search for online items",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{Hostname}}/search?id=182574&offset=0&search",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"search"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "182574"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						},
+						{
+							"key": "search",
+							"value": null
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get buddy ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "magictoken",
+						"type": "text"
+					},
+					{
+						"key": "X-Api-User",
+						"value": "test@example.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{Hostname}}/buddyId",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"buddyId"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get buddy items",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{Hostname}}/buddyitems?id=182574&ts=0",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"buddyitems"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "182574"
+						},
+						{
+							"key": "ts",
+							"value": "0"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }

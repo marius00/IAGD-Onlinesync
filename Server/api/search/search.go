@@ -37,7 +37,7 @@ func ProcessRequest(c *gin.Context) {
 	// Offset for scrolling
 	searchText, ok := c.GetQuery("search")
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "searchText" is missing`})
+		c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "search" is missing`})
 		return
 	}
 
