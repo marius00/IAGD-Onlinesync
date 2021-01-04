@@ -2,7 +2,7 @@ package routing
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/testutils"
+	"github.com/marmyr/iagdbackup/internal/testutils"
 	"net/http"
 	"testing"
 )

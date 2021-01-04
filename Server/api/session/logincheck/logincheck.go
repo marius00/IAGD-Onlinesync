@@ -2,7 +2,7 @@ package logincheck
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/routing"
+	"github.com/marmyr/iagdbackup/internal/routing"
 	"net/http"
 )
 

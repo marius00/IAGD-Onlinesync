@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/marmyr/myservice/internal/config"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"time"
 )
 

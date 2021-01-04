@@ -4,7 +4,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gin"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/routing"
+	"github.com/marmyr/iagdbackup/internal/routing"
 )
 
 var ginLambda *ginadapter.GinLambda

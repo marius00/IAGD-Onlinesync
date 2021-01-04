@@ -2,10 +2,10 @@ package download
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/myservice/internal/logging"
-	"github.com/marmyr/myservice/internal/routing"
-	"github.com/marmyr/myservice/internal/storage"
-	"github.com/marmyr/myservice/internal/util"
+	"github.com/marmyr/iagdbackup/internal/logging"
+	"github.com/marmyr/iagdbackup/internal/routing"
+	"github.com/marmyr/iagdbackup/internal/storage"
+	"github.com/marmyr/iagdbackup/internal/util"
 	"go.uber.org/zap"
 	"net/http"
 )

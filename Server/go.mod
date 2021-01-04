@@ -1,4 +1,4 @@
-module github.com/marmyr/myservice
+module github.com/marmyr/iagdbackup
 
 require (
 	cloud.google.com/go/bigquery v1.4.0 // indirect

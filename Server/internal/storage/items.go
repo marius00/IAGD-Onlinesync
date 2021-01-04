@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
-	"github.com/marmyr/myservice/internal/config"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"strings"
 	"time"
 )

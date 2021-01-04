@@ -1,19 +1,19 @@
 package main
 
 import (
-	"github.com/marmyr/myservice/api/buddyitems"
-	"github.com/marmyr/myservice/api/delete"
-	"github.com/marmyr/myservice/api/download"
-	"github.com/marmyr/myservice/api/getbuddyid"
-	"github.com/marmyr/myservice/api/migrate"
-	"github.com/marmyr/myservice/api/remove"
-	"github.com/marmyr/myservice/api/search"
-	"github.com/marmyr/myservice/api/session/auth"
-	"github.com/marmyr/myservice/api/session/login"
-	"github.com/marmyr/myservice/api/session/logincheck"
-	"github.com/marmyr/myservice/api/session/logout"
-	"github.com/marmyr/myservice/api/upload"
-	"github.com/marmyr/myservice/internal/routing"
+	"github.com/marmyr/iagdbackup/api/buddyitems"
+	"github.com/marmyr/iagdbackup/api/delete"
+	"github.com/marmyr/iagdbackup/api/download"
+	"github.com/marmyr/iagdbackup/api/getbuddyid"
+	"github.com/marmyr/iagdbackup/api/migrate"
+	"github.com/marmyr/iagdbackup/api/remove"
+	"github.com/marmyr/iagdbackup/api/search"
+	"github.com/marmyr/iagdbackup/api/session/auth"
+	"github.com/marmyr/iagdbackup/api/session/login"
+	"github.com/marmyr/iagdbackup/api/session/logincheck"
+	"github.com/marmyr/iagdbackup/api/session/logout"
+	"github.com/marmyr/iagdbackup/api/upload"
+	"github.com/marmyr/iagdbackup/internal/routing"
 	"log"
 )
 

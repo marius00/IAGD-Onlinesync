@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/marmyr/myservice/internal/storage"
+	"github.com/marmyr/iagdbackup/internal/storage"
 )
 
 // Runs maintenance work such as deleting failed authentication attempts and throttle entries

@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/marmyr/myservice/internal/testutils"
+	"github.com/marmyr/iagdbackup/internal/testutils"
 	"log"
 	"testing"
 )

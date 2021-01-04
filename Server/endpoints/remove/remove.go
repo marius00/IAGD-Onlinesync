@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/aws/aws-lambda-go/lambda"
-	api "github.com/marmyr/myservice/api/remove"
-	"github.com/marmyr/myservice/endpoints/utils"
+	api "github.com/marmyr/iagdbackup/api/remove"
+	"github.com/marmyr/iagdbackup/endpoints/utils"
 )
 
 func main() {
