@@ -5,7 +5,7 @@ test:
 
 build:
 	rm -f bin/*
-	env GOOS=linux go build -ldflags="-s -w" -o bin/buddy endpoints/buddy/buddy.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/search endpoints/search/search.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/delete endpoints/delete/delete.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/download endpoints/download/download.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/getbuddyid endpoints/getbuddyid/getbuddyid.go

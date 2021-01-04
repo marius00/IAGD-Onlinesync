@@ -1,4 +1,4 @@
-package buddy
+package search
 
 import (
 	"github.com/gin-gonic/gin"
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const Path = "/buddy"
+const Path = "/search"
 const Method = routing.GET
 
 // Download buddy items

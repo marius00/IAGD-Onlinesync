@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/aws/aws-lambda-go/lambda"
-	api "github.com/marmyr/myservice/api/buddy"
+	api "github.com/marmyr/myservice/api/search"
 	"github.com/marmyr/myservice/endpoints/utils"
 )
 

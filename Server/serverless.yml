@@ -36,10 +36,10 @@ custom:
 
 functions:
   DownloadBuddyItems:
-    handler: bin/buddy
+    handler: bin/search
     events:
       - http:
-          path: /buddy
+          path: /search
           method: get
   DeleteAccount:
     handler: bin/delete
