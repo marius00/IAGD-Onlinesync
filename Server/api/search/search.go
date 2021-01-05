@@ -76,3 +76,10 @@ func split(text string) []string {
 	}
 	return strings.SplitN(strings.ReplaceAll(text, "%", "%%"), " ", 8)
 }
+/*
+func merge(items []storage.BuddyItem) {
+	var m map[string][]string
+	for _, item := range items {
+		m[item.Id] = item.CachedStats // TODO: will need to deserialize to edit the damn stacksize..
+	}
+}*/

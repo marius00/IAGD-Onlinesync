@@ -44,6 +44,7 @@ type Item struct {
 	NameLowercase    string  `json:"nameLowercase" gorm:"column:namelowercase"`
 	Rarity           string  `json:"rarity" gorm:"column:rarity"`
 	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
+	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
 
 	// TODO: Don't return this to IA, too much bloat
 	SearchableText string `json:"searchableText" gorm:"column:searchabletext"`
@@ -84,17 +85,19 @@ type OutputItem struct {
 	NameLowercase    string  `json:"nameLowercase" gorm:"column:namelowercase"`
 	Rarity           string  `json:"rarity" gorm:"column:rarity"`
 	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
+	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
 }
+
 func (OutputItem) TableName() string {
 	return "item"
 }
 
-
 type BuddyItem struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	CachedStats    string `json:"cachedStats" gorm:"column:cachedstats"`
+	UserId      string `json:"-" gorm:"column:userid"`
+	Id          string `json:"id"`
+	CachedStats string `json:"cachedStats" gorm:"column:cachedstats"`
 }
+
 func (BuddyItem) TableName() string {
 	return "item"
 }
