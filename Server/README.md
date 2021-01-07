@@ -18,7 +18,8 @@ Prior to deploying for the first time, the following environmental variables mus
 * `aws ssm put-parameter --name /gd/ia/backup/config/db/database --type String --value databasename`  
 * `aws ssm put-parameter --name /gd/ia/backup/config/db/user --type String --value username`  
 * `aws ssm put-parameter --name /gd/ia/backup/config/db/password --type String --value supersecretpassword`   
-`aws ssm put-parameter --name /gd/ia/backup/config/allowed_origin --type String --value lambdahostname.execute-api.us-east-1.amazonaws.com`
+* `aws ssm put-parameter --name /gd/ia/backup/config/allowed_origin --type String --value lambdahostname.execute-api.us-east-1.amazonaws.com`  
+* `aws ssm put-parameter --name /gd/ia/backup/config/api_host --type String --value https://url-to-api-here.example.com`  
 
 
 ### Project structure
