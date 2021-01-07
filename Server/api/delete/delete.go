@@ -33,6 +33,9 @@ func ProcessRequest(c *gin.Context) {
 		success = false
 	}
 
+	userDb := storage.UserDb{}
+	userDb.Purge(user)
+
 	if success {
 		c.JSON(http.StatusOK, gin.H{"msg": "Success"})
 	} else {
