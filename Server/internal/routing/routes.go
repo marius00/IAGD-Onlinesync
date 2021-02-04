@@ -73,16 +73,10 @@ func buildEngine() *gin.Engine {
 func setMethodHandlerForGroup(method string, path string, fn gin.HandlerFunc, group *gin.RouterGroup) {
 	switch method {
 	case POST:
-		{
 			group.POST(path, fn)
-		}
 	case DELETE:
-		{
 			group.DELETE(path, fn)
-		}
 	case GET:
-		{
 			group.GET(path, fn)
-		}
 	}
 }

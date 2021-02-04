@@ -19,6 +19,7 @@ type responseType struct {
 	Items     []storage.OutputItem  `json:"items"`
 	Removed   []storage.DeletedItem `json:"removed"`
 	Timestamp int64                 `json:"timestamp"`
+	IsPartial bool                  `json:"isPartial"`
 }
 
 type ItemProvider interface {
@@ -52,12 +53,30 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 			return
 		}
 
+		// TODO: Logic, should be tested.
+		if len(items) == storage.MaxItemLimit {
+			currentTimestamp = GetHighestTimestamp(items) - 1
+			logger.Info("Got max batch size of 1000, reducing timestamp to highest - 1")
+		}
+
 		r := responseType{
 			Items:     items,
 			Removed:   deleted,
 			Timestamp: currentTimestamp,
+			IsPartial: len(items) == storage.MaxItemLimit,
 		}
 
 		c.JSON(http.StatusOK, r)
 	}
+}
+
+func GetHighestTimestamp(items []storage.OutputItem) int64 {
+	var ts int64 = 0
+	for _, item := range items {
+		if item.Ts > ts {
+			ts = item.Ts
+		}
+	}
+
+	return ts
 }

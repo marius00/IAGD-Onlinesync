@@ -170,7 +170,7 @@ increases armor by 5%
 	} // TODO: Make this test at the http level? Or here?
 
 	query := strings.Split("+5% attack speed", " ")
-	items, err := db.ListBuddyItems(user, query, 0)
+	items, err := db.ListBuddyItems(user, query, 0, 0)
 	if err != nil {
 		t.Fatalf("Error fetching items %v", err)
 	}
@@ -181,7 +181,7 @@ increases armor by 5%
 
 
 	query = strings.Split("3rd Company's Revolver", " ")
-	items, err = db.ListBuddyItems(user, query, 0)
+	items, err = db.ListBuddyItems(user, query, 0, 0)
 	if err != nil {
 		t.Fatalf("Error fetching items %v", err)
 	}

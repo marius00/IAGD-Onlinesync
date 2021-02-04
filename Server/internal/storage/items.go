@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const MaxItemLimit = 5000
+
 type ItemDb struct {
 }
 
@@ -158,24 +160,24 @@ func (*ItemDb) Insert(user string, item Item) error {
 	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION)
 }
 
-// Fetch all items for a given user, since the provided timestamp
+// Fetch 0..1000 items for a given user, since the provided timestamp
 func (*ItemDb) List(user string, lastTimestamp int64) ([]OutputItem, error) {
 	DB := config.GetDatabaseInstance()
 
 	var items []OutputItem
-	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Find(&items)
+	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Order("ts asc").Limit(MaxItemLimit).Find(&items)
 
 	return items, result.Error
 }
 
 // Fetch all items for a given user, since the provided timestamp
-func (*ItemDb) ListBuddyItems(user string, query []string, offset int64) ([]BuddyItem, error) {
+func (*ItemDb) ListBuddyItems(user string, query []string, isHardcore int64, offset int64) ([]BuddyItem, error) {
 	DB := config.GetDatabaseInstance()
 
 	var items []BuddyItem
 
 	var name = fmt.Sprintf("%%%s%%", strings.Join(query, " "))
-	var db = DB.Where("userid = ?", user)
+	var db = DB.Where("userid = ? AND isHardcore = ?", user, isHardcore)
 	for _, q := range query {
 		db = db.Where("(searchabletext like ? OR namelowercase LIKE ?)", fmt.Sprintf("%%%s%%", q), name)
 	}

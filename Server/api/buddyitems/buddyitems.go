@@ -2,6 +2,7 @@ package buddyitems
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/marmyr/iagdbackup/api/download"
 	"github.com/marmyr/iagdbackup/internal/logging"
 	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
@@ -17,6 +18,7 @@ type responseType struct {
 	Items     []storage.OutputItem  `json:"items"`
 	Removed   []storage.DeletedItem `json:"removed"`
 	Timestamp int64                 `json:"timestamp"`
+	IsPartial bool                  `json:"isPartial"`
 }
 
 // Download buddy items
@@ -45,7 +47,7 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	itemDb := storage.ItemDb{}
-	items, err := itemDb.List(user.UserId, lastTimestamp)
+	items, err := itemDb.List(user.UserId, lastTimestamp) // TODO:
 	if err != nil {
 		logger.Warn("Error listing items", zap.Error(err), zap.String("user", user.UserId), zap.Int64("lastTimestamp", lastTimestamp))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching items"})
@@ -59,10 +61,16 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
+	if len(items) == storage.MaxItemLimit {
+		currentTimestamp = download.GetHighestTimestamp(items) - 1
+		logger.Info("Got max batch size of 1000, reducing timestamp to highest - 1")
+	}
+
 	r := responseType{
 		Items:     items,
 		Removed:   deleted,
 		Timestamp: currentTimestamp,
+		IsPartial: len(items) == storage.MaxItemLimit,
 	}
 
 	c.JSON(http.StatusOK, r)
