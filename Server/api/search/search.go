@@ -25,6 +25,13 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
+	isHardcoreStr, ok := c.GetQuery("hc")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "hc" is missing`})
+		return
+	}
+	isHardcore, _ := strconv.ParseInt(isHardcoreStr, 10, 64)
+
 	// Offset for scrolling
 	offsetStr, ok := c.GetQuery("offset")
 	if !ok {
@@ -50,7 +57,7 @@ func ProcessRequest(c *gin.Context) {
 
 	// Search for items
 	itemDb := storage.ItemDb{}
-	items, err := itemDb.ListBuddyItems(user.UserId, split(searchText), offset)
+	items, err := itemDb.ListBuddyItems(user.UserId, split(searchText), isHardcore, offset)
 	if err != nil {
 		logger.Warn("Error listing items", zap.Error(err), zap.String("user", user.UserId))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching items"})
