@@ -20,6 +20,8 @@ Prior to deploying for the first time, the following environmental variables mus
 * `aws ssm put-parameter --name /gd/ia/backup/config/db/password --type String --value supersecretpassword`   
 * `aws ssm put-parameter --name /gd/ia/backup/config/allowed_origin --type String --value lambdahostname.execute-api.us-east-1.amazonaws.com`  
 * `aws ssm put-parameter --name /gd/ia/backup/config/api_host --type String --value https://url-to-api-here.example.com`  
+* `aws ssm put-parameter --name /gd/ia/backup/config/region --type String --value us-east-1`  
+* `aws ssm put-parameter --name /gd/ia/backup/config/backupbucket --type String --value name-of-bucket`  
 
 
 ### Project structure

@@ -10,7 +10,7 @@ type ThrottleDb struct {
 
 type ThrottleEntry struct {
 	Id        int64     `json:"userid" gorm:"primaryKey"`
-	UserId    string    `json:"userid" gorm:"column:userid"`
+	UserId    string    `json:"-" gorm:"column:userid"`
 	Ip        string    `json:"ip"`
 	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
 }

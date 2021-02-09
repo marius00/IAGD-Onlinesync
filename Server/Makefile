@@ -19,6 +19,7 @@ build:
 	env GOOS=linux go build -ldflags="-s -w" -o bin/upload endpoints/upload/upload.go
 #	env GOOS=linux go build -ldflags="-s -w" -o bin/monolith endpoints/monolith/monolith.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/maintenance endpoints/maintenance.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/character endpoints/character/character.go
 
 #lint:
 #    golangci-lint run -E golint -E gosec -E interfacer -E unconvert -E dupl -E goconst -E gocyclo -E maligned -E depguard -E misspell -E unparam -E nakedret -E prealloc -E scopelint -E gochecknoinits

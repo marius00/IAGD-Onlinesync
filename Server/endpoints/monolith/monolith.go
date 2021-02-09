@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/marmyr/iagdbackup/api/buddyitems"
+	"github.com/marmyr/iagdbackup/api/character"
 	"github.com/marmyr/iagdbackup/api/delete"
 	"github.com/marmyr/iagdbackup/api/download"
 	"github.com/marmyr/iagdbackup/api/getbuddyid"
@@ -32,6 +33,9 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, logincheck.Path, logincheck.Method, logincheck.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, logout.Path, logout.Method, logout.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, upload.Path, upload.Method, upload.ProcessRequest)
+	routing.AddProtectedRoute(ginEngine, character.UploadPath, character.UploadMethod, character.UploadProcessRequest)
+	routing.AddProtectedRoute(ginEngine, character.DownloadPath, character.DownloadMethod, character.DownloadProcessRequest)
+	routing.AddProtectedRoute(ginEngine, character.ListPath, character.ListMethod, character.ListProcessRequest)
 
 	if err := ginEngine.Run(); err != nil {
 		log.Printf("Error starting gin %v", err)

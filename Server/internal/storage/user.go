@@ -12,7 +12,7 @@ type UserDb struct {
 }
 
 type UserEntry struct {
-	UserId    string    `json:"userid" gorm:"column:userid"`
+	UserId    string    `json:"-" gorm:"column:userid"`
 	BuddyId   int32     `json:"buddyId" gorm:"column:buddy_id"`
 	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
 }

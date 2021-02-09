@@ -1,11 +1,4 @@
-
-# For full storage options, check the docs:
-#    docs.serverless.com
-
 service: iabackup
-# app and org for use with dashboard.serverless.com TODO: Look into this?
-# app: iabackup
-# org: marius00
 
 provider:
   name: aws
@@ -20,7 +13,8 @@ provider:
     DATABASE_NAME: ${ssm:/gd/ia/backup/config/db/database}
     ALLOWED_ORIGIN: ${ssm:/gd/ia/backup/config/allowed_origin}
     GO_API_HOST: ${ssm:/gd/ia/backup/config/api_host}
-
+    REGION: ${ssm:/gd/ia/backup/config/region}
+    BUCKETNAME: ${ssm:/gd/ia/backup/config/backupbucket}
 
 package:
   exclude:
@@ -110,6 +104,18 @@ functions:
     - http:
         path: /upload
         method: post
+  CharacterBackup:
+    handler: bin/character
+    events:
+    - http:
+        path: /character/upload
+        method: post
+    - http:
+        path: /character/download
+        method: get
+    - http:
+        path: /character
+        method: get
   Maintenance:
     handler: bin/maintenance
     events:
