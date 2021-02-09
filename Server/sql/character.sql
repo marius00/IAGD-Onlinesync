@@ -16,3 +16,5 @@ TABLESPACE pg_default;
 ALTER TABLE public."character" OWNER to iagd_lambda;
 
 COMMENT ON TABLE public."character" IS 'Stores filename mappings for character backups';
+
+ALTER TABLE public."character" ADD COLUMN "updated_at" timestamp without time zone NOT NULL DEFAULT now();

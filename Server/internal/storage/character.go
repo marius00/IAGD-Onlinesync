@@ -2,7 +2,6 @@ package storage
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/lib/pq"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"time"
 )
@@ -13,8 +12,9 @@ type CharacterDb struct {
 type CharacterEntry struct {
 	UserId    string    `json:"-" gorm:"column:userid"`
 	Name      string    `json:"name" gorm:"column:name"`
-	Filename  string    `json:"filename" gorm:"column:filename"`
+	Filename  string    `json:"-" gorm:"column:filename"`
 	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
+	UpdatedAt time.Time `json:"updated_at" sql:"-" gorm:"-"`
 }
 
 func (CharacterEntry) TableName() string {
@@ -47,13 +47,12 @@ func (*CharacterDb) List(user string) ([]CharacterEntry, error) {
 func (*CharacterDb) Insert(entry CharacterEntry) error {
 	db := config.GetDatabaseInstance()
 
-	result := db.Create(entry)
-	if result.Error != nil {
-		err := result.Error.(*pq.Error)
-		if err.Code == UNIQUE_VIOLATION {
-			return nil
-		}
-	}
+	result :=
+
+		db.Exec(`INSERT INTO public."character" (userid, name, filename)
+			VALUES(?, ?, ?)
+			ON CONFLICT (userid, name) 
+			DO UPDATE SET updated_at = now();`, entry.UserId, entry.Name, entry.Filename)
 
 	return result.Error
 }

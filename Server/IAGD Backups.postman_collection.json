@@ -415,6 +415,47 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "List Characters",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "magictoken"
+					},
+					{
+						"key": "X-Api-User",
+						"type": "text",
+						"value": "test@example.com"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/F:/temp/error.zip"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{Hostname}}/character",
+					"host": [
+						"{{Hostname}}"
+					],
+					"path": [
+						"character"
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }
