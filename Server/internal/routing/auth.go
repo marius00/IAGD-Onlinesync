@@ -8,7 +8,8 @@ import (
 )
 
 const MaxAttempts int = 30
-const AuthUserKey = "AuthUserKey"
+const authUserKey = "AuthUserKey"
+
 type Authorizer interface {
 	IsValid(email string, token string) (bool, error)
 }
@@ -57,8 +58,19 @@ func authorizedHandler(authDb Authorizer, throttleDb Throttler) gin.HandlerFunc 
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: Authorization token invalid"})
 			c.Abort()
 		} else {
-			c.Set(AuthUserKey, user)
+			c.Set(authUserKey, user)
 			c.Next()
 		}
 	}
+}
+
+func GetUser(c *gin.Context) string {
+	u, ok := c.Get(authUserKey)
+	if !ok || u == "" {
+		logger := logging.Logger(c)
+		logger.Fatal("Could not locate user on request, restricted endpoint exposed publicly or auth mechanism broken.")
+		panic("Could not locate user on request, restricted endpoint exposed publicly or auth mechanism broken.")
+	}
+
+	return u.(string)
 }

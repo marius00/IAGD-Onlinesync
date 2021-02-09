@@ -13,8 +13,7 @@ const Path = "/logout"
 const Method = routing.POST
 
 func ProcessRequest(c *gin.Context) {
-	u, _ := c.Get(routing.AuthUserKey)
-	user := u.(string)
+	user := routing.GetUser(c)
 	token := c.GetHeader("Authorization")
 
 	authDb := storage.AuthDb{}

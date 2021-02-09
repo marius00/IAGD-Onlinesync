@@ -18,8 +18,7 @@ const DownloadMethod = routing.GET
 // Requests a download URL for the provided character name (?name=myCharName)
 func DownloadProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	u, _ := c.Get(routing.AuthUserKey)
-	user := u.(string)
+	user := routing.GetUser(c)
 
 	name, ok := c.GetQuery("name")
 	if !ok {

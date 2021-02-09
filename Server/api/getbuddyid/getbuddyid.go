@@ -14,8 +14,7 @@ const Method = routing.GET
 
 // Get buddy id for the current logged in user
 func ProcessRequest(c *gin.Context) {
-	u, _ := c.Get(routing.AuthUserKey)
-	user := u.(string)
+	user := routing.GetUser(c)
 
 	userDb := storage.UserDb{}
 	userEntry, err := userDb.Get(user)

@@ -14,8 +14,7 @@ const ListMethod = routing.GET
 
 func ListProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	u, _ := c.Get(routing.AuthUserKey)
-	user := u.(string)
+	user := routing.GetUser(c)
 
 	db := storage.CharacterDb{}
 	entries, err := db.List(user)

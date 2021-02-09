@@ -30,8 +30,7 @@ type ItemProvider interface {
 func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger := logging.Logger(c)
-		u, _ := c.Get(routing.AuthUserKey)
-		user := u.(string)
+		user := routing.GetUser(c)
 
 		currentTimestamp := util.GetCurrentTimestamp()
 		lastTimestamp, ok := util.GetTimestamp(c)

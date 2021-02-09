@@ -25,14 +25,7 @@ type responseType struct {
 func ProcessRequest(c *gin.Context) {
 	timeOfUpload := util.GetCurrentTimestamp()
 	logger := logging.Logger(c)
-
-	u, exists := c.Get(routing.AuthUserKey)
-	if !exists {
-		logger.Warn("Error parsing user credentials")
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error retrieving user credentials"})
-		return
-	}
-	user := u.(string)
+	user := routing.GetUser(c)
 
 	// Parse JSON
 	data, err := decode(c.Request.Body)

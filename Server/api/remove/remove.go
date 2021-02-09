@@ -22,8 +22,7 @@ type DeleteItemEntry struct {
 
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	u, _ := c.Get(routing.AuthUserKey)
-	user := u.(string)
+	user := routing.GetUser(c)
 
 	entries, err := decode(c.Request.Body)
 	if err != nil {

@@ -25,8 +25,7 @@ var bucket = os.Getenv(config.BucketName)
 // Returns an URL where a character backup can be uploaded
 func UploadProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	u, _ := c.Get(routing.AuthUserKey)
-	user := u.(string)
+	user := routing.GetUser(c)
 
 	name, ok := c.GetQuery("name")
 	if !ok {

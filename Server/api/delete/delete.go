@@ -15,8 +15,7 @@ const Method = routing.DELETE
 // Deletes an account and all its items
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	u, _ := c.Get(routing.AuthUserKey)
-	user := u.(string)
+	user := routing.GetUser(c)
 	var success = true
 	
 	itemdb := &storage.ItemDb{}
