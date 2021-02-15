@@ -1,6 +1,7 @@
 package character
 
 import (
+	"archive/zip"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 const UploadPath = "/character/upload"
@@ -35,11 +37,39 @@ func UploadProcessRequest(c *gin.Context) {
 
 	hash :=  md5.Sum([]byte(name))
 	key := fmt.Sprintf("characters/%s/%s.zip", user, hex.EncodeToString(hash[:]))
-	file, _, err := c.Request.FormFile("file")
+	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		logger.Warn("Error receiving/reading uploaded file", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": `Forgot to attach the file? Param: "file"`,})
 		return
+	}
+
+
+
+	zipReader, err := zip.NewReader(file, header.Size)
+	if err != nil {
+		logger.Warn("Error reading uploaded zip file", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"msg": `The provided file does not appear to be a valid zip file`,})
+		return
+	}
+
+	for _, filename := range zipReader.File {
+		ext := filepath.Ext(filename.Name)
+		switch ext {
+		case ".gdc":
+		case ".gdd":
+		case ".fow":
+		case ".dat":
+		case ".bin":
+		case ".cpn":
+		case ".gst":
+		case ".gsh":
+			break
+		default:
+			logger.Warn("Attempt at uploading a file with the wrong extension", zap.String("filename", filename.Name))
+			c.JSON(http.StatusBadRequest, gin.H{"msg": fmt.Sprintf(`The filename "%s" does not appear to belong to Grim Dawn`, filename.Name),})
+			return
+		}
 	}
 
 	// Store to db
