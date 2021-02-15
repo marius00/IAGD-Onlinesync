@@ -24,6 +24,11 @@ func ProcessRequest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "id" is missing`})
 		return
 	}
+	_, err := strconv.ParseInt(buddyId, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": `The query parameter "id" is not a valid buddy id`})
+		return
+	}
 
 	isHardcoreStr, ok := c.GetQuery("hc")
 	if !ok {
