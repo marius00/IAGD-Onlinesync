@@ -1,5 +1,6 @@
 import * as React from 'react';
 import './EmailLoginModal.css';
+import '../spinner.css';
 
 interface Props {
   onCompletion: (email: string, token: string) => void;
@@ -8,6 +9,7 @@ interface Props {
 interface State {
   email?: string;
   errorMessage?: string;
+  loading: boolean;
 }
 
 class EmailStage extends React.Component<Props> {
@@ -15,7 +17,7 @@ class EmailStage extends React.Component<Props> {
 
   constructor(props: Props) {
     super(props);
-    this.state = {};
+    this.state = { loading: false };
   }
 
   onSendEmail() {
@@ -24,6 +26,7 @@ class EmailStage extends React.Component<Props> {
     if (this.validateEmail(email)) {
       let self = this;
       const uri = 'https://api.iagd.evilsoft.net/login';
+      this.setState({loading: true});
 
       fetch(`${uri}?email=${email}`, {
           method: 'GET',
@@ -48,10 +51,11 @@ class EmailStage extends React.Component<Props> {
           else {
             console.warn('Attempted to fetch token for email, but token was undefined.');
           }
+          this.setState({loading: false});
         })
         .catch((error) => {
           console.warn(error);
-          self.setState({errorMessage: `${error}`});
+          self.setState({loading: false, errorMessage: `${error}`});
         });
 
     } else {
@@ -92,12 +96,11 @@ class EmailStage extends React.Component<Props> {
               onKeyPress={(e) => e.key === 'Enter' ? this.onSendEmail() : ''}
             />
             {this.state.errorMessage && <div className="alert alert-warning">{this.state.errorMessage}</div>}
-            <input
-              className="form-control btn btn-primary"
-              type="button"
-              value="Send"
-              onClick={() => this.onSendEmail()}
-            />
+            {!this.state.loading && <button className="form-control btn btn-primary" onClick={() => this.onSendEmail()}>Send</button>}
+
+            {this.state.loading && <div className="loader-container">
+              <div className="loader"></div>
+            </div>}
           </div>
         </div>
       </div>

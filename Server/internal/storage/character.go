@@ -13,8 +13,8 @@ type CharacterEntry struct {
 	UserId    string    `json:"-" gorm:"column:userid"`
 	Name      string    `json:"name" gorm:"column:name"`
 	Filename  string    `json:"-" gorm:"column:filename"`
-	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
-	UpdatedAt time.Time `json:"updated_at" sql:"-" gorm:"-"`
+	CreatedAt time.Time `json:"createdAt" sql:"-" gorm:"-"`
+	UpdatedAt time.Time `json:"updatedAt" sql:"-" gorm:"-"`
 }
 
 func (CharacterEntry) TableName() string {

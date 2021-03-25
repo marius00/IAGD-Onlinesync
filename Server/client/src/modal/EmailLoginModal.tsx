@@ -37,7 +37,7 @@ class EmailLoginModal extends React.Component<Props> {
         <br/>
         <br/>
         <br/>
-        <input type="button" value="Close" className="btn btn-primary" onClick={() => this.props.onClose()}/>
+        <button value="Close" className="btn btn-primary" onClick={() => this.props.onClose()}/>
       </div>
     );
   }

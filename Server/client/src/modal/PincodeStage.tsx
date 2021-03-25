@@ -11,6 +11,7 @@ interface Props {
 interface State {
   errorMessage?: string;
   code?: string;
+  isLoading: boolean;
 }
 
 class PincodeStage extends React.Component<Props> {
@@ -18,7 +19,7 @@ class PincodeStage extends React.Component<Props> {
 
   constructor(props: Props) {
     super(props);
-    this.state = {};
+    this.state = { isLoading: false };
   }
 
   isCodeValid() {
@@ -32,6 +33,7 @@ class PincodeStage extends React.Component<Props> {
     const uri = 'https://api.iagd.evilsoft.net/auth';
     const code = this.state.code as string;
 
+    this.setState({isLoading: true});
     fetch(uri, {
         method: 'POST',
         headers: {
@@ -52,15 +54,17 @@ class PincodeStage extends React.Component<Props> {
       .then((json) => {
         if (json.token !== undefined) {
           this.props.onCompletion(true, json.token);
+          self.setState({isLoading: false});
         }
         else {
+          self.setState({errorMessage: `Something went wrong, we appear to not have gotten a token back.`, isLoading: false});
           console.warn('Attempted to authenticate code, but the result status was undefined.');
           this.props.onCompletion(false);
         }
       })
       .catch((error) => {
         console.warn(error);
-        self.setState({errorMessage: `${error}`});
+        self.setState({errorMessage: `${error}`, isLoading: false});
       });
   }
 
@@ -82,13 +86,18 @@ class PincodeStage extends React.Component<Props> {
             onChange={(e) => this.setState({code: e})}
           />
           {showNonNumericError && <div className="alert alert-warning">The code can only consist of numbers</div>}
+          {this.state.errorMessage && <div className="alert alert-warning">{this.state.errorMessage}</div>}
+          {!this.state.isLoading &&
           <input
             className={!this.isCodeValid() ? 'form-control btn btn-default' : 'form-control btn btn-primary'}
             type="button"
             value="Verify"
             disabled={!this.isCodeValid()}
             onClick={() => this.onValidateCode()}
-          />
+          />}
+          {this.state.isLoading && <div className="loader-container">
+            <div className="loader"></div>
+          </div>}
         </div>
       </div>
     );

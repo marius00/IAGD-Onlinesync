@@ -49,11 +49,11 @@ class App extends React.Component {
           <ul>
             <li>Your e-mail address</li>
             <li>The data required to recreate your Grim Dawn items</li>
+            <li>Your characters</li>
             <li>The date/time each item were uploaded</li>
-            <li>Your IP address for up to 72 hours (for security purposes and throttling excess traffic)</li>
+            <li>Your IP address for ~24 hours (throttling excess traffic, prevent brute force logins)</li>
           </ul>
-          Your email may in rare cases be utilized to contact you to help diagnose issues detected.<br/>
-          No information will be shared with any third parties except where/if legally required to do so by law.
+          Your email may in rare cases be utilized to contact you to help diagnose issues detected.
         </div>
         <br/><br/>
 
