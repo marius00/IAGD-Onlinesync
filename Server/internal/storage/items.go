@@ -2,116 +2,15 @@ package storage
 
 import (
 	"errors"
-	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"github.com/marmyr/iagdbackup/internal/config"
-	"strings"
 	"time"
 )
 
 const MaxItemLimit = 5000
 
 type ItemDb struct {
-}
-
-type Item struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	Ts     int64  `json:"ts"`
-
-	Mod        string `json:"mod"`
-	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
-
-	BaseRecord                 string `json:"baseRecord" gorm:"column:baserecord"`
-	PrefixRecord               string `json:"prefixRecord" gorm:"column:prefixrecord"`
-	SuffixRecord               string `json:"suffixRecord" gorm:"column:suffixrecord"`
-	ModifierRecord             string `json:"modifierRecord" gorm:"column:modifierrecord"`
-	TransmuteRecord            string `json:"transmuteRecord" gorm:"column:transmuterecord"`
-	MateriaRecord              string `json:"materiaRecord" gorm:"column:materiarecord"`
-	RelicCompletionBonusRecord string `json:"relicCompletionBonusRecord" gorm:"column:reliccompletionbonusrecord"`
-	EnchantmentRecord          string `json:"enchantmentRecord" gorm:"column:enchantmentrecord"`
-
-	Seed            int64 `json:"seed"`
-	RelicSeed       int64 `json:"relicSeed" gorm:"column:relicseed"`
-	EnchantmentSeed int64 `json:"enchantmentSeed" gorm:"column:enchantmentseed"`
-	MateriaCombines int64 `json:"materiaCombines" gorm:"column:materiacombines"`
-	StackCount      int64 `json:"stackCount" gorm:"column:stackcount"`
-
-	// Used in IA for sorting/filtering
-	CreatedAt int64 `json:"createdAt" gorm:"column:created_at"`
-
-	// Metadata
-	Name             string  `json:"name" gorm:"column:name"`
-	NameLowercase    string  `json:"nameLowercase" gorm:"column:namelowercase"`
-	Rarity           string  `json:"rarity" gorm:"column:rarity"`
-	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
-	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
-
-	// TODO: Don't return this to IA, too much bloat
-	SearchableText string `json:"searchableText" gorm:"column:searchabletext"`
-	CachedStats    string `json:"cachedStats" gorm:"column:cachedstats"`
-}
-
-// We don't need to return all the stats, only a subset of the fields.
-// Fields such as cached stats and searchable text are only used for the webview of backups
-type OutputItem struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	Ts     int64  `json:"ts"`
-
-	Mod        string `json:"mod"`
-	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
-
-	BaseRecord                 string `json:"baseRecord" gorm:"column:baserecord"`
-	PrefixRecord               string `json:"prefixRecord" gorm:"column:prefixrecord"`
-	SuffixRecord               string `json:"suffixRecord" gorm:"column:suffixrecord"`
-	ModifierRecord             string `json:"modifierRecord" gorm:"column:modifierrecord"`
-	TransmuteRecord            string `json:"transmuteRecord" gorm:"column:transmuterecord"`
-	MateriaRecord              string `json:"materiaRecord" gorm:"column:materiarecord"`
-	RelicCompletionBonusRecord string `json:"relicCompletionBonusRecord" gorm:"column:reliccompletionbonusrecord"`
-	EnchantmentRecord          string `json:"enchantmentRecord" gorm:"column:enchantmentrecord"`
-
-	// TODO: Buddy items does not need seed, but is it worth a new struct just to exclude it?
-	Seed            int64 `json:"seed"`
-	RelicSeed       int64 `json:"relicSeed" gorm:"column:relicseed"`
-	EnchantmentSeed int64 `json:"enchantmentSeed" gorm:"column:enchantmentseed"`
-	MateriaCombines int64 `json:"materiaCombines" gorm:"column:materiacombines"`
-	StackCount      int64 `json:"stackCount" gorm:"column:stackcount"`
-
-	// Used in IA for sorting/filtering
-	CreatedAt int64 `json:"createdAt" gorm:"column:created_at"`
-
-	// Metadata
-	Name             string  `json:"name" gorm:"column:name"`
-	NameLowercase    string  `json:"nameLowercase" gorm:"column:namelowercase"`
-	Rarity           string  `json:"rarity" gorm:"column:rarity"`
-	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
-	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
-}
-
-func (OutputItem) TableName() string {
-	return "item"
-}
-
-type BuddyItem struct {
-	UserId      string `json:"-" gorm:"column:userid"`
-	Id          string `json:"id"`
-	CachedStats string `json:"cachedStats" gorm:"column:cachedstats"`
-}
-
-func (BuddyItem) TableName() string {
-	return "item"
-}
-
-type DeletedItem struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	Ts     int64  `json:"ts"`
-}
-
-func (DeletedItem) TableName() string {
-	return "deleteditem"
 }
 
 const (
@@ -123,7 +22,7 @@ const (
 func (*ItemDb) Delete(user string, id string, timestamp int64) error {
 	DB := config.GetDatabaseInstance()
 
-	obj := Item{Id: id, UserId: user}
+	obj := InputItem{Id: id, UserId: user}
 	result := DB.Delete(&obj)
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return result.Error
@@ -152,7 +51,7 @@ func ReturnOrIgnore(err error, ignore pq.ErrorCode) error {
 	return err
 }
 
-func (*ItemDb) Insert(user string, item Item) error {
+func (*ItemDb) Insert(user string, item InputItem) error {
 	DB := config.GetDatabaseInstance()
 
 	item.UserId = user
@@ -170,20 +69,95 @@ func (*ItemDb) List(user string, lastTimestamp int64) ([]OutputItem, error) {
 	return items, result.Error
 }
 
-// Fetch all items for a given user, since the provided timestamp
-func (*ItemDb) ListBuddyItems(user string, query []string, isHardcore int64, offset int64) ([]BuddyItem, error) {
+// Fetch 0..1000 items for a given user, since the provided timestamp
+func insertRecordEntry(record string) error {
 	DB := config.GetDatabaseInstance()
+	result := DB.Exec("INSERT IGNORE INTO records(record) VALUES(?)", record)
+	return result.Error
+}
 
-	var items []BuddyItem
+// EnsureRecordsExists will insert any missing records for this item
+func (*ItemDb) EnsureRecordsExists(items []JsonItem) {
+	for _, item := range items {
+		records := []string{
+			item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
+			item.ModifierRecord, item.TransmuteRecord, item.TransmuteRecord,
+			item.EnchantmentRecord, item.MateriaRecord,
+		}
 
-	var name = fmt.Sprintf("%%%s%%", strings.Join(query, " "))
-	var db = DB.Where("userid = ? AND isHardcore = ?", user, isHardcore)
-	for _, q := range query {
-		db = db.Where("(searchabletext like ? OR namelowercase LIKE ?)", fmt.Sprintf("%%%s%%", q), name)
+		for _, record := range records {
+			if record != "" {
+				insertRecordEntry(record)
+			}
+		}
+	}
+}
+
+func (*ItemDb) ToMap(references []RecordReference) map[string]uint64 {
+	var m map[string]uint64
+	for _, ref := range references {
+		m[ref.Record] = ref.Id
 	}
 
-	result := db.Order("name asc").Limit(35).Offset(offset).Find(&items)
-	return items, result.Error
+	return m
+}
+
+// Conerts a json item to an input item (settings record reference ids)
+func (*ItemDb) ToInputItem(item JsonItem, references map[string]uint64) InputItem {
+	return InputItem{
+		Id: item.Id,
+		BaseRecord: references[item.BaseRecord],
+		MateriaRecord: references[item.MateriaRecord],
+		EnchantmentRecord: references[item.EnchantmentRecord],
+		RelicCompletionBonusRecord: references[item.RelicCompletionBonusRecord],
+		TransmuteRecord: references[item.TransmuteRecord],
+		ModifierRecord: references[item.ModifierRecord],
+		SuffixRecord: references[item.SuffixRecord],
+		PrefixRecord: references[item.PrefixRecord],
+		Mod: item.Mod,
+		PrefixRarity: item.PrefixRarity,
+		CreatedAt: item.CreatedAt,
+		EnchantmentSeed: item.EnchantmentSeed,
+		IsHardcore: item.IsHardcore,
+		LevelRequirement: item.LevelRequirement,
+		MateriaCombines: item.MateriaCombines,
+		Name: item.Name,
+		NameLowercase: item.NameLowercase,
+		Rarity: item.Rarity,
+		RelicSeed: item.RelicSeed,
+		SearchableText: item.SearchableText,
+		Seed: item.Seed,
+		StackCount: item.StackCount,
+		Ts: item.Ts,
+		UserId: item.UserId,
+	}
+}
+
+
+
+// EnsureRecordsExists will insert any missing records for this item
+func (*ItemDb) GetRecordReferences(items []JsonItem) ([]RecordReference, error) {
+	db := config.GetDatabaseInstance()
+	var records []string
+	for _, item := range items {
+		for _, record := range []string{
+			item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
+			item.ModifierRecord, item.TransmuteRecord, item.TransmuteRecord,
+			item.EnchantmentRecord, item.MateriaRecord,
+		} {
+			if record != "" {
+				records = append(records, record)
+			}
+		}
+	}
+
+	var references []RecordReference
+	result := db.Where("record IN (?)", records).Find(&references)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return references, nil
 }
 
 // Fetch all items queued to be deleted
@@ -199,7 +173,7 @@ func (*ItemDb) ListDeletedItems(user string, lastTimestamp int64) ([]DeletedItem
 func (*ItemDb) PurgeUser(user string) error {
 	db := config.GetDatabaseInstance()
 
-	result := db.Where("userid = ?", user).Delete(Item{})
+	result := db.Where("userid = ?", user).Delete(InputItem{})
 	if result.Error != nil {
 		return result.Error
 	}

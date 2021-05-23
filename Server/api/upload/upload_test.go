@@ -6,7 +6,7 @@ import (
 )
 
 func TestShouldRejectPartitionsInInput(t *testing.T) {
-	m := []storage.Item{
+	m := []storage.JsonItem{
 		{ Id: "FC361743-67FC-4693-BF2D-D5CABC0BE8C2", UserId: "evil-attempt",},
 	}
 
@@ -16,7 +16,7 @@ func TestShouldRejectPartitionsInInput(t *testing.T) {
 }
 
 func TestShouldRejectItemsWithoutId(t *testing.T) {
-	m := []storage.Item{
+	m := []storage.JsonItem{
 		{},
 	}
 
@@ -26,7 +26,7 @@ func TestShouldRejectItemsWithoutId(t *testing.T) {
 }
 
 func TestShouldRejectEmptyLists(t *testing.T) {
-	var m []storage.Item
+	var m []storage.JsonItem
 
 	if err := validate(m); err != `Input array is empty, no items provided` {
 		t.Fatalf("Expected error message, got %s", err)
@@ -34,13 +34,12 @@ func TestShouldRejectEmptyLists(t *testing.T) {
 }
 
 func TestShouldPassValidationWithNoErrors(t *testing.T) {
-	m := []storage.Item{
+	m := []storage.JsonItem{
 		{
 			Id: "FC361743-67FC-4693-BF2D-D5CABC0BE8C2",
 			BaseRecord: "my base record",
 			Seed: 12345,
 			StackCount: 1,
-			CachedStats: "abc",
 		},
 	}
 
@@ -50,7 +49,7 @@ func TestShouldPassValidationWithNoErrors(t *testing.T) {
 }
 
 func TestShouldRejectTooShortId(t *testing.T) {
-	m := []storage.Item{
+	m := []storage.JsonItem{
 		{Id: "123",},
 	}
 

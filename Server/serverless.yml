@@ -40,12 +40,6 @@ functions:
       - http:
           path: /buddyitems
           method: get
-  SearchOnlineItems:
-    handler: bin/search
-    events:
-      - http:
-          path: /search
-          method: get
   DeleteAccount:
     handler: bin/delete
     events:

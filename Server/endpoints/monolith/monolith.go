@@ -8,7 +8,6 @@ import (
 	"github.com/marmyr/iagdbackup/api/getbuddyid"
 	"github.com/marmyr/iagdbackup/api/migrate"
 	"github.com/marmyr/iagdbackup/api/remove"
-	"github.com/marmyr/iagdbackup/api/search"
 	"github.com/marmyr/iagdbackup/api/session/auth"
 	"github.com/marmyr/iagdbackup/api/session/login"
 	"github.com/marmyr/iagdbackup/api/session/logincheck"
@@ -21,7 +20,6 @@ import (
 // Runs the entire application as a single application. Useful for local testing, or deploying outside of AWS Lambda.
 func main() {
 	ginEngine := routing.Build()
-	routing.AddPublicRoute(ginEngine, search.Path, search.Method, search.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, buddyitems.Path, buddyitems.Method, buddyitems.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, delete.Path, delete.Method, delete.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, download.Path, download.Method, download.ProcessRequest)

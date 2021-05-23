@@ -28,7 +28,7 @@ func ProcessRequest(c *gin.Context) {
 	user := routing.GetUser(c)
 
 	// Parse JSON
-	data, err := decode(c.Request.Body)
+	jsonItems, err := decode(c.Request.Body)
 	if err != nil {
 		logger.Info("Error parsing JSON body", zap.Error(err), zap.String("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
@@ -36,7 +36,7 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	// Validate JSON
-	if validationError := validate(data); validationError != "" {
+	if validationError := validate(jsonItems); validationError != "" {
 		logger.Info("Error validating JSON body", zap.String("validation", validationError), zap.String("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": validationError})
 		return
@@ -44,13 +44,20 @@ func ProcessRequest(c *gin.Context) {
 
 	// Store to DB
 	db := &storage.ItemDb{}
+	db.EnsureRecordsExists(jsonItems)
+	ref, err := db.GetRecordReferences(jsonItems)
+	if err != nil {
+		logger.Warn("Unable to fetch item records", zap.String("user", user), zap.Int("numItems", len(jsonItems)), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching item records"})
+	}
+	refMap := db.ToMap(ref)
 
 	var unprocessed []string
 	numErrors := 0 // If everything is failing, just give up.
-	for _, item := range data {
+	for _, item := range jsonItems {
 		if numErrors < 5 {
 			item.Ts = timeOfUpload
-			err = db.Insert(user, item)
+			err = db.Insert(user, db.ToInputItem(item, refMap))
 		}
 
 		if err != nil || numErrors >= 5 {
@@ -64,8 +71,8 @@ func ProcessRequest(c *gin.Context) {
 		Unprocessed: unprocessed,
 	}
 
-	if len(unprocessed) == len(data) {
-		logger.Warn("Returning 500 internal server error, failed to process all items", zap.String("user", user), zap.Int("numItems", len(data)))
+	if len(unprocessed) == len(jsonItems) {
+		logger.Warn("Returning 500 internal server error, failed to process all items", zap.String("user", user), zap.Int("numItems", len(jsonItems)))
 		c.JSON(http.StatusInternalServerError, r)
 	} else {
 		c.JSON(http.StatusOK, r)
@@ -73,7 +80,7 @@ func ProcessRequest(c *gin.Context) {
 }
 
 // validate ensures that the input data is valid-ish
-func validate(data []storage.Item) string {
+func validate(data []storage.JsonItem) string {
 	for _, m := range data {
 		if m.Id == "" {
 			return `One or more items is missing the property "id"`
@@ -110,13 +117,13 @@ func validate(data []storage.Item) string {
 }
 
 
-func decode(body io.Reader) ([]storage.Item, error) {
+func decode(body io.Reader) ([]storage.JsonItem, error) {
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
 
-	var entries []storage.Item
+	var entries []storage.JsonItem
 	if err := json.Unmarshal(data, &entries); err != nil {
 		return nil, err
 	}
