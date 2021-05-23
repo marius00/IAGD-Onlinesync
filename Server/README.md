@@ -23,7 +23,7 @@ Prior to deploying for the first time, the following environmental variables mus
 * `aws ssm put-parameter --name /gd/ia/backup/config/region --type String --value us-east-1`  
 * `aws ssm put-parameter --name /gd/ia/backup/config/backupbucket --type String --value name-of-bucket`  
 
-
+re
 ### Project structure
 Shared code is primarily maintained under `internal`, the code behind each endpoint is found under `api`, and the actual endpoint mapping under `endpoints` (in addition to `serverless.yml` for AWS lambda deploys)
 

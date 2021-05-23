@@ -125,7 +125,6 @@ functions:
     events:
       - schedule: cron(0 6 ? * 1 *) # Every monday, 06:00 - Completely arbitrary time
 
-# you can add CloudFormation resource templates here
 plugins:
   - serverless-finch
 resources:
