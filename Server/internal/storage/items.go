@@ -15,7 +15,7 @@ type ItemDb struct {
 
 const (
 	// https://github.com/lib/pq/blob/master/error.go#L78
-	UNIQUE_VIOLATION = "23505"
+	UNIQUE_VIOLATION = "23505" // TODO: Obsolete, PSQL
 )
 
 // Delete will delete a an item for a user
@@ -77,7 +77,7 @@ func insertRecordEntry(record string) error {
 }
 
 // EnsureRecordsExists will insert any missing records for this item
-func (*ItemDb) EnsureRecordsExists(items []JsonItem) {
+func (*ItemDb) ensureRecordsExists(items []JsonItem) {
 	for _, item := range items {
 		records := []string{
 			item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
@@ -93,7 +93,8 @@ func (*ItemDb) EnsureRecordsExists(items []JsonItem) {
 	}
 }
 
-func (*ItemDb) ToMap(references []RecordReference) map[string]uint64 {
+// Returns a string=>id map of the record references
+func (*ItemDb) toMap(references []RecordReference) map[string]uint64 {
 	var m map[string]uint64
 	for _, ref := range references {
 		m[ref.Record] = ref.Id
@@ -103,7 +104,7 @@ func (*ItemDb) ToMap(references []RecordReference) map[string]uint64 {
 }
 
 // Conerts a json item to an input item (settings record reference ids)
-func (*ItemDb) ToInputItem(item JsonItem, references map[string]uint64) InputItem {
+func (*ItemDb) toInputItem(item JsonItem, references map[string]uint64) InputItem {
 	return InputItem{
 		Id: item.Id,
 		BaseRecord: references[item.BaseRecord],
@@ -133,10 +134,26 @@ func (*ItemDb) ToInputItem(item JsonItem, references map[string]uint64) InputIte
 	}
 }
 
+// Converts json items to input items, ensuring that the records exists in the database (mutates db)
+func (db *ItemDb) ToInputItems(items []JsonItem) ([]InputItem, error) {
+	db.ensureRecordsExists(items)
+	ref, err := db.getRecordReferences(items)
+	if err != nil {
+		return nil, err
+	}
+	refMap := db.toMap(ref)
+
+	var result []InputItem
+	for _, item := range items {
+		result = append(result, db.toInputItem(item, refMap));
+	}
+
+	return result, nil
+}
 
 
 // EnsureRecordsExists will insert any missing records for this item
-func (*ItemDb) GetRecordReferences(items []JsonItem) ([]RecordReference, error) {
+func (*ItemDb) getRecordReferences(items []JsonItem) ([]RecordReference, error) {
 	db := config.GetDatabaseInstance()
 	var records []string
 	for _, item := range items {

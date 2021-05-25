@@ -44,20 +44,18 @@ func ProcessRequest(c *gin.Context) {
 
 	// Store to DB
 	db := &storage.ItemDb{}
-	db.EnsureRecordsExists(jsonItems)
-	ref, err := db.GetRecordReferences(jsonItems)
+	inputItems, err := db.ToInputItems(jsonItems)
 	if err != nil {
 		logger.Warn("Unable to fetch item records", zap.String("user", user), zap.Int("numItems", len(jsonItems)), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching item records"})
 	}
-	refMap := db.ToMap(ref)
 
 	var unprocessed []string
 	numErrors := 0 // If everything is failing, just give up.
-	for _, item := range jsonItems {
+	for _, item := range inputItems {
 		if numErrors < 5 {
 			item.Ts = timeOfUpload
-			err = db.Insert(user, db.ToInputItem(item, refMap))
+			err = db.Insert(user, item)
 		}
 
 		if err != nil || numErrors >= 5 {

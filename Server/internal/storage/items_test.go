@@ -15,7 +15,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 
 	ts := util.GetCurrentTimestamp()
 	user := "item@example.com"
-	item := InputItem {
+	item := JsonItem {
 		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
 		Ts: ts,
 		BaseRecord: "my base record",
@@ -26,7 +26,8 @@ func TestCreateListDeleteItem(t *testing.T) {
 		t.Fatal("Failed to purge user")
 	}
 
-	if err := db.Insert(user, item); err != nil {
+	inputItems, _ := db.ToInputItems([]JsonItem {item})
+	if err := db.Insert(user, inputItems[0]); err != nil {
 		t.Fatalf("Error inserting item %v", err)
 	}
 
@@ -69,7 +70,7 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 
 	ts := util.GetCurrentTimestamp()
 	user := "past-item@example.com"
-	item := InputItem {
+	item := JsonItem {
 		Id: "C11A9D5D-F92F-4079-AC68-AAAAAAAAAAAA",
 		Ts: ts,
 		BaseRecord: "my base record",
@@ -80,7 +81,8 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 		t.Fatal("Failed to purge user")
 	}
 
-	if err := db.Insert(user, item); err != nil {
+	inputItems, _ := db.ToInputItems([]JsonItem {item})
+	if err := db.Insert(user, inputItems[0]); err != nil {
 		t.Fatalf("Error inserting item %v", err)
 	}
 
@@ -113,10 +115,10 @@ func TestInsertSameItemTwice(t *testing.T) {
 	db := ItemDb{}
 	ts := util.GetCurrentTimestamp()
 	user := "insert-twice@example.com"
-	item := InputItem {
+	item := JsonItem {
 		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
 		Ts: ts,
-		BaseRecord: 12345,
+		BaseRecord: "base recordddddsssssss",
 	}
 	defer db.PurgeUser(user)
 
@@ -124,11 +126,12 @@ func TestInsertSameItemTwice(t *testing.T) {
 		t.Fatal("Failed to purge user")
 	}
 
-	if err := db.Insert(user, item); err != nil {
+	inputItems, _ := db.ToInputItems([]JsonItem {item})
+	if err := db.Insert(user, inputItems[0]); err != nil {
 		t.Fatalf("Error inserting item %v", err)
 	}
 
-	if err := db.Insert(user, item); err != nil {
+	if err := db.Insert(user, inputItems[0]); err != nil {
 		t.Fatalf("Error inserting item %v", err)
 	}
 

@@ -17,6 +17,10 @@ import (
 [skip] Check if record exists
 Insert into records - insert ignore
 Insert into items (select wheeeere....)
+
+: Ensure exists logic works
+: Ensure test coverage on existing logic, /upload + /download maybe? To get the full flow.
+: Then migrate.
 */
 
 var db *gorm.DB
