@@ -1,8 +1,8 @@
 package storage
 
 import (
+	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	"github.com/lib/pq"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"time"
 )
@@ -13,8 +13,8 @@ type ItemDb struct {
 }
 
 const (
-	// https://github.com/lib/pq/blob/master/error.go#L78
-	UNIQUE_VIOLATION = "23505" // TODO: Obsolete, PSQL
+	// https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html
+	UNIQUE_VIOLATION uint16 = 1062
 )
 
 // Delete will delete a an item for a user
@@ -39,10 +39,10 @@ func (*ItemDb) Maintenance() error {
 	return result.Error
 }
 
-func ReturnOrIgnore(err error, ignore pq.ErrorCode) error {
+func ReturnOrIgnore(err error, ignore uint16) error {
 	if err != nil {
-		err := err.(*pq.Error)
-		if err.Code == ignore {
+		err := err.(*mysql.MySQLError)
+		if err.Number == ignore {
 			return nil
 		}
 	}
@@ -94,7 +94,7 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) {
 
 // Returns a string=>id map of the record references
 func (*ItemDb) toMap(references []RecordReference) map[string]uint64 {
-	var m map[string]uint64
+	var m map[string]uint64 = map[string]uint64{}
 	for _, ref := range references {
 		m[ref.Record] = ref.Id
 	}
@@ -125,7 +125,6 @@ func (*ItemDb) toInputItem(item JsonItem, references map[string]uint64) InputIte
 		NameLowercase: item.NameLowercase,
 		Rarity: item.Rarity,
 		RelicSeed: item.RelicSeed,
-		SearchableText: item.SearchableText,
 		Seed: item.Seed,
 		StackCount: item.StackCount,
 		Ts: item.Ts,
@@ -196,4 +195,9 @@ func (*ItemDb) PurgeUser(user string) error {
 
 	result = db.Where("userid = ?", user).Delete(DeletedItem{})
 	return result.Error
+}
+
+
+func IsNotFoundError(err error) bool {
+	return err != nil && err.Error() != gorm.ErrRecordNotFound.Error()
 }

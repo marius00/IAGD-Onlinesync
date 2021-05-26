@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"time"
 )
@@ -25,7 +24,7 @@ func (*CharacterDb) Get(user string, name string) (*CharacterEntry, error) {
 	var entry CharacterEntry
 	result := config.GetDatabaseInstance().Where("userid = ? AND name = ?", user, name).Take(&entry)
 	if result.Error != nil {
-		if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
+		if IsNotFoundError(result.Error) {
 			return nil, nil
 		}
 

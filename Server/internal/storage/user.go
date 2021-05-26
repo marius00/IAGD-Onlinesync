@@ -1,8 +1,7 @@
 package storage
 
 import (
-	"github.com/jinzhu/gorm"
-	"github.com/lib/pq"
+	"github.com/go-sql-driver/mysql"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"math/rand"
 	"time"
@@ -25,7 +24,7 @@ func (*UserDb) Get(user string) (*UserEntry, error) {
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("userid = ?", user).Take(&userEntry)
 	if result.Error != nil {
-		if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
+		if IsNotFoundError(result.Error) {
 			return nil, nil
 		}
 
@@ -39,7 +38,7 @@ func (*UserDb) GetFromBuddyId(user string) (*UserEntry, error) {
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("buddy_id = ?", user).Take(&userEntry)
 	if result.Error != nil {
-		if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
+		if IsNotFoundError(result.Error) {
 			return nil, nil
 		}
 		return nil, result.Error
@@ -59,8 +58,8 @@ func (*UserDb) Insert(entry UserEntry) error {
 		// Check if its a unique conflict, if so allow retries.
 		retry := false
 		if result.Error != nil {
-			err := result.Error.(*pq.Error)
-			if err.Code == UNIQUE_VIOLATION {
+			err := result.Error.(*mysql.MySQLError)
+			if err.Number == UNIQUE_VIOLATION {
 				retry = true // Then we're good..
 			}
 		}

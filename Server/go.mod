@@ -5,6 +5,7 @@ require (
 	github.com/aws/aws-sdk-go v1.34.15
 	github.com/awslabs/aws-lambda-go-api-proxy v0.5.0
 	github.com/gin-gonic/gin v1.5.0
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/jinzhu/gorm v1.9.16
 	github.com/kr/text v0.2.0 // indirect

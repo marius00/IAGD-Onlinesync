@@ -34,9 +34,6 @@ type JsonItem struct {
 	Rarity           string  `json:"rarity" gorm:"column:rarity"`
 	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
 	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
-
-	// TODO: Don't return this to IA, too much bloat
-	SearchableText string `json:"searchableText" gorm:"column:searchabletext"`
 }
 
 type InputItem struct {
@@ -71,8 +68,6 @@ type InputItem struct {
 	Rarity           string  `json:"rarity" gorm:"column:rarity"`
 	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
 	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
-
-	SearchableText string `json:"searchableText" gorm:"column:searchabletext"`
 }
 func (InputItem) TableName() string {
 	return "item"
