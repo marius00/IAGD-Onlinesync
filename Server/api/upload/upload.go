@@ -90,12 +90,9 @@ func validate(data []storage.Item) string {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "User"`, m.Id)
 		}
 		if len(m.BaseRecord) < 6 {
-			return fmt.Sprintf(`Item with id="%s" contains is missing the field "baseRecord"`, m.Id)
+			return fmt.Sprintf(`Item with id="%s" is missing the field "baseRecord"`, m.Id)
 		}
 
-		if m.CachedStats == "" {
-			return fmt.Sprintf(`Item with id="%s" contains is missing the field "cachedStats"`, m.Id)
-		}
 		if m.StackCount <= 0 {
 			return fmt.Sprintf(`Item with id="%s" has a non-positive stack count`, m.Id)
 		}
