@@ -34,7 +34,7 @@ func (AuthAttempt) TableName() string {
 func (*AuthDb) IsValid(user string, accessToken string) (bool, error) {
 	var session AuthEntry
 	result := config.GetDatabaseInstance().Where("userid = ? AND token = ?", user, accessToken).Take(&session)
-	if result.Error == gorm.ErrRecordNotFound {
+	if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
 		return false, nil
 	}
 
@@ -51,16 +51,16 @@ func (*AuthDb) InitiateAuthentication(entry AuthAttempt) error {
 // Maintenance performs maintenance work such as deleting expired entries
 func (*AuthDb) Maintenance() error {
 	db := config.GetDatabaseInstance()
-	result := db.Where("created_at < NOW() - interval '1 day'").Delete(AuthAttempt{})
+	result := db.Where("created_at < NOW() - interval 1 day").Delete(AuthAttempt{})
 	return result.Error
 }
 
 // GetAuthenticationAttempt fetches an auth attempt based on key and code
 func (*AuthDb) GetAuthenticationAttempt(key string, code string) (*AuthAttempt, error) {
 	var attempt AuthAttempt
-	result := config.GetDatabaseInstance().Where("key = ? AND code = ? AND created_at > NOW() - INTERVAL '15 minutes'", key, code).Take(&attempt)
+	result := config.GetDatabaseInstance().Where("`key` = ? AND code = ? AND created_at > NOW() - INTERVAL 15 minute", key, code).Take(&attempt)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
 			return nil, nil
 		}
 		return nil, result.Error
@@ -78,7 +78,7 @@ func (*AuthDb) StoreSuccessfulAuth(user string, key string, authToken string) er
 	}
 
 	if key != "" {
-		result = db.Where("userid = ? AND key = ?", user, key).Delete(AuthAttempt{})
+		result = db.Where("userid = ? AND `key` = ?", user, key).Delete(AuthAttempt{})
 	}
 	return result.Error
 }

@@ -25,7 +25,7 @@ func (*UserDb) Get(user string) (*UserEntry, error) {
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("userid = ?", user).Take(&userEntry)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
 			return nil, nil
 		}
 
@@ -39,7 +39,7 @@ func (*UserDb) GetFromBuddyId(user string) (*UserEntry, error) {
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("buddy_id = ?", user).Take(&userEntry)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
 			return nil, nil
 		}
 		return nil, result.Error

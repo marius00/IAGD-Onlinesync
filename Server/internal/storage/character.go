@@ -25,7 +25,7 @@ func (*CharacterDb) Get(user string, name string) (*CharacterEntry, error) {
 	var entry CharacterEntry
 	result := config.GetDatabaseInstance().Where("userid = ? AND name = ?", user, name).Take(&entry)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if result.Error.Error() == gorm.ErrRecordNotFound.Error() {
 			return nil, nil
 		}
 

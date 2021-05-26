@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"github.com/marmyr/iagdbackup/internal/config"
@@ -24,7 +23,7 @@ func (*ItemDb) Delete(user string, id string, timestamp int64) error {
 
 	obj := InputItem{Id: id, UserId: user}
 	result := DB.Delete(&obj)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if result.Error != nil && result.Error.Error() != gorm.ErrRecordNotFound.Error() {
 		return result.Error
 	}
 

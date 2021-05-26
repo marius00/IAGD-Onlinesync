@@ -74,6 +74,9 @@ type InputItem struct {
 
 	SearchableText string `json:"searchableText" gorm:"column:searchabletext"`
 }
+func (InputItem) TableName() string {
+	return "item"
+}
 
 // We don't need to return all the stats, only a subset of the fields.
 // Fields such as cached stats and searchable text are only used for the webview of backups
