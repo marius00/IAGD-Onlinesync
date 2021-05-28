@@ -46,15 +46,15 @@ CREATE TABLE `item` (
 	INDEX `FK_item_id_prefixrecord` (`id_prefixrecord`) USING BTREE,
 	INDEX `FK_item_id_materiarecord` (`id_materiarecord`) USING BTREE,
 	INDEX `FK_item_userid` (`userid`) USING BTREE,
-	CONSTRAINT `FK_item_id_enchantmentrecord` FOREIGN KEY (`id_enchantmentrecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_id_materiarecord` FOREIGN KEY (`id_materiarecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_id_modifierrecord` FOREIGN KEY (`id_modifierrecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_id_prefixrecord` FOREIGN KEY (`id_prefixrecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_id_reliccompletionbonusrecord` FOREIGN KEY (`id_reliccompletionbonusrecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_id_suffixrecord` FOREIGN KEY (`id_suffixrecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_id_transmuterecord` FOREIGN KEY (`id_transmuterecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_records` FOREIGN KEY (`id_baserecord`) REFERENCES `ia`.`records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-	CONSTRAINT `FK_item_userid` FOREIGN KEY (`userid`) REFERENCES `ia`.`users` (`userid`) ON UPDATE RESTRICT ON DELETE RESTRICT
+	CONSTRAINT `FK_item_id_enchantmentrecord` FOREIGN KEY (`id_enchantmentrecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_id_materiarecord` FOREIGN KEY (`id_materiarecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_id_modifierrecord` FOREIGN KEY (`id_modifierrecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_id_prefixrecord` FOREIGN KEY (`id_prefixrecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_id_reliccompletionbonusrecord` FOREIGN KEY (`id_reliccompletionbonusrecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_id_suffixrecord` FOREIGN KEY (`id_suffixrecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_id_transmuterecord` FOREIGN KEY (`id_transmuterecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_records` FOREIGN KEY (`id_baserecord`) REFERENCES `records` (`id_record`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	CONSTRAINT `FK_item_userid` FOREIGN KEY (`userid`) REFERENCES `users` (`userid`) ON UPDATE RESTRICT ON DELETE RESTRICT
 )
 COLLATE='latin1_swedish_ci'
 ENGINE=InnoDB

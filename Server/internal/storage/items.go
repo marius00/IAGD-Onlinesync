@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
@@ -60,12 +61,66 @@ func (*ItemDb) Insert(user string, item InputItem) error {
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
 func (*ItemDb) List(user string, lastTimestamp int64) ([]OutputItem, error) {
-	DB := config.GetDatabaseInstance()
+	db := config.GetDatabaseInstance()
 
+	sql := `
+SELECT 
+	id, 
+	userid, 
+	base.record AS baserecord,
+	prefix.record as prefixrecord, 
+	suffix.record as suffixrecord, 
+	modifier.record as modifierrecord, 
+	relic.record as reliccompletionbonusrecord,
+	transmute.record as transmuterecord, 
+	materia.record as materiarecord, 
+	enchantment.record as enchantmentrecord, 
+	seed,  
+	relicseed, 
+	prefixrarity, 
+	unknown, 
+	enchantmentseed, 
+	materiacombines, 
+	stackcount, 
+	name, 
+	namelowercase, 
+	rarity, 
+	levelrequirement, 
+	"mod", 
+	ishardcore, 
+	created_at, 
+	ts
+  FROM item i
+  LEFT JOIN records as base ON i.id_baserecord = base.id_record
+  LEFT JOIN records as prefix ON i.id_prefixrecord = prefix.id_record
+  LEFT JOIN records AS suffix ON i.id_suffixrecord = suffix.id_record
+  LEFT JOIN records AS modifier ON i.id_modifierrecord = modifier.id_record
+  LEFT JOIN records AS transmute ON i.id_transmuterecord = transmute.id_record
+  LEFT JOIN records AS materia ON i.id_materiarecord = materia.id_record
+  LEFT JOIN records AS relic ON i.id_reliccompletionbonusrecord = relic.id_record
+  LEFT JOIN records AS enchantment ON i.id_enchantmentrecord = enchantment.id_record
+  WHERE userid = ? AND ts > ?
+  ORDER BY ts ASC
+  LIMIT ?
+  `
 	var items []OutputItem
-	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Order("ts asc").Limit(MaxItemLimit).Find(&items)
+	rows, err := db.Raw(sql, user, lastTimestamp, MaxItemLimit).Rows()
+	defer rows.Close()
 
-	return items, result.Error
+	if err != nil {
+		return nil, err
+	}
+
+	var item OutputItem
+	for rows.Next() {
+		if err = db.ScanRows(rows, &item); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	return items, nil
 }
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
@@ -93,17 +148,22 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) {
 }
 
 // Returns a string=>id map of the record references
-func (*ItemDb) toMap(references []RecordReference) map[string]uint64 {
-	var m map[string]uint64 = map[string]uint64{}
+func (*ItemDb) toMap(references []RecordReference) map[string]sql.NullInt64 {
+
+	var m = map[string]sql.NullInt64{
+		"": {
+			Valid:false,
+		},
+	}
 	for _, ref := range references {
-		m[ref.Record] = ref.Id
+		m[ref.Record] = sql.NullInt64 { Int64: int64(ref.Id), Valid: true } // TODO: uint=>int cast, this will go to hell some day.
 	}
 
 	return m
 }
 
 // Conerts a json item to an input item (settings record reference ids)
-func (*ItemDb) toInputItem(item JsonItem, references map[string]uint64) InputItem {
+func (*ItemDb) toInputItem(item JsonItem, references map[string]sql.NullInt64) InputItem {
 	return InputItem{
 		Id: item.Id,
 		BaseRecord: references[item.BaseRecord],
@@ -199,5 +259,5 @@ func (*ItemDb) PurgeUser(user string) error {
 
 
 func IsNotFoundError(err error) bool {
-	return err != nil && err.Error() != gorm.ErrRecordNotFound.Error()
+	return err != nil && err.Error() == gorm.ErrRecordNotFound.Error()
 }

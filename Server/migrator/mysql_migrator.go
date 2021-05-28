@@ -62,12 +62,14 @@ func GetDatabaseInstance() *gorm.DB {
 }
 
 func main() {
+	/*
 	DB := GetDatabaseInstance()
 	var items []storage.OutputItem
 	result := DB.Where("userid = ? AND ts > ?", "", 0).Order("ts asc").Limit(100).Find(&items)
 	fmt.Printf("%v, %v\n", items, result.Error)
 
 	itemDb := storage.ItemDb{}
+
 	ref, err := itemDb.GetRecordReferences([]storage.JsonItem{
 		{BaseRecord: "records/0_rot/items/armor/npc/madawc/npc_madawc_legs01.dbr",},
 		{BaseRecord: "records/0_rot/items/lootaffixes/prefix/classama/skill_08a.dbr",},
@@ -76,7 +78,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%v\n", ref)
+	fmt.Printf("%v\n", ref)*/
 
 }
 

@@ -1,5 +1,7 @@
 package storage
 
+import "database/sql"
+
 // TODO: Move somewhere more appropriate
 // TODO: Remove GORM references (not yet, still used to read from postgres)
 type JsonItem struct {
@@ -44,14 +46,14 @@ type InputItem struct {
 	Mod        string `json:"mod"`
 	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
 
-	BaseRecord                 uint64 `json:"baseRecord" gorm:"column:id_baserecord"`
-	PrefixRecord               uint64 `json:"prefixRecord" gorm:"column:id_prefixrecord"`
-	SuffixRecord               uint64 `json:"suffixRecord" gorm:"column:id_suffixrecord"`
-	ModifierRecord             uint64 `json:"modifierRecord" gorm:"column:id_modifierrecord"`
-	TransmuteRecord            uint64 `json:"transmuteRecord" gorm:"column:id_transmuterecord"`
-	MateriaRecord              uint64 `json:"materiaRecord" gorm:"column:id_materiarecord"`
-	RelicCompletionBonusRecord uint64 `json:"relicCompletionBonusRecord" gorm:"column:id_reliccompletionbonusrecord"`
-	EnchantmentRecord          uint64 `json:"enchantmentRecord" gorm:"column:id_enchantmentrecord"`
+	BaseRecord                 sql.NullInt64 `json:"baseRecord" gorm:"column:id_baserecord"`
+	PrefixRecord               sql.NullInt64 `json:"prefixRecord" gorm:"column:id_prefixrecord"`
+	SuffixRecord               sql.NullInt64 `json:"suffixRecord" gorm:"column:id_suffixrecord"`
+	ModifierRecord             sql.NullInt64 `json:"modifierRecord" gorm:"column:id_modifierrecord"`
+	TransmuteRecord            sql.NullInt64 `json:"transmuteRecord" gorm:"column:id_transmuterecord"`
+	MateriaRecord              sql.NullInt64 `json:"materiaRecord" gorm:"column:id_materiarecord"`
+	RelicCompletionBonusRecord sql.NullInt64 `json:"relicCompletionBonusRecord" gorm:"column:id_reliccompletionbonusrecord"`
+	EnchantmentRecord          sql.NullInt64 `json:"enchantmentRecord" gorm:"column:id_enchantmentrecord"`
 
 	Seed            int64 `json:"seed"`
 	RelicSeed       int64 `json:"relicSeed" gorm:"column:relicseed"`
