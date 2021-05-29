@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// TODO: IMportant! 256mb ram used in AWS? And does SLS deploy unset media type? Use a media type lib?
 // TODO:
 /*
 [skip] Check if record exists
