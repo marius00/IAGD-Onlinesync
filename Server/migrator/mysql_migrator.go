@@ -1,18 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/storage"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	"gorm.io/gorm/schema"
 	"log"
-	"os"
-	"time"
 )
 
-// TODO: IMportant! 256mb ram used in AWS? And does SLS deploy unset media type? Use a media type lib?
+// TODO: How did media types get unset in api gateway?
 // TODO:
 /*
 [skip] Check if record exists
@@ -26,68 +21,101 @@ Insert into items (select wheeeere....)
 
 var db *gorm.DB
 
-func GetDatabaseInstance() *gorm.DB {
-	if db == nil {
-		log.Printf("Opening database connection to %s, db %s..\n", os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_NAME"))
+const MaxItemLimit = 1000
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-			os.Getenv("DATABASE_USER"),
-			os.Getenv("DATABASE_PASSWORD"),
-			os.Getenv("DATABASE_HOST"),
-			os.Getenv("DATABASE_NAME"),
-		)
+// Fetch 0..1000 items for a given user, since the provided timestamp
+func listFromPostgres(lastTimestamp int64) ([]storage.OutputItem, error) {
+	DB := config.GetPostgresInstance()
 
-		newDb, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-			NamingStrategy: schema.NamingStrategy{
-				SingularTable: true,
-			},
-			Logger: logger.New(
-				log.New(os.Stdout, "\r\n", log.LstdFlags),
-				logger.Config{
-					SlowThreshold:             time.Second,
-					LogLevel:                  logger.Info,
-					IgnoreRecordNotFoundError: true,
-					Colorful:                  false,
-				},
-			),
-		})
+	var items []storage.OutputItem
+	result := DB.Where("ts >= ?", lastTimestamp).Order("ts asc").Limit(MaxItemLimit).Find(&items)
 
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			db = newDb
-		}
+	return items, result.Error
+}
+
+func toJsonItem(item storage.OutputItem) storage.JsonItem {
+	return storage.JsonItem{
+		UserId:                     item.UserId,
+		Id:                         item.Id,
+		Ts:                         item.Ts,
+		StackCount:                 item.StackCount,
+		Seed:                       item.Seed,
+		RelicSeed:                  item.RelicSeed,
+		Rarity:                     item.Rarity,
+		NameLowercase:              item.NameLowercase,
+		Name:                       item.Name,
+		MateriaCombines:            item.MateriaCombines,
+		LevelRequirement:           item.LevelRequirement,
+		IsHardcore:                 item.IsHardcore,
+		EnchantmentSeed:            item.EnchantmentSeed,
+		CreatedAt:                  item.CreatedAt,
+		PrefixRarity:               item.PrefixRarity,
+		Mod:                        item.Mod,
+		PrefixRecord:               item.PrefixRecord,
+		SuffixRecord:               item.SuffixRecord,
+		ModifierRecord:             item.ModifierRecord,
+		TransmuteRecord:            item.TransmuteRecord,
+		RelicCompletionBonusRecord: item.RelicCompletionBonusRecord,
+		EnchantmentRecord:          item.EnchantmentRecord,
+		MateriaRecord:              item.MateriaRecord,
+		BaseRecord:                 item.BaseRecord,
 	}
-
-	return db
 }
 
 func main() {
-	/*
-	DB := GetDatabaseInstance()
-	var items []storage.OutputItem
-	result := DB.Where("userid = ? AND ts > ?", "", 0).Order("ts asc").Limit(100).Find(&items)
-	fmt.Printf("%v, %v\n", items, result.Error)
+	mysql := config.GetDatabaseInstance()
 
-	itemDb := storage.ItemDb{}
+	// 1. Get max timestamp from mysql
+	var highestTimestamp int64
+	row := mysql.Table("item").Select("max(ts)", "", 0).Row()
+	row.Scan(&highestTimestamp)
 
-	ref, err := itemDb.GetRecordReferences([]storage.JsonItem{
-		{BaseRecord: "records/0_rot/items/armor/npc/madawc/npc_madawc_legs01.dbr",},
-		{BaseRecord: "records/0_rot/items/lootaffixes/prefix/classama/skill_08a.dbr",},
-	})
+	// TODO: Insert and delete users
 
-	if err != nil {
-		log.Fatal(err)
+	var lastInsertedItems = map[string]struct{}{}
+	for true {
+
+		// Fetch batch of items
+		postgresItems, err := listFromPostgres(highestTimestamp)
+		if err != nil {
+			log.Fatalf("Error fetching items from postgres, %v", err)
+		}
+
+		// Convert to json format
+		var jsonItems []storage.JsonItem
+		for _, item := range postgresItems {
+			// Skip duplicates, will be some overlap between item batches
+			_, exists := lastInsertedItems[item.Id]
+			if exists {
+				continue
+			}
+
+			jsonItems = append(jsonItems, toJsonItem(item))
+		}
+
+		// Convert to input format (and mutates mysql db, inserting records etc)
+		itemDb := storage.ItemDb{}
+		inputItems, err := itemDb.ToInputItems(jsonItems)
+		if err != nil {
+			log.Fatalf("Error converting items to InputItem, %v", err)
+		}
+
+		// Insert to mysql
+		var currentlyInsertedItems = map[string]struct{}{}
+		for _, item := range inputItems {
+
+			if err = itemDb.Insert(item.UserId, item); err != nil {
+				log.Fatalf("Error inserting items to mysql, %v", err)
+			}
+
+			if item.Ts > highestTimestamp {
+				highestTimestamp = item.Ts
+			}
+
+			currentlyInsertedItems[item.Id] = struct{}{}
+		}
+		lastInsertedItems = currentlyInsertedItems
+
 	}
-	fmt.Printf("%v\n", ref)*/
-
-}
-
-func List(user string, lastTimestamp int64) ([]storage.OutputItem, error) {
-	DB := GetDatabaseInstance()
-
-	var items []storage.OutputItem
-	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Order("ts asc").Limit(100).Find(&items)
-
-	return items, result.Error
+	// TODO: Migrate DeletedItem & remove anything in DeletedItem
 }
