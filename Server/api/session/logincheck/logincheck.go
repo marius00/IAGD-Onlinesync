@@ -17,14 +17,14 @@ type LimitEntry struct {
 
 func ProcessRequest(c *gin.Context) {
 	regular := LimitEntry{
-		Delete:   32400000,
-		Download: 32400000,
-		Upload:   32400000,
+		Delete:   3240000,
+		Download: 3240000,
+		Upload:   3240000,
 	}
 	multiUsage := LimitEntry{
-		Delete:   3600000,
-		Download: 7200000,
-		Upload:   10800000,
+		Delete:   360000,
+		Download: 600000,
+		Upload:   300000,
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"msg":        "Logged in and all that good stuff.",

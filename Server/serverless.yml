@@ -40,6 +40,12 @@ functions:
       - http:
           path: /buddyitems
           method: get
+  SearchOnlineItems:
+    handler: bin/search
+    events:
+      - http:
+          path: /search
+          method: get
   DeleteAccount:
     handler: bin/delete
     events:
@@ -119,6 +125,7 @@ functions:
     events:
       - schedule: cron(0 6 ? * 1 *) # Every monday, 06:00 - Completely arbitrary time
 
+# you can add CloudFormation resource templates here
 plugins:
   - serverless-finch
 resources:
