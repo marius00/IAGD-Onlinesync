@@ -16,28 +16,6 @@ var db *gorm.DB
 
 func GetDatabaseInstance() *gorm.DB {
 	if db == nil {
-		/*
-		log.Printf("Opening database connection to %s, db %s..\n", os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_NAME"))
-
-		connectionString := fmt.Sprintf(
-			"host=%s user=%s dbname=%s password=%s sslmode=disable connect_timeout=5",
-			os.Getenv("DATABASE_HOST"),
-			os.Getenv("DATABASE_USER"),
-			os.Getenv("DATABASE_NAME"),
-			os.Getenv("DATABASE_PASSWORD"),
-		)
-
-		newDb, err := gorm.Open("postgres", connectionString)
-
-		if err != nil {
-			panic(err)
-		}
-
-		db = newDb
-		db.SingularTable(true)
-		db.LogMode(true)*/
-
-
 		log.Printf("Opening database connection to %s, db %s..\n", os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_NAME"))
 
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local",

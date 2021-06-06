@@ -40,7 +40,11 @@ func migrateUsers() {
 		// If it doesn't exist in mysql, insert it.
 		if mig.FindUser(user.UserId, mysqlUsers) == nil {
 			log.Printf("Inserting user %s\n", user.UserId)
-			if err = mig.InsertUser(user); err != nil {
+			if err = mig.InsertUser(storage.UserEntry{
+				Email: user.UserId,
+				CreatedAt: user.CreatedAt,
+				BuddyId: user.BuddyId,
+			}); err != nil {
 				log.Fatalf("Unabled to insert user %v", err)
 			}
 			// TODO: Merge auth tokens
@@ -53,12 +57,12 @@ func migrateUsers() {
 	log.Println("Deleting purged users")
 	for _, user := range mysqlUsers {
 		// If it doesn't exist in postgres, delete it.
-		if mig.FindUser(user.UserId, postgresUsers) == nil {
-			log.Printf("Purging user %s\n", user.UserId)
+		if mig.FindUserP(user.Email, postgresUsers) == nil {
+			log.Printf("Purging user %v\n", user.UserId)
 			if err = itemDb.Purge(user.UserId); err != nil {
 				log.Fatalf("Unabled to purge items for user %v", err)
 			}
-			if err = authDb.Purge(user.UserId); err != nil {
+			if err = authDb.Purge(user.UserId, user.Email); err != nil {
 				log.Fatalf("Unabled to purge auth token for user %v", err)
 			}
 			if err = userDb.Purge(user.UserId); err != nil {

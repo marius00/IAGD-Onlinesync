@@ -19,7 +19,7 @@ const (
 )
 
 // Delete will delete a an item for a user
-func (*ItemDb) Delete(user string, id string, timestamp int64) error {
+func (*ItemDb) Delete(user config.UserId, id string, timestamp int64) error {
 	DB := config.GetDatabaseInstance()
 
 	obj := InputItem{Id: id, UserId: user}
@@ -51,7 +51,7 @@ func ReturnOrIgnore(err error, ignore uint16) error {
 	return err
 }
 
-func (*ItemDb) Insert(user string, item InputItem) error {
+func (*ItemDb) Insert(user config.UserId, item InputItem) error {
 	DB := config.GetDatabaseInstance()
 
 	item.UserId = user
@@ -60,7 +60,7 @@ func (*ItemDb) Insert(user string, item InputItem) error {
 }
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
-func (*ItemDb) List(user string, lastTimestamp int64) ([]OutputItem, error) {
+func (*ItemDb) List(user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
 	db := config.GetDatabaseInstance()
 
 	sql := `
@@ -236,7 +236,7 @@ func (*ItemDb) getRecordReferences(items []JsonItem) ([]RecordReference, error) 
 }
 
 // Fetch all items queued to be deleted
-func (*ItemDb) ListDeletedItems(user string, lastTimestamp int64) ([]DeletedItem, error) {
+func (*ItemDb) ListDeletedItems(user config.UserId, lastTimestamp int64) ([]DeletedItem, error) {
 	DB := config.GetDatabaseInstance()
 
 	var deletedItems []DeletedItem
@@ -245,7 +245,7 @@ func (*ItemDb) ListDeletedItems(user string, lastTimestamp int64) ([]DeletedItem
 }
 
 // Fetch all items queued to be deleted
-func (*ItemDb) Purge(user string) error {
+func (*ItemDb) Purge(user config.UserId) error {
 	db := config.GetDatabaseInstance()
 
 	result := db.Where("userid = ?", user).Delete(InputItem{})

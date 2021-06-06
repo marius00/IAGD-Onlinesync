@@ -20,7 +20,7 @@ func ProcessRequest(c *gin.Context) {
 	err := authDb.Logout(user, token)
 	if err != nil {
 		logger := logging.Logger(c)
-		logger.Warn("Error logging out user", zap.String("user", user), zap.Error(err))
+		logger.Warn("Error logging out user", zap.Any("user", user), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Internal server error"})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"msg": "Logged out."})

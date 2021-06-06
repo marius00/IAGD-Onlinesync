@@ -30,14 +30,14 @@ func ProcessRequest(c *gin.Context) {
 	// Parse JSON
 	jsonItems, err := decode(c.Request.Body)
 	if err != nil {
-		logger.Info("Error parsing JSON body", zap.Error(err), zap.String("user", user))
+		logger.Info("Error parsing JSON body", zap.Error(err), zap.Any("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
 	}
 
 	// Validate JSON
 	if validationError := validate(jsonItems); validationError != "" {
-		logger.Info("Error validating JSON body", zap.String("validation", validationError), zap.String("user", user))
+		logger.Info("Error validating JSON body", zap.String("validation", validationError), zap.Any("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": validationError})
 		return
 	}
@@ -46,7 +46,7 @@ func ProcessRequest(c *gin.Context) {
 	db := &storage.ItemDb{}
 	inputItems, err := db.ToInputItems(jsonItems)
 	if err != nil {
-		logger.Warn("Unable to fetch item records", zap.String("user", user), zap.Int("numItems", len(jsonItems)), zap.Error(err))
+		logger.Warn("Unable to fetch item records", zap.Any("user", user), zap.Int("numItems", len(jsonItems)), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching item records"})
 	}
 
@@ -61,7 +61,7 @@ func ProcessRequest(c *gin.Context) {
 		if err != nil || numErrors >= 5 {
 			unprocessed = append(unprocessed, item.Id)
 			numErrors = numErrors + 1
-			logger.Warn("Unable to store new item", zap.Error(err), zap.String("user", user), zap.String("id", item.Id)) // TODO: May get some log spam if this happens.. since err continues to be !=nil
+			logger.Warn("Unable to store new item", zap.Error(err), zap.Any("user", user), zap.String("id", item.Id)) // TODO: May get some log spam if this happens.. since err continues to be !=nil
 		}
 	}
 
@@ -70,7 +70,7 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	if len(unprocessed) == len(jsonItems) {
-		logger.Warn("Returning 500 internal server error, failed to process all items", zap.String("user", user), zap.Int("numItems", len(jsonItems)))
+		logger.Warn("Returning 500 internal server error, failed to process all items", zap.Any("user", user), zap.Int("numItems", len(jsonItems)))
 		c.JSON(http.StatusInternalServerError, r)
 	} else {
 		c.JSON(http.StatusOK, r)
@@ -91,7 +91,7 @@ func validate(data []storage.JsonItem) string {
 		if m.Ts > 0 {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "_timestamp"`, m.Id)
 		}
-		if m.UserId != "" {
+		if m.UserId > 0 {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "User"`, m.Id)
 		}
 		if len(m.BaseRecord) < 6 {

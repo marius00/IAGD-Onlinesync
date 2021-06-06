@@ -1,3 +1,20 @@
+
+
+CREATE TABLE `users` (
+	`userid` BIGINT NOT NULL AUTO_INCREMENT,
+	`email` VARCHAR(320) NOT NULL COLLATE 'latin1_swedish_ci',
+	`created_at` TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+	`buddy_id` INT(11) NULL DEFAULT NULL,
+	PRIMARY KEY (`userid`) USING BTREE,
+	UNIQUE INDEX `uq_buddy_id` (`buddy_id`) USING BTREE
+)
+COLLATE='latin1_swedish_ci'
+ENGINE=InnoDB
+;
+
+ALTER TABLE `users`
+	ADD UNIQUE INDEX `uq_email` (`email`);
+
 CREATE TABLE `records` (
 	`id_record` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
 	`record` VARCHAR(255) NOT NULL COLLATE 'latin1_swedish_ci',
@@ -10,9 +27,59 @@ ENGINE=InnoDB
 
 
 
+CREATE TABLE `authattempt` (
+	`key` VARCHAR(36) NOT NULL COLLATE 'latin1_swedish_ci',
+	`code` VARCHAR(9) NOT NULL DEFAULT '' COLLATE 'latin1_swedish_ci',
+	`created_at` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	`email` VARCHAR(320) NOT NULL,
+	PRIMARY KEY (`key`, `code`)
+)
+COLLATE='latin1_swedish_ci'
+ENGINE=InnoDB
+;
+ALTER TABLE `authattempt`
+	COMMENT='Contains a publicly known "token" and a secret pin code used to authenticate for a given user. \r\n\r\nUpon presenting both the token and the code to an API, an access token is inserted into "authentry" and returned to the user.';
+
+
+CREATE TABLE `authentry` (
+	`userid` BIGINT NOT NULL,
+	`token` VARCHAR(64) NOT NULL DEFAULT '',
+	`email` VARCHAR(320) NOT NULL COLLATE 'latin1_swedish_ci',
+	`ts` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	PRIMARY KEY (`userid`, `token`)
+)
+COMMENT='GDIA: Auth tokens for the backup API'
+COLLATE='latin1_swedish_ci'
+ENGINE=InnoDB
+;
+
+
+CREATE TABLE `deleteditem` (
+	`userid` BIGINT NOT NULL,
+	`id` VARCHAR(36) NOT NULL COMMENT 'Item ID',
+	`ts` BIGINT NOT NULL,
+	PRIMARY KEY (`userid`, `id`)
+)
+COMMENT='GDIA: Items which have been deleted. ID is stored here so that other clients can sync down and delete the item.'
+COLLATE='latin1_swedish_ci'
+;
+
+
+CREATE TABLE `throttleentry` (
+	`id` INT NOT NULL AUTO_INCREMENT,
+	`userid` BIGINT NULL,
+	`ip` VARCHAR(512) NULL DEFAULT NULL,
+	`created_at` TIMESTAMP NOT NULL DEFAULT now(),
+	PRIMARY KEY (`id`)
+)
+COLLATE='latin1_swedish_ci'
+;
+
+
+
 CREATE TABLE `item` (
 	`id` VARCHAR(36) NOT NULL COLLATE 'latin1_swedish_ci',
-	`userid` VARCHAR(320) NOT NULL COLLATE 'latin1_swedish_ci',
+	`userid` BIGINT NOT NULL COLLATE 'latin1_swedish_ci',
 	`id_baserecord` BIGINT(20) UNSIGNED NOT NULL DEFAULT '0',
 	`id_prefixrecord` BIGINT(20) UNSIGNED NULL DEFAULT '0',
 	`id_suffixrecord` BIGINT(20) UNSIGNED NULL DEFAULT '0',
@@ -61,66 +128,7 @@ ENGINE=InnoDB
 ;
 
 
-CREATE TABLE `users` (
-	`userid` VARCHAR(320) NOT NULL COLLATE 'latin1_swedish_ci',
-	`created_at` TIMESTAMP NOT NULL DEFAULT current_timestamp(),
-	`buddy_id` INT(11) NULL DEFAULT NULL,
-	PRIMARY KEY (`userid`) USING BTREE,
-	UNIQUE INDEX `uq_buddy_id` (`buddy_id`) USING BTREE
-)
-COLLATE='latin1_swedish_ci'
-ENGINE=InnoDB
-;
-
-
-CREATE TABLE `authattempt` (
-	`key` VARCHAR(36) NOT NULL COLLATE 'latin1_swedish_ci',
-	`code` VARCHAR(9) NOT NULL DEFAULT '' COLLATE 'latin1_swedish_ci',
-	`created_at` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-	`userid` VARCHAR(320) NULL DEFAULT NULL,
-	PRIMARY KEY (`key`, `code`)
-)
-COLLATE='latin1_swedish_ci'
-ENGINE=InnoDB
-;
-ALTER TABLE `authattempt`
-	COMMENT='Contains a publicly known "token" and a secret pin code used to authenticate for a given user. \r\n\r\nUpon presenting both the token and the code to an API, an access token is inserted into "authentry" and returned to the user.';
-
-
-CREATE TABLE `authentry` (
-	`userid` VARCHAR(320) NOT NULL DEFAULT '',
-	`token` VARCHAR(64) NOT NULL DEFAULT '',
-	`ts` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-	PRIMARY KEY (`userid`, `token`)
-)
-COMMENT='GDIA: Auth tokens for the backup API'
-COLLATE='latin1_swedish_ci'
-ENGINE=InnoDB
-;
-
-
-CREATE TABLE `deleteditem` (
-	`userid` VARCHAR(320) NOT NULL DEFAULT '',
-	`id` VARCHAR(36) NOT NULL COMMENT 'Item ID',
-	`ts` BIGINT NOT NULL,
-	PRIMARY KEY (`userid`, `id`)
-)
-COMMENT='GDIA: Items which have been deleted. ID is stored here so that other clients can sync down and delete the item.'
-COLLATE='latin1_swedish_ci'
-;
-
-
-CREATE TABLE `throttleentry` (
-	`id` INT NOT NULL AUTO_INCREMENT,
-	`userid` VARCHAR(320) NULL,
-	`ip` VARCHAR(512) NULL DEFAULT NULL,
-	`created_at` TIMESTAMP NOT NULL DEFAULT now(),
-	PRIMARY KEY (`id`)
-)
-COLLATE='latin1_swedish_ci'
-;
-
-
 ALTER TABLE `records` ROW_FORMAT=COMPRESSED;
 ALTER TABLE `item` ROW_FORMAT=COMPRESSED;
 ALTER TABLE `deleteditem` ROW_FORMAT=COMPRESSED;
+

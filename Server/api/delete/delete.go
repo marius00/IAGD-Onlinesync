@@ -15,28 +15,29 @@ const Method = routing.DELETE
 // Deletes an account and all its items
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	user := routing.GetUser(c)
+	userId := routing.GetUser(c)
+	userDb := storage.UserDb{}
 	var success = true
 	
 	itemdb := &storage.ItemDb{}
-	err := itemdb.Purge(user)
+	err := itemdb.Purge(userId)
 	if err != nil {
-		logger.Warn("Error purging user items", zap.Error(err), zap.String("user", user))
+		logger.Warn("Error purging user items", zap.Error(err), zap.Any("user", userId))
 		success = false
 	}
 
+	userEntry, err := userDb.Get(userId) // TODO: Eating err
 	authDb := storage.AuthDb{}
-	err = authDb.Purge(user)
+	err = authDb.Purge(userId, userEntry.Email)
 	if err != nil {
-		logger.Warn("Error purging user auth tokens", zap.Error(err), zap.String("user", user))
+		logger.Warn("Error purging user auth tokens", zap.Error(err), zap.Any("user", userId))
 		success = false
 	}
 
-	userDb := storage.UserDb{}
-	userDb.Purge(user)
+	userDb.Purge(userId)
 
 	characterDb := storage.CharacterDb{}
-	characterDb.Purge(user)
+	characterDb.Purge(userId)
 
 	if success {
 		c.JSON(http.StatusOK, gin.H{"msg": "Success"})

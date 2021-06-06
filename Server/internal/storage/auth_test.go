@@ -10,11 +10,17 @@ import (
 func TestEntireLoginFlow(t *testing.T) {
 	db := AuthDb{}
 
+	userDb := UserDb{}
+	userId, _ := userDb.Insert(UserEntry{
+		Email: fmt.Sprintf("%s@example.com", uuid.NewV4().String()),
+	})
+	defer userDb.Purge(*userId)
+
 	code := 10000000 + rand.Intn(9999999)
 	attempt := AuthAttempt {
 		Key: uuid.NewV4().String(),
 		Code: fmt.Sprintf("%d", code),
-		UserId: "auth@example.com",
+		Email: "auth@example.com",
 	}
 	err := db.InitiateAuthentication(attempt)
 	if err != nil {
@@ -37,20 +43,20 @@ func TestEntireLoginFlow(t *testing.T) {
 	}
 
 	accessToken := uuid.NewV4().String()
-	err = db.StoreSuccessfulAuth(attempt.UserId, attempt.Key, accessToken)
+	err = db.StoreSuccessfulAuth(attempt.Email, *userId, attempt.Key, accessToken)
 	if err != nil {
 		t.Fatalf("Error storing access token: %v", err)
 	}
 
-	isValid, err := db.IsValid(attempt.UserId, accessToken)
+	fetchedUserId, err := db.GetUserId(attempt.Email, accessToken)
 	if err != nil {
 		t.Fatalf("Error validating access token: %v", err)
 	}
-	if !isValid {
+	if fetchedUserId <= 0 {
 		t.Fatal("Expected access token to be valid")
 	}
 
-	if db.Purge(attempt.UserId) != nil {
+	if db.Purge(*userId, attempt.Email) != nil {
 		t.Fatal("Failed to purge user info")
 	}
 }
@@ -58,23 +64,30 @@ func TestEntireLoginFlow(t *testing.T) {
 func TestValidateInexistingAccessToken(t *testing.T) {
 	db := AuthDb{}
 
-	isValid, err := db.IsValid("noauth@example.com", "invalidtoken")
+	userId, err := db.GetUserId("noauth@example.com", "invalidtoken")
 	if err != nil {
 		t.Fatalf("Error validating access token: %v", err)
 	}
-	if isValid {
+	if userId > 0 {
 		t.Fatal("Expected access token to be invalid")
 	}
 }
 
 func TestAuthFlowWrongPincode(t *testing.T) {
+	userDb := UserDb{}
+	email := fmt.Sprintf("%s@example.com", uuid.NewV4().String())
+	userId, _ := userDb.Insert(UserEntry{
+		Email: email,
+	})
+	defer userDb.Purge(*userId)
+
 	db := AuthDb{}
 
 	code := "12341234"
 	attempt := AuthAttempt {
 		Key: uuid.NewV4().String(),
 		Code: code,
-		UserId: "wrongcode@example.com",
+		Email: email,
 	}
 	err := db.InitiateAuthentication(attempt)
 	if err != nil {
@@ -93,19 +106,28 @@ func TestAuthFlowWrongPincode(t *testing.T) {
 		t.Fatal("Expected no attempt, got one.")
 	}
 
-	if db.Purge(attempt.UserId) != nil {
+	if db.Purge(*userId, email) != nil {
 		t.Fatal("Failed to purge user info")
 	}
 }
 
 func TestAuthFlowWrongKey(t *testing.T) {
+	email := fmt.Sprintf("%s@example.com", uuid.NewV4().String())
+
+	userDb := UserDb{}
+	userId, _ := userDb.Insert(UserEntry{
+		Email: email,
+	})
+	defer userDb.Purge(*userId)
+
+
 	db := AuthDb{}
 
 	code := "12341234"
 	attempt := AuthAttempt {
 		Key: uuid.NewV4().String(),
 		Code: code,
-		UserId: "wrongkey@example.com",
+		Email: email,
 	}
 	err := db.InitiateAuthentication(attempt)
 	if err != nil {
@@ -124,7 +146,7 @@ func TestAuthFlowWrongKey(t *testing.T) {
 		t.Fatal("Expected no attempt, got one.")
 	}
 
-	if db.Purge(attempt.UserId) != nil {
+	if db.Purge(*userId, email) != nil {
 		t.Fatal("Failed to purge user info")
 	}
 }

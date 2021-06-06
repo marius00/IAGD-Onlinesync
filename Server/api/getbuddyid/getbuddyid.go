@@ -24,9 +24,10 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	if userEntry == nil {
-		if err := userDb.Insert(storage.UserEntry{UserId: user}); err != nil {
+		_, err := userDb.Insert(storage.UserEntry{UserId: user})
+		if err != nil { // TODO: Email?
 			logger := logging.Logger(c)
-			logger.Warn("Error inserting user entry", zap.String("user", user), zap.Error(err))
+			logger.Warn("Error inserting user entry", zap.Any("user", user), zap.Error(err))
 		}
 
 		userEntry, err := userDb.Get(user)

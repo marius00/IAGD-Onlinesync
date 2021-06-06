@@ -3,10 +3,10 @@ package mig
 import (
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/storage"
+	"time"
 )
 
 const MaxItemLimit = 1000
-
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
 func ListFromPostgres(lastTimestamp int64) ([]storage.OutputItem, error) {
@@ -17,7 +17,6 @@ func ListFromPostgres(lastTimestamp int64) ([]storage.OutputItem, error) {
 
 	return items, result.Error
 }
-
 
 func ListDeletedItemsFromPostgres() ([]storage.DeletedItem, error) {
 	DB := config.GetPostgresInstance()
@@ -34,17 +33,36 @@ func ResetItemDeletionInMysql() (error) {
 	return DB.Raw("DELETE FROM deleteditem").Error
 }
 
+type PostgresUserEntry struct {
+	UserId    string    `json:"-" gorm:"column:userid"`
+	BuddyId   int32     `json:"buddyId" gorm:"column:buddy_id"`
+	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
+}
 
-func ListUsersFromPostgres() ([]storage.UserEntry, error) {
+func (PostgresUserEntry) TableName() string {
+	return "users"
+}
+
+func ListUsersFromPostgres() ([]PostgresUserEntry, error) {
 	DB := config.GetPostgresInstance()
 
-	var users []storage.UserEntry
+	var users []PostgresUserEntry
 	result := DB.Find(&users)
 
 	return users, result.Error
 }
 
 func FindUser(email string, entries []storage.UserEntry) *storage.UserEntry {
+	for _, user := range entries {
+		if user.Email == email {
+			return &user
+		}
+	}
+
+	return nil
+}
+
+func FindUserP(email string, entries []PostgresUserEntry) *PostgresUserEntry {
 	for _, user := range entries {
 		if user.UserId == email {
 			return &user

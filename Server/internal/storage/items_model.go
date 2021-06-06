@@ -1,13 +1,16 @@
 package storage
 
-import "database/sql"
+import (
+	"database/sql"
+	"github.com/marmyr/iagdbackup/internal/config"
+)
 
 // TODO: Move somewhere more appropriate
 // TODO: Remove GORM references (not yet, still used to read from postgres)
 type JsonItem struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	Ts     int64  `json:"ts"`
+	UserId config.UserId `json:"-" gorm:"column:userid"`
+	Id     string        `json:"id"`
+	Ts     int64         `json:"ts"`
 
 	Mod        string `json:"mod"`
 	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
@@ -39,9 +42,9 @@ type JsonItem struct {
 }
 
 type InputItem struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	Ts     int64  `json:"ts"`
+	UserId config.UserId `json:"-" gorm:"column:userid"`
+	Id     string        `json:"id"`
+	Ts     int64         `json:"ts"`
 
 	Mod        string `json:"mod"`
 	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
@@ -71,6 +74,7 @@ type InputItem struct {
 	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
 	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
 }
+
 func (InputItem) TableName() string {
 	return "item"
 }
@@ -78,9 +82,9 @@ func (InputItem) TableName() string {
 // We don't need to return all the stats, only a subset of the fields.
 // Fields such as cached stats and searchable text are only used for the webview of backups
 type OutputItem struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	Ts     int64  `json:"ts"`
+	UserId config.UserId `json:"-" gorm:"column:userid"`
+	Id     string        `json:"id"`
+	Ts     int64         `json:"ts"`
 
 	Mod        string `json:"mod"`
 	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
@@ -116,12 +120,11 @@ func (OutputItem) TableName() string {
 	return "item"
 }
 
-
 // Reference to items which have been deleted. These needs to be stored in DB to ensure that it's deleted from other clients. May have multiple consumers.
 type DeletedItem struct {
-	UserId string `json:"-" gorm:"column:userid"`
-	Id     string `json:"id"`
-	Ts     int64  `json:"ts"`
+	UserId config.UserId `json:"-" gorm:"column:userid"`
+	Id     string        `json:"id"`
+	Ts     int64         `json:"ts"`
 }
 
 func (DeletedItem) TableName() string {

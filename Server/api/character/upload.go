@@ -36,7 +36,7 @@ func UploadProcessRequest(c *gin.Context) {
 	}
 
 	hash :=  md5.Sum([]byte(name))
-	key := fmt.Sprintf("characters/%s/%s.zip", user, hex.EncodeToString(hash[:]))
+	key := fmt.Sprintf("characters/%v/%s.zip", user, hex.EncodeToString(hash[:]))
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		logger.Warn("Error receiving/reading uploaded file", zap.Error(err))

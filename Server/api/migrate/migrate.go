@@ -82,25 +82,27 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-	user := decoded.User
+	email := decoded.User
 
 	authDb := storage.AuthDb{}
 	userDb := storage.UserDb{}
-	if err := userDb.Insert(storage.UserEntry{UserId: user}); err != nil {
-		logger.Warn("Error inserting user entry", zap.String("user", user), zap.Error(err))
+
+	userId, err := userDb.Insert(storage.UserEntry{Email: email})
+	if err != nil {
+		logger.Warn("Error inserting user entry", zap.String("user", email), zap.Error(err))
 	}
 
 	accessToken := uuid.NewV4().String()
-	err = authDb.StoreSuccessfulAuth(user, "", accessToken)
+	err = authDb.StoreSuccessfulAuth(email, *userId, "", accessToken)
 	if err != nil {
-		logger.Warn("Error storing auth token", zap.String("user", user), zap.Error(err))
+		logger.Warn("Error storing auth token", zap.String("user", email), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
 		return
 	}
 
 	// Success!
 	r := responseType{
-		Email: user,
+		Email: email,
 		Token: accessToken,
 	}
 	c.JSON(http.StatusOK, r)

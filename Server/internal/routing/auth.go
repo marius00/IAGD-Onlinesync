@@ -2,6 +2,7 @@ package routing
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/logging"
 	"go.uber.org/zap"
 	"net/http"
@@ -12,7 +13,7 @@ const MaxAttempts int = 30
 const authUserKey = "AuthUserKey"
 
 type Authorizer interface {
-	IsValid(email string, token string) (bool, error)
+	GetUserId(email string, token string) (config.UserId, error)
 }
 type Throttler interface {
 	GetNumEntries(user string, ip string) (int, error)
@@ -46,26 +47,26 @@ func authorizedHandler(authDb Authorizer, throttleDb Throttler) gin.HandlerFunc 
 			return
 		}
 
-		isValid, err := authDb.IsValid(user, token)
+		userId, err := authDb.GetUserId(user, token)
 		if err != nil {
 			logger := logging.Logger(c)
 			logger.Info("Error validating auth token", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": "API: Error validating authorization token"})
 			c.Abort()
-		} else if !isValid {
+		} else if userId <= 0 {
 			logger := logging.Logger(c)
 			logger.Warn("Received an invalid auth token", zap.String("user", user))
 			throttleDb.Insert(user, ip)
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: Authorization token invalid"})
 			c.Abort()
 		} else {
-			c.Set(authUserKey, user)
+			c.Set(authUserKey, userId)
 			c.Next()
 		}
 	}
 }
 
-func GetUser(c *gin.Context) string {
+func GetUser(c *gin.Context) config.UserId {
 	u, ok := c.Get(authUserKey)
 	if !ok || u == "" {
 		logger := logging.Logger(c)
@@ -73,5 +74,5 @@ func GetUser(c *gin.Context) string {
 		panic("Could not locate user on request, restricted endpoint exposed publicly or auth mechanism broken.")
 	}
 
-	return u.(string)
+	return u.(config.UserId)
 }

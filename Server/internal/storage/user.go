@@ -11,16 +11,17 @@ type UserDb struct {
 }
 
 type UserEntry struct {
-	UserId    string    `json:"-" gorm:"column:userid"`
-	BuddyId   int32     `json:"buddyId" gorm:"column:buddy_id"`
-	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
+	UserId    config.UserId `json:"-" gorm:"column:userid;primaryKey;AUTO_INCREMENT;->"`
+	Email     string        `json:"-" gorm:"column:email"`
+	BuddyId   int32         `json:"buddyId" gorm:"column:buddy_id"`
+	CreatedAt time.Time     `json:"created_at" sql:"-" gorm:"-"`
 }
 
 func (UserEntry) TableName() string {
 	return "users"
 }
 
-func (*UserDb) Get(user string) (*UserEntry, error) {
+func (*UserDb) Get(user config.UserId) (*UserEntry, error) {
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("userid = ?", user).Take(&userEntry)
 	if result.Error != nil {
@@ -34,9 +35,23 @@ func (*UserDb) Get(user string) (*UserEntry, error) {
 	return &userEntry, result.Error
 }
 
-func (*UserDb) GetFromBuddyId(user string) (*UserEntry, error) {
+func (*UserDb) GetByEmail(email string) (*UserEntry, error) {
 	var userEntry UserEntry
-	result := config.GetDatabaseInstance().Where("buddy_id = ?", user).Take(&userEntry)
+	result := config.GetDatabaseInstance().Where("email = ?", email).Take(&userEntry)
+	if result.Error != nil {
+		if IsNotFoundError(result.Error) {
+			return nil, nil
+		}
+
+		return nil, result.Error
+	}
+
+	return &userEntry, result.Error
+}
+
+func (*UserDb) GetFromBuddyId(buddyId string) (*UserEntry, error) {
+	var userEntry UserEntry
+	result := config.GetDatabaseInstance().Where("buddy_id = ?", buddyId).Take(&userEntry)
 	if result.Error != nil {
 		if IsNotFoundError(result.Error) {
 			return nil, nil
@@ -48,13 +63,13 @@ func (*UserDb) GetFromBuddyId(user string) (*UserEntry, error) {
 }
 
 // TODO: Test conflict on buddy id
-func (*UserDb) Insert(entry UserEntry) error {
+func (*UserDb) Insert(entry UserEntry) (*config.UserId, error) {
 	db := config.GetDatabaseInstance()
 
 	// Make up to 8 attempts to store the entry (may conflict on buddy id)
 	for i := 0; i < 8; i++ {
 		entry.BuddyId = generateBuddyId()
-		result := db.Create(entry)
+		result := db.Save(&entry)
 
 		// Check if its a unique conflict, if so allow retries.
 		retry := false
@@ -66,15 +81,15 @@ func (*UserDb) Insert(entry UserEntry) error {
 		}
 
 		if !retry {
-			return result.Error
+			return &entry.UserId, result.Error
 		}
 	}
 	result := db.Create(entry)
 
-	return result.Error
+	return &entry.UserId, result.Error
 }
 
-func (*UserDb) Purge(user string) error {
+func (*UserDb) Purge(user config.UserId) error {
 	db := config.GetDatabaseInstance()
 	result := db.Where("userid = ?", user).Delete(UserEntry{})
 	return result.Error

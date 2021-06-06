@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,8 +31,12 @@ func HostEndpoint(f gin.HandlerFunc, body string, headers []HeaderEntry) *httpte
 
 
 type DummyAuthorizer struct {}
-func (*DummyAuthorizer) IsValid(email string, token string) (bool, error) {
-	return email == "test@example.com" && token == "123456", nil
+func (*DummyAuthorizer) GetUserId(email string, token string) (config.UserId, error) {
+	if email == "test@example.com" && token == "123456" {
+		return 1, nil
+	}
+
+	return 0, nil
 }
 
 type DummyThrottler struct {}

@@ -2,6 +2,7 @@ package routing
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/testutils"
 	"net/http"
 	"testing"
@@ -67,6 +68,7 @@ func TestValidTokenShouldReturn200(t *testing.T) {
 // Ensures that the context is Aborted when it's supposed to. Mocks a "happy day 200 OK" return when not aborted.
 func processRequest(isAborted bool, t *testing.T) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// This dummy authorizer doesnt know about the email used.. and we're fetching from DB.. so...
 		authHandler := authorizedHandler(&testutils.DummyAuthorizer{}, &testutils.DummyThrottler{})
 		authHandler(c)
 		if c.IsAborted() != isAborted {
@@ -75,8 +77,10 @@ func processRequest(isAborted bool, t *testing.T) gin.HandlerFunc {
 
 		if !c.IsAborted() {
 			user, _ := c.Get(authUserKey)
-			if user != "test@example.com" {
-				t.Fatalf(`Expected user to be "test@example.com", got "%s"`, user)
+
+			var expected config.UserId = 1
+			if user != expected {
+				t.Fatalf(`Expected user to be "1", got "%s"`, user)
 			}
 
 			c.JSON(http.StatusOK, gin.H{"msg": "Everything went OK"})

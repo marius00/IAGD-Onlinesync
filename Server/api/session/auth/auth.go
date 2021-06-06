@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/logging"
 	"github.com/marmyr/iagdbackup/internal/storage"
@@ -64,30 +65,35 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-	// Store auth entry
-	accessToken := uuid.NewV4().String()
-	err = db.StoreSuccessfulAuth(fetched.UserId, fetched.Key, accessToken)
-	if err != nil {
-		logger.Warn("Error storing auth token", zap.String("key", key), zap.String("user", fetched.UserId), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
-		return
-	}
 
 	// Create a user entry for the user, if one does not exist.
 	var existing = "EXISTING"
 	userDb := storage.UserDb{}
-	u, err := userDb.Get(fetched.UserId)
+	u, err := userDb.GetByEmail(fetched.Email)
+	var userId config.UserId = u.UserId
 	if err != nil {
-		logger.Warn("Error fetching user entry", zap.String("user", fetched.UserId), zap.Error(err))
+		logger.Warn("Error fetching user entry", zap.Any("user", fetched.Email), zap.Error(err))
 	}
 	if u == nil {
 		// TODO: Check if items exists in Azure?
 		existing = "NEW"
-		if err := userDb.Insert(storage.UserEntry{UserId: fetched.UserId}); err != nil {
-			logger.Warn("Error inserting user entry", zap.String("user", fetched.UserId), zap.Error(err))
+		newId, err := userDb.Insert(storage.UserEntry{Email: fetched.Email})
+		if err != nil {
+			logger.Warn("Error inserting user entry", zap.Any("user", fetched.Email), zap.Error(err))
 		}
+
+		userId = *newId
 	}
 
-	logger.Debug("Login succeeded", zap.String("user", fetched.UserId))
+	// Store auth entry
+	accessToken := uuid.NewV4().String()
+	err = db.StoreSuccessfulAuth(fetched.Email, userId, fetched.Key, accessToken)
+	if err != nil {
+		logger.Warn("Error storing auth token", zap.String("key", key), zap.Any("user", fetched.Email), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
+		return
+	}
+
+	logger.Debug("Login succeeded", zap.Any("user", fetched.Email))
 	c.JSON(http.StatusOK, gin.H{"token": accessToken, "usertype": existing}) // TODO: Real usertype
 }

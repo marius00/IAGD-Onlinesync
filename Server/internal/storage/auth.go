@@ -9,9 +9,10 @@ type AuthDb struct {
 }
 
 type AuthEntry struct {
-	UserId string    `json:"-" gorm:"column:userid"`
-	Token  string    `json:"-"`
-	Ts     time.Time `json:"ts"`
+	UserId config.UserId `json:"-" gorm:"column:userid"`
+	Email     string    `json:"-" gorm:"column:email"`
+	Token  string        `json:"-"`
+	Ts     time.Time     `json:"ts"`
 }
 
 func (AuthEntry) TableName() string {
@@ -20,7 +21,7 @@ func (AuthEntry) TableName() string {
 
 type AuthAttempt struct {
 	Key       string    `json:"key"`
-	UserId    string    `json:"-" gorm:"column:userid"`
+	Email     string    `json:"-" gorm:"column:email"`
 	Code      string    `json:"-"`
 	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
 }
@@ -29,15 +30,15 @@ func (AuthAttempt) TableName() string {
 	return "authattempt"
 }
 
-// IsValid checks if an access token is valid for a given user
-func (*AuthDb) IsValid(user string, accessToken string) (bool, error) {
+// IsValid checks if an access token is valid for a given user, returns 0 on invalid user/token combination
+func (*AuthDb) GetUserId(email string, accessToken string) (config.UserId, error) {
 	var session AuthEntry
-	result := config.GetDatabaseInstance().Where("userid = ? AND token = ?", user, accessToken).Take(&session)
+	result := config.GetDatabaseInstance().Where("email = ? AND token = ?", email, accessToken).Take(&session)
 	if IsNotFoundError(result.Error) {
-		return false, nil
+		return 0, nil
 	}
 
-	return result.Error == nil, result.Error
+	return session.UserId, result.Error
 }
 
 // InitiateAuthentication initializes an authentication with key/code
@@ -69,23 +70,23 @@ func (*AuthDb) GetAuthenticationAttempt(key string, code string) (*AuthAttempt, 
 }
 
 // StoreSuccessfulAuth stores an access token and deletes the login attempt entry
-func (*AuthDb) StoreSuccessfulAuth(user string, key string, authToken string) error {
+func (*AuthDb) StoreSuccessfulAuth(email string, userId config.UserId, key string, authToken string) error {
 	db := config.GetDatabaseInstance()
-	result := db.Create(&AuthEntry{UserId: user, Token: authToken, Ts: time.Now()})
+	result := db.Create(&AuthEntry{UserId: userId, Token: authToken, Ts: time.Now(), Email: email})
 	if result.Error != nil {
 		return result.Error
 	}
 
 	if key != "" {
-		result = db.Where("userid = ? AND `key` = ?", user, key).Delete(AuthAttempt{})
+		result = db.Where("email = ? AND `key` = ?", email, key).Delete(AuthAttempt{})
 	}
 	return result.Error
 }
 
 // Purge will remove all access tokens and login attempts for the provided user
-func (*AuthDb) Purge(user string) error {
+func (*AuthDb) Purge(user config.UserId, email string) error {
 	db := config.GetDatabaseInstance()
-	result1 := db.Where("userid = ?", user).Delete(AuthAttempt{})
+	result1 := db.Where("email = ?", email).Delete(AuthAttempt{})
 	result2 := db.Where("userid = ?", user).Delete(AuthEntry{})
 	if result2.Error == nil {
 		return result1.Error
@@ -94,7 +95,7 @@ func (*AuthDb) Purge(user string) error {
 }
 
 // Purge will remove all access tokens and login attempts for the provided user
-func (*AuthDb) Logout(user string, accessToken string) error {
+func (*AuthDb) Logout(user config.UserId, accessToken string) error {
 	db := config.GetDatabaseInstance()
 	result := db.Where("userid = ? AND token = ?", user, accessToken).Delete(AuthEntry{})
 	return result.Error

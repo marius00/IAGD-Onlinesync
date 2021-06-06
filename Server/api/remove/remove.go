@@ -26,13 +26,13 @@ func ProcessRequest(c *gin.Context) {
 
 	entries, err := decode(c.Request.Body)
 	if err != nil {
-		logger.Info("Error parsing JSON body", zap.Error(err), zap.String("user", user))
+		logger.Info("Error parsing JSON body", zap.Error(err), zap.Any("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
 	}
 
 	if validationError := validate(entries); validationError != "" {
-		logger.Info("Error validating JSON body", zap.String("validation", validationError), zap.String("user", user))
+		logger.Info("Error validating JSON body", zap.String("validation", validationError), zap.Any("user", user))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": validationError})
 		return
 	}
@@ -44,7 +44,7 @@ func ProcessRequest(c *gin.Context) {
 	for _, entry := range entries {
 		// The deletion entry is used to ensure other clients deletes it
 		if err := itemDb.Delete(user, entry.ID, timeOfRemove); err != nil {
-			logger.Warn("Failed to delete item", zap.Error(err), zap.String("user", user), zap.String("id", entry.ID))
+			logger.Warn("Failed to delete item", zap.Error(err), zap.Any("user", user), zap.String("id", entry.ID))
 		} else {
 			successfulDeletes = append(successfulDeletes, entry)
 		}

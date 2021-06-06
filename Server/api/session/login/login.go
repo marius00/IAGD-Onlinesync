@@ -50,7 +50,7 @@ func ProcessRequest(c *gin.Context) {
 	db := storage.AuthDb{}
 
 	attempt := storage.AuthAttempt{
-		UserId: email,
+		Email: email,
 		Key: uuid.NewV4().String(),
 		Code: generateRandomCode(),
 	}
@@ -62,7 +62,7 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	// Send email with the login code
-	if err := sendMail(logger, attempt.UserId, attempt.Code); err != nil {
+	if err := sendMail(logger, attempt.Email, attempt.Code); err != nil {
 		logger.Warn("Error sending email, initializing user authentication failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error (sendmail)`})
 		return
