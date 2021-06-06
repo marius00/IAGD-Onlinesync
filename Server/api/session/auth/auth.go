@@ -82,7 +82,7 @@ func ProcessRequest(c *gin.Context) {
 			logger.Warn("Error inserting user entry", zap.Any("user", fetched.Email), zap.Error(err))
 		}
 
-		userId = *newId
+		userId = newId
 	}
 
 	// Store auth entry

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"github.com/go-sql-driver/mysql"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"math/rand"
@@ -11,7 +12,7 @@ type UserDb struct {
 }
 
 type UserEntry struct {
-	UserId    config.UserId `json:"-" gorm:"column:userid;primaryKey;AUTO_INCREMENT;->"`
+	UserId    config.UserId `json:"-" gorm:"primaryKey; column:userid"`
 	Email     string        `json:"-" gorm:"column:email"`
 	BuddyId   int32         `json:"buddyId" gorm:"column:buddy_id"`
 	CreatedAt time.Time     `json:"created_at" sql:"-" gorm:"-"`
@@ -63,13 +64,13 @@ func (*UserDb) GetFromBuddyId(buddyId string) (*UserEntry, error) {
 }
 
 // TODO: Test conflict on buddy id
-func (*UserDb) Insert(entry UserEntry) (*config.UserId, error) {
+func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
 	db := config.GetDatabaseInstance()
 
 	// Make up to 8 attempts to store the entry (may conflict on buddy id)
 	for i := 0; i < 8; i++ {
 		entry.BuddyId = generateBuddyId()
-		result := db.Save(&entry)
+		result := db.Create(&entry)
 
 		// Check if its a unique conflict, if so allow retries.
 		retry := false
@@ -81,12 +82,18 @@ func (*UserDb) Insert(entry UserEntry) (*config.UserId, error) {
 		}
 
 		if !retry {
-			return &entry.UserId, result.Error
+			if result.Error == nil && entry.UserId == config.UserId(0) {
+				return config.UserId(0), errors.New("Userid not returned")
+			}
+			return entry.UserId, result.Error
 		}
 	}
 	result := db.Create(entry)
 
-	return &entry.UserId, result.Error
+	if result.Error == nil && entry.UserId == config.UserId(0) {
+		return config.UserId(0), errors.New("Userid not returned")
+	}
+	return entry.UserId, result.Error
 }
 
 func (*UserDb) Purge(user config.UserId) error {

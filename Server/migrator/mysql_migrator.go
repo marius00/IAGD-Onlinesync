@@ -74,6 +74,7 @@ func migrateUsers() {
 
 
 func getItemBatch(highestTimestamp int64, lastInsertedItems map[string]struct{}) []storage.InputItem {
+	log.Println("Fetching a new item batch..")
 	// Fetch batch of items
 	postgresItems, err := mig.ListFromPostgres(highestTimestamp)
 	if err != nil {
@@ -99,6 +100,7 @@ func getItemBatch(highestTimestamp int64, lastInsertedItems map[string]struct{})
 		log.Fatalf("Error converting items to InputItem, %v", err)
 	}
 
+	log.Println("Finished fetching item batch..")
 	return inputItems
 }
 

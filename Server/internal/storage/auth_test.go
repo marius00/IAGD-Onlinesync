@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/satori/go.uuid"
 	"math/rand"
 	"testing"
@@ -11,10 +12,19 @@ func TestEntireLoginFlow(t *testing.T) {
 	db := AuthDb{}
 
 	userDb := UserDb{}
-	userId, _ := userDb.Insert(UserEntry{
+	userId, err := userDb.Insert(UserEntry{
 		Email: fmt.Sprintf("%s@example.com", uuid.NewV4().String()),
 	})
-	defer userDb.Purge(*userId)
+	if err != nil {
+		t.Fatalf("Error creating user.. %v", err)
+	}
+
+
+	if userId == config.UserId(0) {
+		t.Fatalf("Error creating user, userId is 0")
+	}
+
+	defer userDb.Purge(userId)
 
 	code := 10000000 + rand.Intn(9999999)
 	attempt := AuthAttempt {
@@ -22,8 +32,8 @@ func TestEntireLoginFlow(t *testing.T) {
 		Code: fmt.Sprintf("%d", code),
 		Email: "auth@example.com",
 	}
-	err := db.InitiateAuthentication(attempt)
-	if err != nil {
+
+	if err = db.InitiateAuthentication(attempt); err != nil {
 		t.Fatalf("Error initiating attempt: %v", err)
 	}
 
@@ -43,7 +53,7 @@ func TestEntireLoginFlow(t *testing.T) {
 	}
 
 	accessToken := uuid.NewV4().String()
-	err = db.StoreSuccessfulAuth(attempt.Email, *userId, attempt.Key, accessToken)
+	err = db.StoreSuccessfulAuth(attempt.Email, userId, attempt.Key, accessToken)
 	if err != nil {
 		t.Fatalf("Error storing access token: %v", err)
 	}
@@ -56,7 +66,7 @@ func TestEntireLoginFlow(t *testing.T) {
 		t.Fatal("Expected access token to be valid")
 	}
 
-	if db.Purge(*userId, attempt.Email) != nil {
+	if db.Purge(userId, attempt.Email) != nil {
 		t.Fatal("Failed to purge user info")
 	}
 }
@@ -79,7 +89,7 @@ func TestAuthFlowWrongPincode(t *testing.T) {
 	userId, _ := userDb.Insert(UserEntry{
 		Email: email,
 	})
-	defer userDb.Purge(*userId)
+	defer userDb.Purge(userId)
 
 	db := AuthDb{}
 
@@ -106,7 +116,7 @@ func TestAuthFlowWrongPincode(t *testing.T) {
 		t.Fatal("Expected no attempt, got one.")
 	}
 
-	if db.Purge(*userId, email) != nil {
+	if db.Purge(userId, email) != nil {
 		t.Fatal("Failed to purge user info")
 	}
 }
@@ -118,7 +128,7 @@ func TestAuthFlowWrongKey(t *testing.T) {
 	userId, _ := userDb.Insert(UserEntry{
 		Email: email,
 	})
-	defer userDb.Purge(*userId)
+	defer userDb.Purge(userId)
 
 
 	db := AuthDb{}
@@ -146,7 +156,7 @@ func TestAuthFlowWrongKey(t *testing.T) {
 		t.Fatal("Expected no attempt, got one.")
 	}
 
-	if db.Purge(*userId, email) != nil {
+	if db.Purge(userId, email) != nil {
 		t.Fatal("Failed to purge user info")
 	}
 }
