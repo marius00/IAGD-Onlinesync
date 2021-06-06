@@ -47,6 +47,7 @@ func (*UserDb) GetFromBuddyId(user string) (*UserEntry, error) {
 	return &userEntry, result.Error
 }
 
+// TODO: Test conflict on buddy id
 func (*UserDb) Insert(entry UserEntry) error {
 	db := config.GetDatabaseInstance()
 

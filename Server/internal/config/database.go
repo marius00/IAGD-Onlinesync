@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

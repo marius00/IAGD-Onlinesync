@@ -245,7 +245,7 @@ func (*ItemDb) ListDeletedItems(user string, lastTimestamp int64) ([]DeletedItem
 }
 
 // Fetch all items queued to be deleted
-func (*ItemDb) PurgeUser(user string) error {
+func (*ItemDb) Purge(user string) error {
 	db := config.GetDatabaseInstance()
 
 	result := db.Where("userid = ?", user).Delete(InputItem{})

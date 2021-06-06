@@ -19,7 +19,7 @@ func ProcessRequest(c *gin.Context) {
 	var success = true
 	
 	itemdb := &storage.ItemDb{}
-	err := itemdb.PurgeUser(user)
+	err := itemdb.Purge(user)
 	if err != nil {
 		logger.Warn("Error purging user items", zap.Error(err), zap.String("user", user))
 		success = false

@@ -3,11 +3,11 @@ package main
 import (
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/storage"
+	"github.com/marmyr/iagdbackup/migrator/mig"
 	"gorm.io/gorm"
 	"log"
 )
 
-// TODO: How did media types get unset in api gateway?
 // TODO:
 /*
 [skip] Check if record exists
@@ -21,45 +21,81 @@ Insert into items (select wheeeere....)
 
 var db *gorm.DB
 
-const MaxItemLimit = 1000
 
-// Fetch 0..1000 items for a given user, since the provided timestamp
-func listFromPostgres(lastTimestamp int64) ([]storage.OutputItem, error) {
-	DB := config.GetPostgresInstance()
+// Migrate users over to mysql
+func migrateUsers() {
+	postgresUsers, err := mig.ListUsersFromPostgres()
+	if err != nil {
+		log.Fatalf("Error fetching users from postgres, %v", err)
+	}
 
-	var items []storage.OutputItem
-	result := DB.Where("ts >= ?", lastTimestamp).Order("ts asc").Limit(MaxItemLimit).Find(&items)
+	mysqlUsers, err := mig.ListUsersFromMysql()
+	if err != nil {
+		log.Fatalf("Error fetching users from mysql, %v", err)
+	}
 
-	return items, result.Error
+	log.Println("Inserting missing users")
+	userDb := storage.UserDb{}
+	for _, user := range postgresUsers {
+		// If it doesn't exist in mysql, insert it.
+		if mig.FindUser(user.UserId, mysqlUsers) == nil {
+			log.Printf("Inserting user %s\n", user.UserId)
+			if err = mig.InsertUser(user); err != nil {
+				log.Fatalf("Unabled to insert user %v", err)
+			}
+			// TODO: Merge auth tokens
+		}
+	}
+
+	itemDb := storage.ItemDb{}
+	authDb := storage.AuthDb{}
+
+	log.Println("Deleting purged users")
+	for _, user := range mysqlUsers {
+		// If it doesn't exist in postgres, delete it.
+		if mig.FindUser(user.UserId, postgresUsers) == nil {
+			log.Printf("Purging user %s\n", user.UserId)
+			if err = itemDb.Purge(user.UserId); err != nil {
+				log.Fatalf("Unabled to purge items for user %v", err)
+			}
+			if err = authDb.Purge(user.UserId); err != nil {
+				log.Fatalf("Unabled to purge auth token for user %v", err)
+			}
+			if err = userDb.Purge(user.UserId); err != nil {
+				log.Fatalf("Unabled to purge user %v", err)
+			}
+		}
+	}
 }
 
-func toJsonItem(item storage.OutputItem) storage.JsonItem {
-	return storage.JsonItem{
-		UserId:                     item.UserId,
-		Id:                         item.Id,
-		Ts:                         item.Ts,
-		StackCount:                 item.StackCount,
-		Seed:                       item.Seed,
-		RelicSeed:                  item.RelicSeed,
-		Rarity:                     item.Rarity,
-		NameLowercase:              item.NameLowercase,
-		Name:                       item.Name,
-		MateriaCombines:            item.MateriaCombines,
-		LevelRequirement:           item.LevelRequirement,
-		IsHardcore:                 item.IsHardcore,
-		EnchantmentSeed:            item.EnchantmentSeed,
-		CreatedAt:                  item.CreatedAt,
-		PrefixRarity:               item.PrefixRarity,
-		Mod:                        item.Mod,
-		PrefixRecord:               item.PrefixRecord,
-		SuffixRecord:               item.SuffixRecord,
-		ModifierRecord:             item.ModifierRecord,
-		TransmuteRecord:            item.TransmuteRecord,
-		RelicCompletionBonusRecord: item.RelicCompletionBonusRecord,
-		EnchantmentRecord:          item.EnchantmentRecord,
-		MateriaRecord:              item.MateriaRecord,
-		BaseRecord:                 item.BaseRecord,
+
+func getItemBatch(highestTimestamp int64, lastInsertedItems map[string]struct{}) []storage.InputItem {
+	// Fetch batch of items
+	postgresItems, err := mig.ListFromPostgres(highestTimestamp)
+	if err != nil {
+		log.Fatalf("Error fetching items from postgres, %v", err)
 	}
+
+	// Convert to json format
+	var jsonItems []storage.JsonItem
+	for _, item := range postgresItems {
+		// Skip duplicates, will be some overlap between item batches
+		_, exists := lastInsertedItems[item.Id]
+		if exists {
+			continue
+		}
+
+		jsonItems = append(jsonItems, mig.ToJsonItem(item))
+	}
+
+	// Convert to input format (and mutates mysql db, inserting records etc)
+	itemDb := storage.ItemDb{}
+	inputItems, err := itemDb.ToInputItems(jsonItems)
+	if err != nil {
+		log.Fatalf("Error converting items to InputItem, %v", err)
+	}
+
+	return inputItems
 }
 
 func main() {
@@ -70,41 +106,23 @@ func main() {
 	row := mysql.Table("item").Select("max(ts)", "", 0).Row()
 	row.Scan(&highestTimestamp)
 
-	// TODO: Insert and delete users
+	log.Printf("Migrating users..")
+	migrateUsers()
+	log.Printf("Users migrated..")
 
+
+	log.Printf("Migrating items..")
+	var hasMoreItems = true
 	var lastInsertedItems = map[string]struct{}{}
-	for true {
-
-		// Fetch batch of items
-		postgresItems, err := listFromPostgres(highestTimestamp)
-		if err != nil {
-			log.Fatalf("Error fetching items from postgres, %v", err)
-		}
-
-		// Convert to json format
-		var jsonItems []storage.JsonItem
-		for _, item := range postgresItems {
-			// Skip duplicates, will be some overlap between item batches
-			_, exists := lastInsertedItems[item.Id]
-			if exists {
-				continue
-			}
-
-			jsonItems = append(jsonItems, toJsonItem(item))
-		}
-
-		// Convert to input format (and mutates mysql db, inserting records etc)
-		itemDb := storage.ItemDb{}
-		inputItems, err := itemDb.ToInputItems(jsonItems)
-		if err != nil {
-			log.Fatalf("Error converting items to InputItem, %v", err)
-		}
+	itemDb := storage.ItemDb{}
+	for hasMoreItems {
+		items := getItemBatch(highestTimestamp, lastInsertedItems)
 
 		// Insert to mysql
 		var currentlyInsertedItems = map[string]struct{}{}
-		for _, item := range inputItems {
+		for _, item := range items {
 
-			if err = itemDb.Insert(item.UserId, item); err != nil {
+			if err := itemDb.Insert(item.UserId, item); err != nil {
 				log.Fatalf("Error inserting items to mysql, %v", err)
 			}
 
@@ -115,7 +133,23 @@ func main() {
 			currentlyInsertedItems[item.Id] = struct{}{}
 		}
 		lastInsertedItems = currentlyInsertedItems
-
+		hasMoreItems = len(lastInsertedItems) > 0
 	}
-	// TODO: Migrate DeletedItem & remove anything in DeletedItem
+	log.Printf("Finished migrating items")
+
+
+
+	log.Printf("Migrating item deletions")
+	if err := mig.ResetItemDeletionInMysql(); err != nil {
+		log.Fatalf("Error deleting items in mysql, %v", err)
+	}
+
+	deletedItems, err := mig.ListDeletedItemsFromPostgres()
+	if err != nil {
+		log.Fatalf("Error fetching deleted items, %v", err)
+	}
+	for _, item := range deletedItems {
+		itemDb.Delete(item.UserId, item.Id, item.Ts)
+	}
+	log.Printf("Finished migrating item deletions")
 }

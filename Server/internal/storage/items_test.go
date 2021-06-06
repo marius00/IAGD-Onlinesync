@@ -16,7 +16,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 	db := ItemDb{}
 	userDb := UserDb{}
 
-	if err := db.PurgeUser(user); err != nil {
+	if err := db.Purge(user); err != nil {
 		t.Fatal("Failed to purge items for user")
 	}
 	if err := userDb.Purge(user); err != nil {
@@ -31,7 +31,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 		t.Fatal("Failed to create user")
 	}
 
-	defer db.PurgeUser(user)
+	defer db.Purge(user)
 	defer userDb.Purge(user)
 
 
@@ -98,7 +98,7 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 	}
 
 	db := ItemDb{}
-	if err := db.PurgeUser(user); err != nil {
+	if err := db.Purge(user); err != nil {
 		t.Fatal("Failed to purge user")
 	}
 
@@ -127,7 +127,7 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 		t.Fatalf("Expected 0 item, got %d", len(items))
 	}
 
-	if err := db.PurgeUser(user); err != nil {
+	if err := db.Purge(user); err != nil {
 		t.Fatal("Failed to purge user")
 	}
 }
@@ -141,13 +141,13 @@ func TestInsertSameItemTwice(t *testing.T) {
 		Ts: ts,
 		BaseRecord: "base recordddddsssssss",
 	}
-	defer db.PurgeUser(user)
+	defer db.Purge(user)
 
 	userDb := UserDb{}
 	userDb.Insert(UserEntry{
 		UserId:user,
 	})
-	if err := db.PurgeUser(user); err != nil {
+	if err := db.Purge(user); err != nil {
 		t.Fatal("Failed to purge user")
 	}
 
@@ -169,7 +169,7 @@ func TestInsertSameItemTwice(t *testing.T) {
 		t.Fatalf("Expected 1 item, got %d", len(items))
 	}
 
-	db.PurgeUser(user)
+	db.Purge(user)
 	userDb.Purge(user)
 }
 
