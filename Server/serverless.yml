@@ -15,6 +15,10 @@ provider:
     GO_API_HOST: ${ssm:/gd/ia/backup/config/api_host}
     REGION: ${ssm:/gd/ia/backup/config/region}
     BUCKETNAME: ${ssm:/gd/ia/backup/config/backupbucket}
+  apiGateway:
+    binaryMediaTypes:
+      - 'multipart/form-data'
+      - 'application/x-www-form-urlencoded'
 
 package:
   exclude:

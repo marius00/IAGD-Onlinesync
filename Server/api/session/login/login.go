@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -22,7 +23,7 @@ var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z
 // Output: JSON {"key": "somevalue"}
 // Effect: Email to someone@example.com, pincode stored to DB.
 func ProcessRequest(c *gin.Context) {
-	email := c.Query("email")
+	email := strings.ToLower(c.Query("email"))
 
 	if !isEmailValid(email) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": `Query parameter "email" does not appear to contain a valid e-mail address`})

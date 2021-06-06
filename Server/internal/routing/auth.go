@@ -5,6 +5,7 @@ import (
 	"github.com/marmyr/iagdbackup/internal/logging"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 )
 
 const MaxAttempts int = 30
@@ -28,7 +29,7 @@ func authorizedHandler(authDb Authorizer, throttleDb Throttler) gin.HandlerFunc 
 			return
 		}
 
-		user := c.GetHeader("X-Api-User")
+		user := strings.ToLower(c.GetHeader("X-Api-User"))
 		if user == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: X-Api-User header missing"})
 			c.Abort()
