@@ -158,4 +158,7 @@ func main() {
 		itemDb.Delete(item.UserId, item.Id, item.Ts)
 	}
 	log.Printf("Finished migrating item deletions")
+
+
+	// TODO: Character data
 }

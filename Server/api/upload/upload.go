@@ -94,8 +94,13 @@ func validate(data []storage.JsonItem) string {
 		if m.UserId > 0 {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "User"`, m.Id)
 		}
+
 		if len(m.BaseRecord) < 6 {
 			return fmt.Sprintf(`Item with id="%s" is missing the field "baseRecord"`, m.Id)
+		}
+
+		if !HasValidRecords(m) {
+			return fmt.Sprintf(`Item with id="%s" has a one or more invalid records`, m.Id)
 		}
 
 		if m.StackCount <= 0 {
@@ -114,6 +119,25 @@ func validate(data []storage.JsonItem) string {
 	return ""
 }
 
+
+// HasValidRecords will verify that all records on an item are valid ascii (not garbled crap)
+func HasValidRecords(item storage.JsonItem) bool {
+	records := []string{
+		item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
+		item.ModifierRecord, item.TransmuteRecord, item.TransmuteRecord,
+		item.EnchantmentRecord, item.MateriaRecord,
+	}
+
+	for _, record := range records {
+		if record != "" {
+			if !util.IsASCII(record) || len(record) > 255 {
+				return false
+			}
+		}
+	}
+
+	return true
+}
 
 func decode(body io.Reader) ([]storage.JsonItem, error) {
 	data, err := ioutil.ReadAll(body)

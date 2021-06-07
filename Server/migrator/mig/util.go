@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const MaxItemLimit = 1000
+const MaxItemLimit = 10000
 
 type PostgresOutputItem struct {
 	UserId string `json:"-" gorm:"column:userid"`

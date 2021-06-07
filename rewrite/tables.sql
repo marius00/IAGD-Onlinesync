@@ -67,7 +67,7 @@ COLLATE='latin1_swedish_ci'
 
 CREATE TABLE `throttleentry` (
 	`id` INT NOT NULL AUTO_INCREMENT,
-	`userid` BIGINT NULL,
+	`userid` VARCHAR(320) NULL,
 	`ip` VARCHAR(512) NULL DEFAULT NULL,
 	`created_at` TIMESTAMP NOT NULL DEFAULT now(),
 	PRIMARY KEY (`id`)
@@ -126,6 +126,11 @@ CREATE TABLE `item` (
 COLLATE='latin1_swedish_ci'
 ENGINE=InnoDB
 ;
+
+ALTER TABLE `item`
+	CHANGE COLUMN `name` `name` VARCHAR(255) NULL DEFAULT '' COLLATE 'utf8_general_ci' AFTER `stackcount`,
+	CHANGE COLUMN `namelowercase` `namelowercase` VARCHAR(255) NULL DEFAULT '' COLLATE 'utf8_general_ci' AFTER `name`;
+
 
 
 ALTER TABLE `records` ROW_FORMAT=COMPRESSED;

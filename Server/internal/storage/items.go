@@ -5,6 +5,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
+	"github.com/marmyr/iagdbackup/internal/util"
 	"time"
 )
 
@@ -131,7 +132,7 @@ func insertRecordEntry(record string) error {
 }
 
 // EnsureRecordsExists will insert any missing records for this item
-func (*ItemDb) ensureRecordsExists(items []JsonItem) {
+func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 	for _, item := range items {
 		records := []string{
 			item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
@@ -141,10 +142,18 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) {
 
 		for _, record := range records {
 			if record != "" {
-				insertRecordEntry(record)
+				if util.IsASCII(record) {
+					if err := insertRecordEntry(record); err != nil {
+						return err
+					}
+				} else {
+					// TODO: Log this? Eat it up?
+				}
 			}
 		}
 	}
+
+	return nil
 }
 
 // Returns a string=>id map of the record references
@@ -194,7 +203,10 @@ func (*ItemDb) toInputItem(item JsonItem, references map[string]sql.NullInt64) I
 
 // Converts json items to input items, ensuring that the records exists in the database (mutates db)
 func (db *ItemDb) ToInputItems(items []JsonItem) ([]InputItem, error) {
-	db.ensureRecordsExists(items)
+	if err := db.ensureRecordsExists(items); err != nil {
+		return nil, err
+	}
+
 	ref, err := db.getRecordReferences(items)
 	if err != nil {
 		return nil, err
@@ -220,7 +232,7 @@ func (*ItemDb) getRecordReferences(items []JsonItem) ([]RecordReference, error) 
 			item.ModifierRecord, item.TransmuteRecord, item.TransmuteRecord,
 			item.EnchantmentRecord, item.MateriaRecord,
 		} {
-			if record != "" {
+			if record != "" && util.IsASCII(record) {
 				records = append(records, record)
 			}
 		}

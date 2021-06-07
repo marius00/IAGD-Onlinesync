@@ -57,3 +57,35 @@ func TestShouldRejectTooShortId(t *testing.T) {
 		t.Fatal("Expected error")
 	}
 }
+
+func TestShouldRejectTooLongBaseRecord(t *testing.T) {
+	m := []storage.JsonItem{
+		{
+			Id: "AC361743-67FA-4693-BA2D-D5CFBC0BE8C2",
+			BaseRecord: "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+			Seed: 12345,
+			StackCount: 1,
+		},
+	}
+
+	// TODO: Fix expected message
+	if validate(m) != `The field "id" must be of length 32 or longer.` {
+		t.Fatal("Expected error")
+	}
+}
+
+func TestShouldRejectMangledRecords(t *testing.T) {
+	m := []storage.JsonItem{
+		{
+			Id: "AC361743-67FA-4693-BA2D-D5CFBC0BE8C2",
+			BaseRecord: "records/items/lootaffixes/suffix/a038b_off_dmg�ther_07_je.dbr",
+			Seed: 12345,
+			StackCount: 1,
+		},
+	}
+
+	// TODO: Fix expected message
+	if validate(m) != `The field "id" must be of length 32 or longer.` {
+		t.Fatal("Expected error")
+	}
+}

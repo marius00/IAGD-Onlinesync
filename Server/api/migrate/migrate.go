@@ -93,7 +93,7 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	accessToken := uuid.NewV4().String()
-	err = authDb.StoreSuccessfulAuth(email, *userId, "", accessToken)
+	err = authDb.StoreSuccessfulAuth(email, userId, "", accessToken)
 	if err != nil {
 		logger.Warn("Error storing auth token", zap.String("user", email), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
