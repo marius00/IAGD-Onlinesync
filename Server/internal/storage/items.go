@@ -125,32 +125,50 @@ SELECT
 }
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
-func insertRecordEntry(record string) error {
+func insertRecordEntry(records []string) error {
+	valueArgs := []interface{}{}
+	sql := "INSERT IGNORE INTO records(record) VALUES"
+
+	for _, val := range records {
+		valueArgs = append(valueArgs, val)
+		sql += "(?),"
+	}
+
+
+	// Remove the trailing ","
+	sql = sql[0:len(sql)-1]
+
 	DB := config.GetDatabaseInstance()
-	result := DB.Exec("INSERT IGNORE INTO records(record) VALUES(?)", record)
+	result := DB.Exec(sql, valueArgs...)
 	return result.Error
 }
 
 // EnsureRecordsExists will insert any missing records for this item
 func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
+
+	var records []string
+
 	for _, item := range items {
-		records := []string{
+		candidates := []string{
 			item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
 			item.ModifierRecord, item.TransmuteRecord, item.TransmuteRecord,
 			item.EnchantmentRecord, item.MateriaRecord,
 		}
 
-		for _, record := range records {
+		for _, record := range candidates {
 			if record != "" {
 				if util.IsASCII(record) {
-					if err := insertRecordEntry(record); err != nil {
-						return err
-					}
+					records = append(records, record)
 				} else {
 					// TODO: Log this? Eat it up?
 				}
 			}
 		}
+	}
+
+
+	if err := insertRecordEntry(records); err != nil {
+		return err
 	}
 
 	return nil

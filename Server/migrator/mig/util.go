@@ -9,6 +9,25 @@ import (
 
 const MaxItemLimit = 1000
 
+var userCache = make(map[string]*storage.UserEntry)
+
+func GetUserByEmail(email string) *storage.UserEntry {
+	userDb := storage.UserDb{}
+
+	if cached, ok := userCache[email]; !ok {
+		user, err := userDb.GetByEmail(email)
+		if err != nil {
+			log.Fatalf("Unable to fetch user %s, %v", email, err)
+		}
+
+		userCache[email] = user
+		return user
+	} else {
+		return cached
+	}
+}
+
+
 type PostgresOutputItem struct {
 	UserId string `json:"-" gorm:"column:userid"`
 	Id     string `json:"id"`
@@ -128,11 +147,7 @@ func ListUsersFromMysql() ([]storage.UserEntry, error) {
 }
 
 func ToJsonItem(item PostgresOutputItem) storage.JsonItem {
-	userDb := storage.UserDb{}
-	user, err := userDb.GetByEmail(item.UserId)
-	if err != nil {
-		log.Fatalf("Error fetching user for item.. %v", err)
-	}
+	user := GetUserByEmail(item.UserId)
 
 	return storage.JsonItem{
 		UserId:                     user.UserId,

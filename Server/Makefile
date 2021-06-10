@@ -5,7 +5,6 @@ test:
 
 build:
 	rm -f bin/*
-	env GOOS=linux go build -ldflags="-s -w" -o bin/search endpoints/search/search.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/buddyitems endpoints/buddyitems/buddyitems.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/delete endpoints/delete/delete.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/download endpoints/download/download.go
@@ -20,7 +19,6 @@ build:
 #	env GOOS=linux go build -ldflags="-s -w" -o bin/monolith endpoints/monolith/monolith.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/maintenance endpoints/maintenance.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/character endpoints/character/character.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/test endpoints/test/test.go
 
 #lint:
 #    golangci-lint run -E golint -E gosec -E interfacer -E unconvert -E dupl -E goconst -E gocyclo -E maligned -E depguard -E misspell -E unparam -E nakedret -E prealloc -E scopelint -E gochecknoinits

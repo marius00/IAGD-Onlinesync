@@ -110,6 +110,7 @@ func getItemBatch(highestTimestamp int64, lastInsertedItems map[string]struct{})
 	return inputItems
 }
 
+
 func main() {
 	mysql := config.GetDatabaseInstance()
 
@@ -122,8 +123,6 @@ func main() {
 	migrateUsers()
 	log.Printf("Users migrated..")
 
-
-	migrateCharacters()
 
 
 	log.Printf("Migrating items..")
@@ -164,32 +163,27 @@ func main() {
 		log.Fatalf("Error fetching deleted items, %v", err)
 	}
 
-	userDb := storage.UserDb{}
 	for _, item := range deletedItems {
-		user, err := userDb.GetByEmail(item.UserId)
-		if err != nil {
-			log.Fatalf("Unable to fetch user %s, %v", item.UserId, err)
-		}
-
+		user := mig.GetUserByEmail(item.UserId)
 		itemDb.Delete(user.UserId, item.Id, item.Ts)
 	}
+
+
 	log.Printf("Finished migrating item deletions")
+
+	migrateCharacters()
 }
 
 func migrateCharacters() {
 	log.Printf("Migrating characters..")
 
-	userDb := storage.UserDb{}
 	characters, err := mig.ListCharactersFromPostgres()
 	if err != nil {
 		log.Fatalf("Error fetching characters, %v", err)
 	}
 
 	for _, entry := range characters {
-		user, err := userDb.GetByEmail(entry.Email)
-		if err != nil {
-			log.Fatalf("Unable to fetch user %s, %v", entry.Email, err)
-		}
+		user := mig.GetUserByEmail(entry.Email)
 
 		if err := mig.InsertCharactersToMysql(storage.CharacterEntry {
 			UpdatedAt: entry.UpdatedAt,
