@@ -17,7 +17,7 @@ type CharacterEntry struct {
 }
 
 func (CharacterEntry) TableName() string {
-	return "character"
+	return "characters"
 }
 
 func (*CharacterDb) Get(user config.UserId, name string) (*CharacterEntry, error) {
@@ -48,10 +48,9 @@ func (*CharacterDb) Insert(entry CharacterEntry) error {
 
 	result :=
 
-		db.Exec(`INSERT INTO public."character" (userid, name, filename)
+		db.Exec(`INSERT INTO characters(userid, name, filename)
 			VALUES(?, ?, ?)
-			ON CONFLICT (userid, name) 
-			DO UPDATE SET updated_at = now();`, entry.UserId, entry.Name, entry.Filename)
+			ON DUPLICATE KEY UPDATE updated_at=now();`, entry.UserId, entry.Name, entry.Filename)
 
 	return result.Error
 }

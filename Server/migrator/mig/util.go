@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const MaxItemLimit = 10000
+const MaxItemLimit = 1000
 
 type PostgresOutputItem struct {
 	UserId string `json:"-" gorm:"column:userid"`
@@ -54,10 +54,20 @@ func ListFromPostgres(lastTimestamp int64) ([]PostgresOutputItem, error) {
 	return items, result.Error
 }
 
-func ListDeletedItemsFromPostgres() ([]storage.DeletedItem, error) {
+type PostgresDeletedItem struct {
+	UserId string `json:"-" gorm:"column:userid"`
+	Id     string `json:"id"`
+	Ts     int64  `json:"ts"`
+}
+
+func (PostgresDeletedItem) TableName() string {
+	return "deleteditem"
+}
+
+func ListDeletedItemsFromPostgres() ([]PostgresDeletedItem, error) {
 	DB := config.GetPostgresInstance()
 
-	var items []storage.DeletedItem
+	var items []PostgresDeletedItem
 	result := DB.Find(&items)
 
 	return items, result.Error

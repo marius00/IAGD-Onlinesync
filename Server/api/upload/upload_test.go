@@ -20,16 +20,18 @@ func TestShouldRejectItemsWithoutId(t *testing.T) {
 		{},
 	}
 
-	if err := validate(m); err != `One or more items is missing the property "id"` {
-		t.Fatalf("Expected error message, got %s", err)
+	expected := `One or more items is missing the property "id"`
+	if err := validate(m); err != expected {
+		t.Fatalf("Unexpected error: `%s`, expected `%s`", err, expected)
 	}
 }
 
 func TestShouldRejectEmptyLists(t *testing.T) {
 	var m []storage.JsonItem
 
-	if err := validate(m); err != `Input array is empty, no items provided` {
-		t.Fatalf("Expected error message, got %s", err)
+	expected := `Input array is empty, no items provided`
+	if err := validate(m); err != expected {
+		t.Fatalf("Unexpected error: `%s`, expected `%s`", err, expected)
 	}
 }
 
@@ -53,8 +55,9 @@ func TestShouldRejectTooShortId(t *testing.T) {
 		{Id: "123",},
 	}
 
-	if validate(m) != `The field "id" must be of length 32 or longer.` {
-		t.Fatal("Expected error")
+	expected := `The field "id" must be of length 32 or longer.`
+	if err := validate(m); err != expected {
+		t.Fatalf("Unexpected error: `%s`, expected `%s`", err, expected)
 	}
 }
 
@@ -68,9 +71,9 @@ func TestShouldRejectTooLongBaseRecord(t *testing.T) {
 		},
 	}
 
-	// TODO: Fix expected message
-	if validate(m) != `The field "id" must be of length 32 or longer.` {
-		t.Fatal("Expected error")
+	expected := `Item with id="AC361743-67FA-4693-BA2D-D5CFBC0BE8C2" has a one or more invalid records`
+	if err := validate(m); err != expected {
+		t.Fatalf("Unexpected error: `%s`, expected `%s`", err, expected)
 	}
 }
 
@@ -84,8 +87,8 @@ func TestShouldRejectMangledRecords(t *testing.T) {
 		},
 	}
 
-	// TODO: Fix expected message
-	if validate(m) != `The field "id" must be of length 32 or longer.` {
-		t.Fatal("Expected error")
+	expected := `Item with id="AC361743-67FA-4693-BA2D-D5CFBC0BE8C2" has a one or more invalid records`
+	if err := validate(m); err != expected {
+		t.Fatalf("Unexpected error: `%s`, expected `%s`", err, expected)
 	}
 }

@@ -24,7 +24,7 @@ func (*ItemDb) Delete(user config.UserId, id string, timestamp int64) error {
 	DB := config.GetDatabaseInstance()
 
 	obj := InputItem{Id: id, UserId: user}
-	result := DB.Delete(&obj)
+	result := DB.Where("userId = ?", user).Delete(&obj)
 	if result.Error != nil && result.Error.Error() != gorm.ErrRecordNotFound.Error() {
 		return result.Error
 	}

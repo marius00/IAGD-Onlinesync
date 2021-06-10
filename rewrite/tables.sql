@@ -137,3 +137,34 @@ ALTER TABLE `records` ROW_FORMAT=COMPRESSED;
 ALTER TABLE `item` ROW_FORMAT=COMPRESSED;
 ALTER TABLE `deleteditem` ROW_FORMAT=COMPRESSED;
 
+
+CREATE TABLE `characters` (
+	`userid` BIGINT(20) NOT NULL,
+	`name` VARCHAR(50) NOT NULL,
+	`filename` VARCHAR(400) NOT NULL,
+	`created_at` TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+	`updated_at` TIMESTAMP NOT NULL DEFAULT current_TIMESTAMP(),
+	PRIMARY KEY (`userid`, `name`),
+	CONSTRAINT `FK_characters_users` FOREIGN KEY (`userid`) REFERENCES `users` (`userid`)
+)
+COMMENT='Stores filename mappings for characters backups'
+COLLATE='latin1_swedish_ci'
+ENGINE=InnoDB
+;
+
+ALTER TABLE `deleteditem` ADD CONSTRAINT `FK_deleteditem_users` FOREIGN KEY (`userid`) REFERENCES `users` (`userid`);
+ALTER TABLE `authentry` ADD CONSTRAINT `FK_authentry_users` FOREIGN KEY (`userid`) REFERENCES `users` (`userid`);
+ALTER TABLE `characters` CHANGE COLUMN `name` `name` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci' AFTER `userid`;
+ALTER TABLE `characters`	ROW_FORMAT=COMPRESSED;
+ALTER TABLE `users`
+	COMMENT='List of users in the backup system.\r\nHelps keep track of new users and returning users (check if they have items in the old solution, notify them that they may have entered the wrong email etc)\';\r\n',
+	CHANGE COLUMN `buddy_id` `buddy_id` INT(11) NULL DEFAULT NULL COMMENT 'Activated/created when the user enabled buddy sharing in settings in IA' AFTER `created_at`;
+
+ALTER TABLE `throttleentry`
+	COMMENT='GDIA: Throttle entries to prevent brute force attempts / email spam';
+
+ALTER TABLE `item`
+	COMMENT='GDIA: Items for the backup system',
+	CHANGE COLUMN `id` `id` VARCHAR(36) NOT NULL COMMENT 'GUID provided by client' COLLATE 'latin1_swedish_ci' FIRST;
+ALTER TABLE `authattempt`
+	COMMENT='Contains a publicly known "token" and a secret pin code used to authenticate for a given user. \r\n\r\nUpon presenting both the token and the code to an API, an access token is inserted into "authentry" and returned to the user.\r\nIf the authenticating user does not exist, he will be created upon verification.';

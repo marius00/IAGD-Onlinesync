@@ -53,6 +53,7 @@ func migrateUsers() {
 
 	itemDb := storage.ItemDb{}
 	authDb := storage.AuthDb{}
+	characterDb := storage.CharacterDb{}
 
 	log.Println("Deleting purged users")
 	for _, user := range mysqlUsers {
@@ -65,6 +66,11 @@ func migrateUsers() {
 			if err = authDb.Purge(user.UserId, user.Email); err != nil {
 				log.Fatalf("Unabled to purge auth token for user %v", err)
 			}
+
+			if err = characterDb.Purge(user.UserId); err != nil {
+				log.Fatalf("Unabled to purge characters for user %v", err)
+			}
+
 			if err = userDb.Purge(user.UserId); err != nil {
 				log.Fatalf("Unabled to purge user %v", err)
 			}
@@ -74,7 +80,7 @@ func migrateUsers() {
 
 
 func getItemBatch(highestTimestamp int64, lastInsertedItems map[string]struct{}) []storage.InputItem {
-	log.Println("Fetching a new item batch..")
+	log.Printf("Fetching a new item batch, offset %v..\n", highestTimestamp)
 	// Fetch batch of items
 	postgresItems, err := mig.ListFromPostgres(highestTimestamp)
 	if err != nil {
@@ -117,6 +123,9 @@ func main() {
 	log.Printf("Users migrated..")
 
 
+	migrateCharacters()
+
+
 	log.Printf("Migrating items..")
 	var hasMoreItems = true
 	var lastInsertedItems = map[string]struct{}{}
@@ -154,11 +163,43 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error fetching deleted items, %v", err)
 	}
+
+	userDb := storage.UserDb{}
 	for _, item := range deletedItems {
-		itemDb.Delete(item.UserId, item.Id, item.Ts)
+		user, err := userDb.GetByEmail(item.UserId)
+		if err != nil {
+			log.Fatalf("Unable to fetch user %s, %v", item.UserId, err)
+		}
+
+		itemDb.Delete(user.UserId, item.Id, item.Ts)
 	}
 	log.Printf("Finished migrating item deletions")
+}
 
+func migrateCharacters() {
+	log.Printf("Migrating characters..")
 
-	// TODO: Character data
+	userDb := storage.UserDb{}
+	characters, err := mig.ListCharactersFromPostgres()
+	if err != nil {
+		log.Fatalf("Error fetching characters, %v", err)
+	}
+
+	for _, entry := range characters {
+		user, err := userDb.GetByEmail(entry.Email)
+		if err != nil {
+			log.Fatalf("Unable to fetch user %s, %v", entry.Email, err)
+		}
+
+		if err := mig.InsertCharactersToMysql(storage.CharacterEntry {
+			UpdatedAt: entry.UpdatedAt,
+			CreatedAt: entry.CreatedAt,
+			Name: entry.Name,
+			Filename: entry.Filename,
+			UserId: user.UserId,
+		}); err != nil {
+			log.Fatalf("Error inserting character, %v", err)
+		}
+	}
+	log.Printf("Characters migrated..")
 }
