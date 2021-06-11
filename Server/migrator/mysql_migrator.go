@@ -6,6 +6,7 @@ import (
 	"github.com/marmyr/iagdbackup/migrator/mig"
 	"gorm.io/gorm"
 	"log"
+	"time"
 )
 
 // TODO:
@@ -22,8 +23,51 @@ Insert into items (select wheeeere....)
 var db *gorm.DB
 
 
+
+type PostgresAuthEntry struct {
+	UserId string    `json:"-" gorm:"column:userid"`
+	Token  string    `json:"-"`
+	Ts     time.Time `json:"ts"`
+}
+func (PostgresAuthEntry) TableName() string {
+	return "authentry"
+}
+
+func listPostgresAuthTokens() ([]PostgresAuthEntry, error) {
+	DB := config.GetPostgresInstance()
+
+	var tokens []PostgresAuthEntry
+	result := DB.Find(&tokens)
+
+	return tokens, result.Error
+}
+
+func storeAuthTokens(tokens []PostgresAuthEntry) {
+	DB := config.GetDatabaseInstance()
+	// TODO: Can't do this, wiping auth tokens in prod is bad.. forced logouts!
+	/*if err :=DB.Raw("DELETE FROM authentry").Where("1 = ?", 1).Error; err != nil {
+		log.Fatalf("Error deleting auth entries, %v", err)
+	}*/
+
+	for _, entry := range tokens {
+		if err := storage.ReturnOrIgnore(DB.Create(&storage.AuthEntry{
+			Email: entry.UserId,
+			Ts: entry.Ts,
+			Token: entry.Token,
+			UserId: mig.GetUserByEmail(entry.UserId).UserId,
+		}).Error, storage.UNIQUE_VIOLATION); err != nil {
+			log.Fatalf("Error inserting auth token, %v", err)
+		}
+	}
+}
+
 // Migrate users over to mysql
 func migrateUsers() {
+	itemDb := storage.ItemDb{}
+	authDb := storage.AuthDb{}
+	characterDb := storage.CharacterDb{}
+
+
 	postgresUsers, err := mig.ListUsersFromPostgres()
 	if err != nil {
 		log.Fatalf("Error fetching users from postgres, %v", err)
@@ -51,9 +95,12 @@ func migrateUsers() {
 		}
 	}
 
-	itemDb := storage.ItemDb{}
-	authDb := storage.AuthDb{}
-	characterDb := storage.CharacterDb{}
+	authTokens, err := listPostgresAuthTokens()
+	if err != nil {
+		log.Fatalf("Error fetching auth tokens, %v", err)
+	}
+	storeAuthTokens(authTokens)
+
 
 	log.Println("Deleting purged users")
 	for _, user := range mysqlUsers {
