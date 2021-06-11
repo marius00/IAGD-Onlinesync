@@ -4,7 +4,7 @@ provider:
   name: aws
   runtime: go1.x
   stage: dev
-  region: us-east-1
+  region: eu-west-2
   memorySize: 128
   environment:
     DATABASE_USER: ${ssm:/gd/ia/backup/config/db/user}
@@ -128,5 +128,5 @@ functions:
 # you can add CloudFormation resource templates here
 plugins:
   - serverless-finch
-resources:
-  - ${file(resources/s3-bucket.yml)}
+#resources:
+#  - ${file(resources/s3-bucket.yml)}
