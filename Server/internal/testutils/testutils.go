@@ -1,51 +1,10 @@
 package testutils
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/marmyr/iagdbackup/internal/config"
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
-
-type HeaderEntry struct {
-	Name string
-	Value string
-}
-
-func HostEndpoint(f gin.HandlerFunc, body string, headers []HeaderEntry) *httptest.ResponseRecorder {
-	req, _ := http.NewRequest("POST", "/", strings.NewReader(body))
-	w := httptest.NewRecorder()
-
-	r := gin.Default()
-	r.POST("/", f)
-	for _, h := range headers {
-		req.Header.Set(h.Name, h.Value)
-	}
-
-	r.ServeHTTP(w, req)
-
-	return w
-}
-
-
-type DummyAuthorizer struct {}
-func (*DummyAuthorizer) GetUserId(email string, token string) (config.UserId, error) {
-	if email == "test@example.com" && token == "123456" {
-		return 1, nil
-	}
-
-	return 0, nil
-}
-
-type DummyThrottler struct {}
-func (*DummyThrottler) GetNumEntries(user string, ip string) (int, error) {
-	return 1, nil
-}
-func (*DummyThrottler) Insert(user string, ip string) error {
-	return nil
-}
 
 func Expect(t *testing.T, w *httptest.ResponseRecorder, expectedStatus int, expectedBody string) {
 	if w.Code != expectedStatus {
@@ -66,4 +25,10 @@ func ExpectEquals(t *testing.T, expected string, v string) {
 
 func RunAgainstRealDatabase() bool {
 	return true // os.Getenv("WINDIR") == "C:\\WINDOWS"
+}
+
+func FailOnError(t *testing.T, err error, message string) {
+	if err != nil {
+		t.Fatalf("%s, %v", message, err)
+	}
 }

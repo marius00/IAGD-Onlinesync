@@ -3,9 +3,8 @@ package auth
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/iagdbackup/internal/config"
-	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/logging"
+	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
 	"github.com/satori/go.uuid"
 	"go.uber.org/zap"
@@ -65,25 +64,13 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-// TODO: No idea what fails here, but lets see if its possible to do insert-ignore-return instead of prefetch
-// write a test flow.
 	// Create a user entry for the user, if one does not exist.
-	var existing = "EXISTING"
 	userDb := storage.UserDb{}
-	u, err := userDb.GetByEmail(fetched.Email)
-	var userId config.UserId = u.UserId
+	userId, err := userDb.Insert(storage.UserEntry{Email: fetched.Email})
 	if err != nil {
-		logger.Warn("Error fetching user entry", zap.Any("user", fetched.Email), zap.Error(err))
-	}
-	if u == nil {
-		// TODO: Check if items exists in Azure?
-		existing = "NEW"
-		newId, err := userDb.Insert(storage.UserEntry{Email: fetched.Email})
-		if err != nil {
-			logger.Warn("Error inserting user entry", zap.Any("user", fetched.Email), zap.Error(err))
-		}
-
-		userId = newId
+		logger.Warn("Error inserting user entry", zap.Any("user", fetched.Email), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
+		return
 	}
 
 	// Store auth entry
@@ -96,5 +83,5 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	logger.Debug("Login succeeded", zap.Any("user", fetched.Email))
-	c.JSON(http.StatusOK, gin.H{"token": accessToken, "usertype": existing}) // TODO: Real usertype
+	c.JSON(http.StatusOK, gin.H{"token": accessToken})
 }
