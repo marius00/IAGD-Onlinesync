@@ -66,6 +66,30 @@ func TestObtuseGormStuff(t *testing.T) {
 	}
 }
 
+func TestCreateUserTwice(t *testing.T) {
+	userDb := UserDb{}
+	email := "twice@example.com"
+
+	userId, err := userDb.Insert(UserEntry{
+		Email: email,
+	})
+	FailOnError(t, err, "Error creating user..")
+	if userId == config.UserId(0) {
+		// Again not terribly obvious, but when we fix the "gorm:stuff" above, we may fail getting the user id.
+		t.Fatalf("Error creating user, userId is 0")
+	}
+
+
+	userRetry, err := userDb.Insert(UserEntry{
+		Email: email,
+	})
+	FailOnError(t, err, "Error creating user..")
+	if userRetry != userId {
+		// Again not terribly obvious, but when we fix the "gorm:stuff" above, we may fail getting the user id.
+		t.Fatalf("Error creating user, userid did not match")
+	}
+}
+
 func TestStuff(t *testing.T) {
 	userDb := UserDb{}
 

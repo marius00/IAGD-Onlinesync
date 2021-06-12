@@ -31,7 +31,7 @@ const (
 func sendMail(logger zap.Logger, recipient string, code string) error {
 	// Create a new session in the us-east-1 region.
 	sess, err := session.NewSession(&aws.Config{
-		Region:aws.String("us-east-1")}, // TODO: Auto detect?
+		Region:aws.String("us-east-1")},
 	)
 
 	if err != nil {

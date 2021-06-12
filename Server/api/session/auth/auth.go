@@ -65,7 +65,8 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-
+// TODO: No idea what fails here, but lets see if its possible to do insert-ignore-return instead of prefetch
+// write a test flow.
 	// Create a user entry for the user, if one does not exist.
 	var existing = "EXISTING"
 	userDb := storage.UserDb{}

@@ -27,6 +27,12 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	userEntry, err := userDb.Get(userId) // TODO: Eating err
+	if err != nil {
+		logger.Error("Error fetching user", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Something went wrong, deletion may have partially succeeded"})
+		return
+	}
+
 	authDb := storage.AuthDb{}
 	err = authDb.Purge(userId, userEntry.Email)
 	if err != nil {
@@ -34,10 +40,10 @@ func ProcessRequest(c *gin.Context) {
 		success = false
 	}
 
-	userDb.Purge(userId)
 
 	characterDb := storage.CharacterDb{}
 	characterDb.Purge(userId)
+	userDb.Purge(userId)
 
 	if success {
 		c.JSON(http.StatusOK, gin.H{"msg": "Success"})

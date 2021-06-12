@@ -69,37 +69,46 @@ func (*UserDb) GetFromBuddyId(buddyId string) (*UserEntry, error) {
 	return &userEntry, result.Error
 }
 
-// TODO: Test conflict on buddy id
-func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
+func setBuddyId(entry UserEntry) {
 	db := config.GetDatabaseInstance()
 
 	// Make up to 8 attempts to store the entry (may conflict on buddy id)
 	for i := 0; i < 8; i++ {
 		entry.BuddyId = generateBuddyId()
-		result := db.Create(&entry)
+		result := db.Model(&entry).Where("userid = ?", entry.UserId).Update("buddy_id", entry.BuddyId)
 
 		// Check if its a unique conflict, if so allow retries.
-		retry := false
 		if result.Error != nil {
 			err := result.Error.(*mysql.MySQLError)
 			if err.Number == UNIQUE_VIOLATION {
-				retry = true // Then we're good..
+				break
 			}
-		}
-
-		if !retry {
-			if result.Error == nil && entry.UserId == config.UserId(0) {
-				return config.UserId(0), errors.New("Userid not returned")
-			}
-			return entry.UserId, result.Error
 		}
 	}
-	result := db.Create(entry)
+}
 
-	if result.Error == nil && entry.UserId == config.UserId(0) {
+// TODO: Test conflict on buddy id
+func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
+	db := config.GetDatabaseInstance()
+
+//https://stackoverflow.com/questions/39333102/how-to-create-or-update-a-record-with-gorm
+	//result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&entry)
+	result := db.FirstOrCreate(&entry, UserEntry{
+		UserId: entry.UserId,
+		BuddyId: entry.BuddyId,
+		Email: entry.Email,
+	})
+
+	if result.Error != nil {
+		return config.UserId(0), result.Error
+	}
+
+	if entry.UserId == config.UserId(0) {
 		return config.UserId(0), errors.New("Userid not returned")
 	}
-	return entry.UserId, result.Error
+
+	setBuddyId(entry)
+	return entry.UserId, nil
 }
 
 func (*UserDb) Purge(user config.UserId) error {
