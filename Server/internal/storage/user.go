@@ -4,7 +4,9 @@ import (
 	"errors"
 	"github.com/go-sql-driver/mysql"
 	"github.com/marmyr/iagdbackup/internal/config"
+	"log"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -37,6 +39,10 @@ func (*UserDb) Get(user config.UserId) (*UserEntry, error) {
 }
 
 func (*UserDb) GetByEmail(email string) (*UserEntry, error) {
+	if !strings.Contains(email, "@") {
+		log.Fatalf("Attempted to fetch user `%s` which is not a valid email", email)
+	}
+
 	var userEntry UserEntry
 	result := config.GetDatabaseInstance().Where("email = ?", email).Take(&userEntry)
 	if result.Error != nil {
