@@ -92,12 +92,6 @@ func ListDeletedItemsFromPostgres() ([]PostgresDeletedItem, error) {
 	return items, result.Error
 }
 
-func ResetItemDeletionInMysql() (error) {
-	DB := config.GetDatabaseInstance()
-
-	return DB.Raw("DELETE FROM deleteditem").Error
-}
-
 type PostgresUserEntry struct {
 	UserId    string    `json:"-" gorm:"column:userid"`
 	BuddyId   int32     `json:"buddyId" gorm:"column:buddy_id"`

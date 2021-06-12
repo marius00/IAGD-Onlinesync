@@ -6,6 +6,7 @@ import (
 	"github.com/marmyr/iagdbackup/migrator/mig"
 	"gorm.io/gorm"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -22,13 +23,12 @@ Insert into items (select wheeeere....)
 
 var db *gorm.DB
 
-
-
 type PostgresAuthEntry struct {
 	UserId string    `json:"-" gorm:"column:userid"`
 	Token  string    `json:"-"`
 	Ts     time.Time `json:"ts"`
 }
+
 func (PostgresAuthEntry) TableName() string {
 	return "authentry"
 }
@@ -42,21 +42,39 @@ func listPostgresAuthTokens() ([]PostgresAuthEntry, error) {
 	return tokens, result.Error
 }
 
+func tokenExists(token string, tokens []storage.AuthEntry) bool {
+	for _, entry := range tokens {
+		if entry.Token == token {
+			return true
+		}
+	}
+
+	return false
+}
+
 func storeAuthTokens(tokens []PostgresAuthEntry) {
 	DB := config.GetDatabaseInstance()
-	// TODO: Can't do this, wiping auth tokens in prod is bad.. forced logouts!
-	/*if err :=DB.Raw("DELETE FROM authentry").Where("1 = ?", 1).Error; err != nil {
-		log.Fatalf("Error deleting auth entries, %v", err)
-	}*/
+
+	var existingTokens []storage.AuthEntry
+	result := DB.Find(&existingTokens)
+	if result.Error != nil {
+		log.Fatalf("Error fetching existing auth tokens, %v", result.Error)
+	}
 
 	for _, entry := range tokens {
-		if err := storage.ReturnOrIgnore(DB.Create(&storage.AuthEntry{
-			Email: entry.UserId,
-			Ts: entry.Ts,
-			Token: entry.Token,
-			UserId: mig.GetUserByEmail(entry.UserId).UserId,
-		}).Error, storage.UNIQUE_VIOLATION); err != nil {
-			log.Fatalf("Error inserting auth token, %v", err)
+		if strings.Contains(entry.UserId, "@") {
+			if !tokenExists(entry.Token, existingTokens) {
+				if err := storage.ReturnOrIgnore(DB.Create(&storage.AuthEntry{
+					Email:  entry.UserId,
+					Ts:     entry.Ts,
+					Token:  entry.Token,
+					UserId: mig.GetUserByEmail(entry.UserId).UserId,
+				}).Error, storage.UNIQUE_VIOLATION); err != nil {
+					log.Fatalf("Error inserting auth token, %v", err)
+				}
+			}
+		} else {
+			log.Printf("Warning: Ignoring email %s, invalid userId", entry.UserId)
 		}
 	}
 }
@@ -66,7 +84,6 @@ func migrateUsers() {
 	itemDb := storage.ItemDb{}
 	authDb := storage.AuthDb{}
 	characterDb := storage.CharacterDb{}
-
 
 	postgresUsers, err := mig.ListUsersFromPostgres()
 	if err != nil {
@@ -85,22 +102,21 @@ func migrateUsers() {
 		if mig.FindUser(user.UserId, mysqlUsers) == nil {
 			log.Printf("Inserting user %s\n", user.UserId)
 			if err = mig.InsertUser(storage.UserEntry{
-				Email: user.UserId,
+				Email:     user.UserId,
 				CreatedAt: user.CreatedAt,
-				BuddyId: user.BuddyId,
+				BuddyId:   user.BuddyId,
 			}); err != nil {
 				log.Fatalf("Unabled to insert user %v", err)
 			}
-			// TODO: Merge auth tokens
 		}
 	}
 
+	log.Println("Migrating auth tokens")
 	authTokens, err := listPostgresAuthTokens()
 	if err != nil {
 		log.Fatalf("Error fetching auth tokens, %v", err)
 	}
 	storeAuthTokens(authTokens)
-
 
 	log.Println("Deleting purged users")
 	for _, user := range mysqlUsers {
@@ -124,7 +140,6 @@ func migrateUsers() {
 		}
 	}
 }
-
 
 func getItemBatch(highestTimestamp int64, lastInsertedItems map[string]struct{}) []storage.InputItem {
 	log.Printf("Fetching a new item batch, offset %v..\n", highestTimestamp)
@@ -157,7 +172,6 @@ func getItemBatch(highestTimestamp int64, lastInsertedItems map[string]struct{})
 	return inputItems
 }
 
-
 func main() {
 	mysql := config.GetDatabaseInstance()
 
@@ -169,8 +183,6 @@ func main() {
 	log.Printf("Migrating users..")
 	migrateUsers()
 	log.Printf("Users migrated..")
-
-
 
 	log.Printf("Migrating items..")
 	var hasMoreItems = true
@@ -198,11 +210,29 @@ func main() {
 	}
 	log.Printf("Finished migrating items")
 
+	migrateDeletedItems()
+	migrateCharacters()
+}
 
+func deletedItemEntryExists(id string, entries []storage.DeletedItem) bool {
+	for _, entry := range entries {
+		if entry.Id == id {
+			return true
+		}
+	}
 
+	return false
+}
+
+func migrateDeletedItems() {
 	log.Printf("Migrating item deletions")
-	if err := mig.ResetItemDeletionInMysql(); err != nil {
-		log.Fatalf("Error deleting items in mysql, %v", err)
+	db := config.GetDatabaseInstance()
+	itemDb := storage.ItemDb{}
+
+	var existingDeletionEntries []storage.DeletedItem
+	result := db.Find(&existingDeletionEntries)
+	if result.Error != nil {
+		log.Fatalf("Error fetching existing item delete entries, %v", result.Error)
 	}
 
 	deletedItems, err := mig.ListDeletedItemsFromPostgres()
@@ -211,14 +241,13 @@ func main() {
 	}
 
 	for _, item := range deletedItems {
-		user := mig.GetUserByEmail(item.UserId)
-		itemDb.Delete(user.UserId, item.Id, item.Ts)
+		if !deletedItemEntryExists(item.Id, existingDeletionEntries) {
+			user := mig.GetUserByEmail(item.UserId)
+			itemDb.Delete(user.UserId, item.Id, item.Ts)
+		}
 	}
 
-
 	log.Printf("Finished migrating item deletions")
-
-	migrateCharacters()
 }
 
 func migrateCharacters() {
@@ -232,12 +261,12 @@ func migrateCharacters() {
 	for _, entry := range characters {
 		user := mig.GetUserByEmail(entry.Email)
 
-		if err := mig.InsertCharactersToMysql(storage.CharacterEntry {
+		if err := mig.InsertCharactersToMysql(storage.CharacterEntry{
 			UpdatedAt: entry.UpdatedAt,
 			CreatedAt: entry.CreatedAt,
-			Name: entry.Name,
-			Filename: entry.Filename,
-			UserId: user.UserId,
+			Name:      entry.Name,
+			Filename:  entry.Filename,
+			UserId:    user.UserId,
 		}); err != nil {
 			log.Fatalf("Error inserting character, %v", err)
 		}
