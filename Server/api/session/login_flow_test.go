@@ -39,7 +39,7 @@ func getPincode(t *testing.T) (string, string) {
 type AuthReturnType struct {
 	Token string `json:"token"`
 }
-
+// Calls /login?email= and /auth token=&pin=
 func TestPincodeLoginFlow(t *testing.T) {
 	throttleDb := storage.ThrottleDb{}
 	testutils.FailOnError(t, throttleDb.Purge("sendmail:pincode@example.com", "sendmail:"), "Error purging records")

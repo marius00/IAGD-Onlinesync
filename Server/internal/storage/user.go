@@ -69,35 +69,43 @@ func (*UserDb) GetFromBuddyId(buddyId string) (*UserEntry, error) {
 	return &userEntry, result.Error
 }
 
-func setBuddyId(entry UserEntry) {
+func setBuddyId(entry UserEntry) error {
 	db := config.GetDatabaseInstance()
 
-	// Make up to 8 attempts to store the entry (may conflict on buddy id)
-	for i := 0; i < 8; i++ {
+	// Make up to N attempts to store the entry (may conflict on buddy id)
+	for i := 0; i < 100; i++ {
 		entry.BuddyId = generateBuddyId()
-		result := db.Model(&entry).Where("userid = ?", entry.UserId).Update("buddy_id", entry.BuddyId)
+		result := db.Model(&entry).Update("buddy_id", entry.BuddyId)
 
 		// Check if its a unique conflict, if so allow retries.
 		if result.Error != nil {
 			err := result.Error.(*mysql.MySQLError)
-			if err.Number == UNIQUE_VIOLATION {
-				break
+			if err.Number != UNIQUE_VIOLATION {
+				return err
 			}
+			// Unique violation, loop re-runs
+		} else {
+			return nil
 		}
 	}
+
+	return errors.New("could not produce buddy id for user")
 }
 
 // TODO: Test conflict on buddy id
 func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
 	db := config.GetDatabaseInstance()
 
-//https://stackoverflow.com/questions/39333102/how-to-create-or-update-a-record-with-gorm
+	//https://stackoverflow.com/questions/39333102/how-to-create-or-update-a-record-with-gorm
 	//result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&entry)
+	entry.BuddyId = generateBuddyId()
 	result := db.FirstOrCreate(&entry, UserEntry{
-		UserId: entry.UserId,
-		BuddyId: entry.BuddyId,
-		Email: entry.Email,
+		UserId:  entry.UserId,
+		Email:   entry.Email,
 	})
+	// TODO: Create a conflict resolve or something to insert buddyId != 0
+	// https://stackoverflow.com/questions/46321243/how-to-generate-a-unique-random-number-when-insert-in-mysql/46321328
+	// Creating the buddy-id random in sql might also be an option? ON INSERT UPDATE, default value, something.
 
 	if result.Error != nil {
 		return config.UserId(0), result.Error
@@ -107,7 +115,14 @@ func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
 		return config.UserId(0), errors.New("Userid not returned")
 	}
 
-	setBuddyId(entry)
+	// Attempt to set a buddy id. If this fails, immediately delete the user.
+	// If a buddy with id=0 is allowed to exist, bad things will happen.
+	// TODO: This will create login errors if two users login at the exact same time
+	/*if err := setBuddyId(entry); err != nil {
+		db.Where("userid = ?", entry.UserId).Delete(UserEntry{})
+		return config.UserId(0), err
+	}*/
+
 	return entry.UserId, nil
 }
 

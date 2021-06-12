@@ -90,6 +90,22 @@ func TestCreateUserTwice(t *testing.T) {
 	}
 }
 
+func TestCreateMultipleUsers(t *testing.T) {
+	userDb := UserDb{}
+	emails := []string{"multi-1@example.com", "multi-2@example.com", "multi-3@example.com"}
+
+	for _, email := range emails {
+		userId, err := userDb.Insert(UserEntry{Email: email,})
+		FailOnError(t, err, "Error creating user..")
+		if userId == config.UserId(0) {
+			// Again not terribly obvious, but when we fix the "gorm:stuff" above, we may fail getting the user id.
+			t.Fatalf("Error creating user, userId is 0")
+		}
+
+		defer userDb.Purge(userId)
+	}
+}
+
 func TestStuff(t *testing.T) {
 	userDb := UserDb{}
 
