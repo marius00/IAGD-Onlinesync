@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/util"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -52,7 +53,19 @@ func ReturnOrIgnore(err error, ignore uint16) error {
 	return err
 }
 
-func (*ItemDb) Insert(user config.UserId, item InputItem) error {
+func (*ItemDb) Insert(userId config.UserId, items []InputItem) error {
+	DB := config.GetDatabaseInstance()
+
+
+	for idx := range items {
+		items[idx].UserId = userId
+	}
+
+	result := DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&items)
+	return result.Error
+}
+
+func (*ItemDb) InsertOld(user config.UserId, item InputItem) error {
 	DB := config.GetDatabaseInstance()
 
 	item.UserId = user

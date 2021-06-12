@@ -48,33 +48,25 @@ func ProcessRequest(c *gin.Context) {
 	if err != nil {
 		logger.Warn("Unable to fetch item records", zap.Any("user", user), zap.Int("numItems", len(jsonItems)), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching item records"})
+		return
 	}
 
-	var unprocessed []string
-	numErrors := 0 // If everything is failing, just give up.
-	for _, item := range inputItems {
-		if numErrors < 5 {
-			item.Ts = timeOfUpload
-			err = db.Insert(user, item)
-		}
 
-		if err != nil || numErrors >= 5 {
-			unprocessed = append(unprocessed, item.Id)
-			numErrors = numErrors + 1
-			logger.Warn("Unable to store new item", zap.Error(err), zap.Any("user", user), zap.String("id", item.Id)) // TODO: May get some log spam if this happens.. since err continues to be !=nil
-		}
+	for idx := range inputItems {
+		inputItems[idx].Ts = timeOfUpload
+	}
+
+	if err := db.Insert(user, inputItems); err != nil {
+		logger.Warn("Unable to store new item(s)", zap.Error(err), zap.Any("user", user))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Some error storing items, may have partially succeeded"})
+		return
 	}
 
 	r := responseType{
-		Unprocessed: unprocessed,
+		Unprocessed: []string{},
 	}
 
-	if len(unprocessed) == len(jsonItems) {
-		logger.Warn("Returning 500 internal server error, failed to process all items", zap.Any("user", user), zap.Int("numItems", len(jsonItems)))
-		c.JSON(http.StatusInternalServerError, r)
-	} else {
-		c.JSON(http.StatusOK, r)
-	}
+	c.JSON(http.StatusOK, r)
 }
 
 // validate ensures that the input data is valid-ish

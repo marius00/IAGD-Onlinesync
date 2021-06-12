@@ -195,7 +195,7 @@ func main() {
 		var currentlyInsertedItems = map[string]struct{}{}
 		for _, item := range items {
 
-			if err := itemDb.Insert(item.UserId, item); err != nil {
+			if err := itemDb.Insert(item.UserId, []storage.InputItem {item}); err != nil {
 				log.Fatalf("Error inserting items to mysql, %v", err)
 			}
 

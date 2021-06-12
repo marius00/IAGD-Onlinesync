@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/testutils"
 	"github.com/marmyr/iagdbackup/internal/util"
 	"github.com/satori/go.uuid"
@@ -28,7 +29,6 @@ func TestCreateListDeleteItem(t *testing.T) {
 		}
 	}
 
-
 	ts := util.GetCurrentTimestamp()
 	userId, err := userDb.Insert(UserEntry{Email: user,})
 	if err != nil {
@@ -38,18 +38,15 @@ func TestCreateListDeleteItem(t *testing.T) {
 	defer db.Purge(userId)
 	defer userDb.Purge(userId)
 
-
-	expected := JsonItem {
-		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
-		UserId: userId,
-		Ts: ts,
+	expected := JsonItem{
+		Id:         "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
+		UserId:     userId,
+		Ts:         ts,
 		BaseRecord: "my base record",
 	}
 
-	inputItems, _ := db.ToInputItems([]JsonItem {expected})
-	if err := db.Insert(userId, inputItems[0]); err != nil {
-		t.Fatalf("Error inserting item %v", err)
-	}
+	inputItems, _ := db.ToInputItems([]JsonItem{expected})
+	FailOnError(t, db.Insert(userId, inputItems), "Error inserting item")
 
 	items, err := db.List(userId, ts-1)
 	if err != nil {
@@ -64,14 +61,10 @@ func TestCreateListDeleteItem(t *testing.T) {
 		t.Fatal("The returned item is not the same as stored to DB")
 	}
 
-	if err := db.Delete(userId, expected.Id, ts); err != nil {
-		t.Fatalf("Error deleting item %v", err)
-	}
+	FailOnError(t, db.Delete(userId, expected.Id, ts),"Error deleting item")
 
 	deletedItems, err := db.ListDeletedItems(userId, ts-1)
-	if err != nil {
-		t.Fatalf("Error fetching deleted items %v", err)
-	}
+	FailOnError(t, err, "Error fetching deleted items")
 
 	if len(deletedItems) != 1 {
 		t.Fatalf("Expected 1 deleted item, got %d", len(items))
@@ -89,101 +82,131 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 		return
 	}
 
+	itemDb := ItemDb{}
 	userDb := UserDb{}
 
 	ts := util.GetCurrentTimestamp()
-	user := fmt.Sprintf("past-item-%s@example.com",  uuid.NewV4().String())
-	userId, err := userDb.Insert(UserEntry{Email:user})
-	if err != nil {
-		t.Fatalf("Error creating user, %v", err)
-	}
-
+	user := fmt.Sprintf("past-item-%s@example.com", uuid.NewV4().String())
+	userId := CreateTestUser(t, user)
 	defer userDb.Purge(userId)
+	defer itemDb.Purge(userId)
 
-	item := JsonItem {
-		Id: "C11A9D5D-F92F-4079-AC68-AAAAAAAAAAAA",
-		Ts: ts,
+	item := JsonItem{
+		Id:         "C11A9D5D-F92F-4079-AC68-AAAAAAAAAAAA",
+		Ts:         ts,
 		BaseRecord: "my base record",
 	}
 
-	db := ItemDb{}
-	if err := db.Purge(userId); err != nil {
-		t.Fatal("Failed to purge user")
-	}
-
-	inputItems, _ := db.ToInputItems([]JsonItem {item})
-	if err := db.Insert(userId, inputItems[0]); err != nil {
-		t.Fatalf("Error inserting item %v", err)
-	}
+	inputItems, _ := itemDb.ToInputItems([]JsonItem{item})
+	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 
 	// Same timestamp
-	items, err := db.List(userId, ts)
-	if err != nil {
-		t.Fatalf("Error fetching items %v", err)
-	}
+	items, err := itemDb.List(userId, ts)
+	FailOnError(t, err, "Error fetching items")
 
 	if len(items) != 0 {
 		t.Fatalf("Expected 0 item, got %d", len(items))
 	}
 
 	// Newer timestamp
-	items, err = db.List(userId, ts+1)
-	if err != nil {
-		t.Fatalf("Error fetching items %v", err)
-	}
+	items, err = itemDb.List(userId, ts+1)
+	FailOnError(t, err, "Error fetching items")
 
 	if len(items) != 0 {
 		t.Fatalf("Expected 0 item, got %d", len(items))
 	}
-
-	if err := db.Purge(userId); err != nil {
-		t.Fatal("Failed to purge user")
-	}
 }
 
 func TestInsertSameItemTwice(t *testing.T) {
-	db := ItemDb{}
+	itemDb := ItemDb{}
 	ts := util.GetCurrentTimestamp()
 	user := fmt.Sprintf("insert-twice-%s@example.com", uuid.NewV4().String())
-	item := JsonItem {
-		Id: "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
-		Ts: ts,
+	item := JsonItem{
+		Id:         "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
+		Ts:         ts,
 		BaseRecord: "base recordddddsssssss",
 	}
 
 	userDb := UserDb{}
-	userId, err := userDb.Insert(UserEntry{
-		Email:user,
-	})
-	if err != nil {
-		t.Fatalf("Error inserting user, %v", err)
-	}
+	userId := CreateTestUser(t, user)
+	defer userDb.Purge(userId)
+	defer itemDb.Purge(userId)
 
+	inputItems, _ := itemDb.ToInputItems([]JsonItem{item})
+	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
+	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 
-	defer db.Purge(userId)
-	if err := db.Purge(userId); err != nil {
-		t.Fatal("Failed to purge user")
-	}
-
-	inputItems, _ := db.ToInputItems([]JsonItem {item})
-	if err := db.Insert(userId, inputItems[0]); err != nil {
-		t.Fatalf("Error inserting item %v", err)
-	}
-
-	if err := db.Insert(userId, inputItems[0]); err != nil {
-		t.Fatalf("Error inserting item %v", err)
-	}
-
-	items, err := db.List(userId, ts-1)
-	if err != nil {
-		t.Fatalf("Error fetching items %v", err)
-	}
+	items, err := itemDb.List(userId, ts-1)
+	FailOnError(t, err, "Error fetching items")
 
 	if len(items) != 1 {
 		t.Fatalf("Expected 1 item, got %d", len(items))
 	}
 
-	db.Purge(userId)
-	userDb.Purge(userId)
+	itemDb.Purge(userId)
 }
 
+// TODO: A lot of overhead for this, might be better represented as a cucumber/godog test
+func TestInsertSameItemTwiceDifferentBatches(t *testing.T) {
+	itemDb := ItemDb{}
+	ts := util.GetCurrentTimestamp()
+	user := fmt.Sprintf("insert-twice-mixed-%s@example.com", uuid.NewV4().String())
+	itemA := JsonItem{
+		Id:         "AAAAAAAA-F92F-4079-AC68-C44ED2D36B10",
+		Ts:         ts,
+		BaseRecord: "base recordddddsssssss",
+	}
+
+	itemB := JsonItem{
+		Id:         "BBBBBBBB-F92F-4079-AC68-C44ED2D36B10",
+		Ts:         ts,
+		BaseRecord: "base recordddddsssssss",
+	}
+
+	userDb := UserDb{}
+	userId := CreateTestUser(t, user)
+	defer userDb.Purge(userId)
+	defer itemDb.Purge(userId)
+
+	inputItems, _ := itemDb.ToInputItems([]JsonItem{itemA, itemB})
+	FailOnError(t, itemDb.Insert(userId, []InputItem{inputItems[0]}), "Error inserting item")
+	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
+
+	items, err := itemDb.List(userId, ts-1)
+	FailOnError(t, err, "Error fetching items")
+
+	if len(items) != 2 {
+		t.Fatalf("Expected 2 item, got %d", len(items))
+	}
+
+	itemDb.Purge(userId)
+}
+
+
+
+
+// Create a clean user for tests
+func CreateTestUser(t *testing.T, email string) config.UserId {
+
+	userDb := UserDb{}
+	userId, err := userDb.Insert(UserEntry{
+		Email:email,
+	})
+	if err != nil {
+		t.Fatalf("Error inserting user, %v", err)
+	}
+
+	// Ensure we have no left-over data for this user
+	itemDb := ItemDb{}
+	if err := itemDb.Purge(userId); err != nil {
+		t.Fatal("Failed to purge user")
+	}
+
+	return userId
+}
+
+func FailOnError(t *testing.T, err error, message string) {
+	if err != nil {
+		t.Fatalf("%s, %v", message, err)
+	}
+}
