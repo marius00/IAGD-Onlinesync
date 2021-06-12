@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
@@ -174,14 +175,17 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 					records = append(records, record)
 				} else {
 					// TODO: Log this? Eat it up?
+					fmt.Printf("Discarding record: %s\n", record)
 				}
 			}
 		}
 	}
 
 
-	if err := insertRecordEntry(records); err != nil {
-		return err
+	if len(records) > 0 {
+		if err := insertRecordEntry(records); err != nil {
+			return err
+		}
 	}
 
 	return nil
