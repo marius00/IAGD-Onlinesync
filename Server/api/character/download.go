@@ -48,6 +48,7 @@ func DownloadProcessRequest(c *gin.Context) {
 	if err != nil {
 		logger.Warn("Failed to sign download URL", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Signing error"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"msg": "", "url": urlStr})
