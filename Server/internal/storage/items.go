@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const MaxItemLimit = 5000
+const MaxItemLimit = 2500
 
 type ItemDb struct {
 }
@@ -22,17 +22,24 @@ const (
 )
 
 // Delete will delete a an item for a user
-func (*ItemDb) Delete(user config.UserId, id string, timestamp int64) error {
+func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error {
 	DB := config.GetDatabaseInstance()
 
-	obj := InputItem{Id: id, UserId: user}
-	result := DB.Where("userId = ?", user).Delete(&obj)
+	// Delete the actual items
+	obj := InputItem{UserId: userId}
+	result := DB.Where("userId = ? AND id IN (?)", userId, ids).Delete(&obj)
 	if result.Error != nil && result.Error.Error() != gorm.ErrRecordNotFound.Error() {
 		return result.Error
 	}
 
-	result = DB.Create(&DeletedItem{UserId: user, Id: id, Ts: timestamp})
-	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION)
+	// Add deletion entries to sync deletes to other clients
+	var deletionEntries []DeletedItem
+	for _, id := range ids {
+		deletionEntries = append(deletionEntries, DeletedItem{UserId: userId, Id: id, Ts: timestamp})
+	}
+	result = DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&deletionEntries)
+
+	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION) // TODO: Unique viol not needed anymore?
 }
 
 // Maintenance deletes 'delete item' entries older than a year
@@ -174,7 +181,6 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 				if util.IsASCII(record) {
 					records = append(records, record)
 				} else {
-					// TODO: Log this? Eat it up?
 					fmt.Printf("Discarding record: %s\n", record)
 				}
 			}

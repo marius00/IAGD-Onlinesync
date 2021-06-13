@@ -36,30 +36,20 @@ func TestCreateListDeleteItem(t *testing.T) {
 	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 
 	items, err := itemDb.List(userId, ts-1)
-	if err != nil {
-		t.Fatalf("Error fetching items %v", err)
-	}
+	FailOnError(t, err, "Error fetching items")
+	testutils.ExpectEquals(t, len(items), 1, "Number of items")
+	testutils.ExpectEquals(t, items[0].Id, expected.Id, "The returned item is not the same as stored to DB")
+	testutils.ExpectEquals(t, items[0].BaseRecord, expected.BaseRecord, "The returned item is not the same as stored to DB")
+	testutils.ExpectEquals(t, items[0].Ts, expected.Ts, "The returned item is not the same as stored to DB")
 
-	if len(items) != 1 {
-		t.Fatalf("Expected 1 item, got %d", len(items))
-	}
-
-	if items[0].Id != expected.Id || items[0].BaseRecord != expected.BaseRecord || items[0].Ts != expected.Ts {
-		t.Fatal("The returned item is not the same as stored to DB")
-	}
-
-	FailOnError(t, itemDb.Delete(userId, expected.Id, ts),"Error deleting item")
+	FailOnError(t, itemDb.Delete(userId, []string{expected.Id}, ts), "Error deleting item")
+	FailOnError(t, itemDb.Delete(userId, []string{expected.Id, "definitely not my id"}, ts), "Error deleting item")
 
 	deletedItems, err := itemDb.ListDeletedItems(userId, ts-1)
 	FailOnError(t, err, "Error fetching deleted items")
 
-	if len(deletedItems) != 1 {
-		t.Fatalf("Expected 1 deleted item, got %d", len(items))
-	}
-
-	if deletedItems[0].Id != expected.Id {
-		t.Fatalf("Expected deleted item id %s, got id %s", expected.Id, deletedItems[0].Id)
-	}
+	testutils.ExpectEquals(t, len(deletedItems), 2, "Number of deleted items")
+	testutils.ExpectEquals(t, deletedItems[0].Id, expected.Id, "Deleted item ID")
 }
 
 func TestDoesNotFetchItemInThePast(t *testing.T) {
@@ -67,7 +57,6 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 		log.Println("Skipping DB test")
 		return
 	}
-
 
 	ts := util.GetCurrentTimestamp()
 	user := fmt.Sprintf("past-item-%s@example.com", uuid.NewV4().String())
@@ -156,13 +145,10 @@ func TestInsertSameItemTwiceDifferentBatches(t *testing.T) {
 	}
 }
 
-
-
-
 // Create a clean user for tests
 func CreateTestUser(t *testing.T, email string) config.UserId {
 	userId, err := userDb.Insert(UserEntry{
-		Email:email,
+		Email: email,
 	})
 	if err != nil {
 		t.Fatalf("Error inserting user, %v", err)

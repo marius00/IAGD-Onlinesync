@@ -243,7 +243,7 @@ func migrateDeletedItems() {
 	for _, item := range deletedItems {
 		if !deletedItemEntryExists(item.Id, existingDeletionEntries) {
 			user := mig.GetUserByEmail(item.UserId)
-			itemDb.Delete(user.UserId, item.Id, item.Ts)
+			itemDb.Delete(user.UserId, []string{item.Id}, item.Ts)
 		}
 	}
 
@@ -257,6 +257,7 @@ func migrateCharacters() {
 	if err != nil {
 		log.Fatalf("Error fetching characters, %v", err)
 	}
+	// TODO: Do a 'if exists skip' on this shit, takes eons to run trough.
 
 	for _, entry := range characters {
 		user := mig.GetUserByEmail(entry.Email)

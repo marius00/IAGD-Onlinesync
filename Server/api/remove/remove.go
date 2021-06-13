@@ -38,19 +38,14 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	itemDb := storage.ItemDb{}
-	var successfulDeletes []DeleteItemEntry
 
 	timeOfRemove := util.GetCurrentTimestamp()
-	for _, entry := range entries {
-		// The deletion entry is used to ensure other clients deletes it
-		if err := itemDb.Delete(user, entry.ID, timeOfRemove); err != nil {
-			logger.Warn("Failed to delete item", zap.Error(err), zap.Any("user", user), zap.String("id", entry.ID))
-		} else {
-			successfulDeletes = append(successfulDeletes, entry)
-		}
+	if err := itemDb.Delete(user, toIds(entries), timeOfRemove); err != nil {
+		logger.Warn("Failed to delete item", zap.Error(err), zap.Any("user", user))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error deleting items, operation may have partially succeeded"})
 	}
 
-	c.JSON(http.StatusOK, successfulDeletes)
+	c.JSON(http.StatusOK, entries)
 }
 
 func validate(entries []DeleteItemEntry) string {
@@ -63,7 +58,17 @@ func validate(entries []DeleteItemEntry) string {
 	return ""
 }
 
-func decode(body io.Reader) ([]DeleteItemEntry, error) {
+func toIds(entries []DeleteItemEntry) []string {
+	var ids []string
+	for _, entry := range entries {
+		ids = append(ids, entry.ID)
+	}
+
+	return ids
+}
+
+
+	func decode(body io.Reader) ([]DeleteItemEntry, error) {
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
 		return nil, err
