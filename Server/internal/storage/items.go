@@ -85,7 +85,8 @@ func (*ItemDb) InsertOld(user config.UserId, item InputItem) error {
 func (*ItemDb) List(user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
 	db := config.GetDatabaseInstance()
 
-	sql := `
+	// TODO: A test for mod!
+	sql := fmt.Sprintf(`
 SELECT 
 	id, 
 	userid, 
@@ -108,7 +109,7 @@ SELECT
 	namelowercase, 
 	rarity, 
 	levelrequirement, 
-	"mod", 
+	%s, 
 	ishardcore, 
 	created_at, 
 	ts
@@ -124,7 +125,7 @@ SELECT
   WHERE userid = ? AND ts > ?
   ORDER BY ts ASC
   LIMIT ?
-  `
+  `, "`mod`")
 	var items []OutputItem
 	rows, err := db.Raw(sql, user, lastTimestamp, MaxItemLimit).Rows()
 	defer rows.Close()

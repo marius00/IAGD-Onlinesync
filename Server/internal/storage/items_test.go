@@ -22,8 +22,8 @@ func TestCreateListDeleteItem(t *testing.T) {
 
 	ts := util.GetCurrentTimestamp()
 	userId := CreateTestUser(t, user)
-	defer itemDb.Purge(userId)
 	defer userDb.Purge(userId)
+	defer itemDb.Purge(userId)
 
 	expected := JsonItem{
 		Id:         "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
@@ -38,9 +38,10 @@ func TestCreateListDeleteItem(t *testing.T) {
 	items, err := itemDb.List(userId, ts-1)
 	FailOnError(t, err, "Error fetching items")
 	testutils.ExpectEquals(t, len(items), 1, "Number of items")
-	testutils.ExpectEquals(t, items[0].Id, expected.Id, "The returned item is not the same as stored to DB")
-	testutils.ExpectEquals(t, items[0].BaseRecord, expected.BaseRecord, "The returned item is not the same as stored to DB")
-	testutils.ExpectEquals(t, items[0].Ts, expected.Ts, "The returned item is not the same as stored to DB")
+	testutils.ExpectEquals(t, expected.Id, items[0].Id, "The returned item is not the same as stored to DB")
+	testutils.ExpectEquals(t, expected.BaseRecord, items[0].BaseRecord, "The returned item is not the same as stored to DB")
+	testutils.ExpectEquals(t, expected.Ts, items[0].Ts, "The returned item is not the same as stored to DB")
+	testutils.ExpectEquals(t, "", items[0].Mod, "The returned item is not the same as stored to DB")
 
 	FailOnError(t, itemDb.Delete(userId, []string{expected.Id}, ts), "Error deleting item")
 	FailOnError(t, itemDb.Delete(userId, []string{expected.Id, "definitely not my id"}, ts), "Error deleting item")

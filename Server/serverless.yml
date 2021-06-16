@@ -40,12 +40,6 @@ functions:
       - http:
           path: /buddyitems
           method: get
-  SearchOnlineItems:
-    handler: bin/search
-    events:
-      - http:
-          path: /search
-          method: get
   DeleteAccount:
     handler: bin/delete
     events:
@@ -53,6 +47,7 @@ functions:
           path: /delete
           method: delete
   DownloadItems:
+    timeout: 10
     handler: bin/download
     events:
       - http:
@@ -71,6 +66,7 @@ functions:
           path: /migrate
           method: get
   RemoveItems:
+    timeout: 10
     handler: bin/remove
     events:
       - http:
