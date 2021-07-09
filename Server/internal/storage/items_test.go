@@ -12,6 +12,8 @@ import (
 
 var itemDb = ItemDb{}
 var userDb = UserDb{}
+// TODO: Test fetch items 50 years in the future..
+
 
 func TestCreateListDeleteItem(t *testing.T) {
 	if !testutils.RunAgainstRealDatabase() {

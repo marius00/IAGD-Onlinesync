@@ -85,7 +85,6 @@ func (*ItemDb) InsertOld(user config.UserId, item InputItem) error {
 func (*ItemDb) List(user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
 	db := config.GetDatabaseInstance()
 
-	// TODO: A test for mod!
 	sql := fmt.Sprintf(`
 SELECT 
 	id, 

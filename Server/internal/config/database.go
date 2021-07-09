@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -18,7 +17,7 @@ func GetDatabaseInstance() *gorm.DB {
 	if db == nil {
 		log.Printf("Opening database connection to %s, db %s..\n", os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_NAME"))
 
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=5s",
 			os.Getenv("DATABASE_USER"),
 			os.Getenv("DATABASE_PASSWORD"),
 			os.Getenv("DATABASE_HOST"),
