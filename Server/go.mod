@@ -5,7 +5,7 @@ require (
 	github.com/aws/aws-sdk-go v1.34.15
 	github.com/awslabs/aws-lambda-go-api-proxy v0.5.0
 	github.com/gin-gonic/gin v1.5.0
-	github.com/go-sql-driver/mysql v1.6.0 // indirect
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/jinzhu/gorm v1.9.16
 	github.com/kr/text v0.2.0 // indirect
@@ -23,7 +23,6 @@ require (
 	golang.org/x/tools v0.0.0-20201013201025-64a9e34f3752 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gorm.io/driver/mysql v1.0.5
-	gorm.io/driver/postgres v1.0.8
 	gorm.io/gorm v1.21.7
 	honnef.co/go/tools v0.0.1-2020.1.6 // indirect
 )

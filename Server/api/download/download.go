@@ -56,7 +56,7 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 		// TODO: Logic, should be tested.
 		if len(items) == storage.MaxItemLimit {
 			currentTimestamp = GetHighestTimestamp(items) - 1
-			logger.Info("Got max batch size of 1000, reducing timestamp to highest - 1")
+			logger.Info("Got max batch size of N, reducing timestamp to highest - 1")
 		}
 
 		r := responseType{
