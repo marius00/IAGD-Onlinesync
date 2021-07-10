@@ -11,4 +11,5 @@ RUN env GOOS=linux go build -ldflags="-s -w" -o /go/bin/app endpoints/monolith/m
 # Now copy it into our base image.
 FROM gcr.io/distroless/base-debian10
 COPY --from=build /go/bin/app /
+EXPOSE 8080
 CMD ["/app"]
