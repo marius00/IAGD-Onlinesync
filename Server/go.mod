@@ -1,10 +1,9 @@
 module github.com/marmyr/iagdbackup
 
 require (
-	github.com/aws/aws-lambda-go v1.13.3
 	github.com/aws/aws-sdk-go v1.34.15
-	github.com/awslabs/aws-lambda-go-api-proxy v0.5.0
-	github.com/gin-gonic/gin v1.5.0
+	github.com/gin-gonic/gin v1.7.0
+	github.com/go-co-op/gocron v1.6.2
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/jinzhu/gorm v1.9.16
@@ -16,7 +15,6 @@ require (
 	github.com/onsi/ginkgo v1.14.1 // indirect
 	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/satori/go.uuid v1.2.0
-	github.com/stretchr/testify v1.6.1 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
 	golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634 // indirect

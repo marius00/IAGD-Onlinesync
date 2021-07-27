@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/go-co-op/gocron"
 	"github.com/marmyr/iagdbackup/api/buddyitems"
 	"github.com/marmyr/iagdbackup/api/character"
 	"github.com/marmyr/iagdbackup/api/delete"
@@ -14,7 +16,9 @@ import (
 	"github.com/marmyr/iagdbackup/api/session/logout"
 	"github.com/marmyr/iagdbackup/api/upload"
 	"github.com/marmyr/iagdbackup/internal/routing"
+	"github.com/marmyr/iagdbackup/internal/storage"
 	"log"
+	"time"
 )
 
 // Runs the entire application as a single application. Useful for local testing, or deploying outside of AWS Lambda.
@@ -35,8 +39,35 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, character.DownloadPath, character.DownloadMethod, character.DownloadProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.ListPath, character.ListMethod, character.ListProcessRequest)
 
+	s := gocron.NewScheduler(time.UTC)
+	s.Every(12).Hours().Do(maintenance)
+	s.StartAsync()
+
 	if err := ginEngine.Run(); err != nil {
 		log.Printf("Error starting gin %v", err)
 	}
+
 	log.Printf("I guess that was that.")
+}
+
+// Runs maintenance work such as deleting failed authentication attempts and throttle entries
+func maintenance() {
+	fmt.Println("Starting maintenance")
+
+	itemDb := storage.ItemDb{}
+	if err := itemDb.Maintenance(); err != nil {
+		fmt.Printf("Error performing maintenance on item db, %v", err)
+	}
+
+	throttleDb := storage.ThrottleDb{}
+	if err := throttleDb.Maintenance(); err != nil {
+		fmt.Printf("Error performing maintenance on throttle db, %v", err)
+	}
+
+	authDb := storage.AuthDb{}
+	if err := authDb.Maintenance(); err != nil {
+		fmt.Printf("Error performing maintenance on auth db, %v", err)
+	}
+
+	fmt.Println("Maintenance finished")
 }
