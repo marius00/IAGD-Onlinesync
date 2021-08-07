@@ -14,7 +14,7 @@ Prior to deploying for the first time, the following environmental variables mus
 **TODO**
 
 ### Pre-deploy lambda setup:
-* `aws ssm put-parameter --name /gd/ia/backup/config/db/hostname --type String --value postgreshostname` 
+* `aws ssm put-parameter --name /gd/ia/backup/config/db/hostname --type String --value dbhostname` 
 * `aws ssm put-parameter --name /gd/ia/backup/config/db/database --type String --value databasename`  
 * `aws ssm put-parameter --name /gd/ia/backup/config/db/user --type String --value username`  
 * `aws ssm put-parameter --name /gd/ia/backup/config/db/password --type String --value supersecretpassword`   

@@ -125,7 +125,7 @@ SELECT
   ORDER BY ts ASC
   LIMIT ?
   `, "`mod`")
-	var items []OutputItem
+	var items = make([]OutputItem, 0)
 	rows, err := db.Raw(sql, user, lastTimestamp, MaxItemLimit).Rows()
 	defer rows.Close()
 
@@ -213,7 +213,7 @@ func (*ItemDb) toMap(references []RecordReference) map[string]sql.NullInt64 {
 }
 
 // Conerts a json item to an input item (settings record reference ids)
-func (*ItemDb) toInputItem(item JsonItem, references map[string]sql.NullInt64) InputItem {
+func (*ItemDb) toInputItem(userId config.UserId, item JsonItem, references map[string]sql.NullInt64) InputItem {
 	return InputItem{
 		Id: item.Id,
 		BaseRecord: references[item.BaseRecord],
@@ -238,12 +238,12 @@ func (*ItemDb) toInputItem(item JsonItem, references map[string]sql.NullInt64) I
 		Seed: item.Seed,
 		StackCount: item.StackCount,
 		Ts: item.Ts,
-		UserId: item.UserId,
+		UserId: userId,
 	}
 }
 
 // Converts json items to input items, ensuring that the records exists in the database (mutates db)
-func (db *ItemDb) ToInputItems(items []JsonItem) ([]InputItem, error) {
+func (db *ItemDb) ToInputItems(userId config.UserId, items []JsonItem) ([]InputItem, error) {
 	if err := db.ensureRecordsExists(items); err != nil {
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func (db *ItemDb) ToInputItems(items []JsonItem) ([]InputItem, error) {
 
 	var result []InputItem
 	for _, item := range items {
-		result = append(result, db.toInputItem(item, refMap));
+		result = append(result, db.toInputItem(userId, item, refMap));
 	}
 
 	return result, nil

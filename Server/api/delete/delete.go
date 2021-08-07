@@ -2,8 +2,8 @@ package delete
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/logging"
+	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
 	"go.uber.org/zap"
 	"net/http"
@@ -42,7 +42,11 @@ func ProcessRequest(c *gin.Context) {
 
 
 	characterDb := storage.CharacterDb{}
+
 	characterDb.Purge(userId)
+
+
+
 	userDb.Purge(userId)
 
 	if success {
@@ -51,3 +55,16 @@ func ProcessRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Something went wrong, deletion may have partially succeeded"})
 	}
 }
+/*
+func abc() {
+
+	sess := storage.ConnectAws()
+	uploader := s3manager.NewBatchDelete(sess)
+	uploader.Delete()
+	up, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        file,
+		ContentType: &contentType,
+	})
+}*/

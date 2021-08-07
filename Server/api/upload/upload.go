@@ -44,7 +44,7 @@ func ProcessRequest(c *gin.Context) {
 
 	// Store to DB
 	db := &storage.ItemDb{}
-	inputItems, err := db.ToInputItems(jsonItems)
+	inputItems, err := db.ToInputItems(user, jsonItems)
 	if err != nil {
 		logger.Warn("Unable to fetch item records", zap.Any("user", user), zap.Int("numItems", len(jsonItems)), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching item records"})
@@ -82,9 +82,6 @@ func validate(data []storage.JsonItem) string {
 
 		if m.Ts > 0 {
 			return fmt.Sprintf(`Item with id="%s" contains invalid property "_timestamp"`, m.Id)
-		}
-		if m.UserId > 0 {
-			return fmt.Sprintf(`Item with id="%s" contains invalid property "User"`, m.Id)
 		}
 
 		if len(m.BaseRecord) < 6 {

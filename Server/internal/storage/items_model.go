@@ -6,39 +6,37 @@ import (
 )
 
 // TODO: Move somewhere more appropriate
-// TODO: Remove GORM references (not yet, still used to read from postgres)
 type JsonItem struct {
-	UserId config.UserId `json:"-" gorm:"column:userid"`
 	Id     string        `json:"id"`
 	Ts     int64         `json:"ts"`
 
 	Mod        string `json:"mod"`
-	IsHardcore bool   `json:"isHardcore" gorm:"column:ishardcore"`
+	IsHardcore bool   `json:"isHardcore"`
 
-	BaseRecord                 string `json:"baseRecord" gorm:"column:baserecord"`
-	PrefixRecord               string `json:"prefixRecord" gorm:"column:prefixrecord"`
-	SuffixRecord               string `json:"suffixRecord" gorm:"column:suffixrecord"`
-	ModifierRecord             string `json:"modifierRecord" gorm:"column:modifierrecord"`
-	TransmuteRecord            string `json:"transmuteRecord" gorm:"column:transmuterecord"`
-	MateriaRecord              string `json:"materiaRecord" gorm:"column:materiarecord"`
-	RelicCompletionBonusRecord string `json:"relicCompletionBonusRecord" gorm:"column:reliccompletionbonusrecord"`
-	EnchantmentRecord          string `json:"enchantmentRecord" gorm:"column:enchantmentrecord"`
+	BaseRecord                 string `json:"baseRecord"`
+	PrefixRecord               string `json:"prefixRecord"`
+	SuffixRecord               string `json:"suffixRecord" `
+	ModifierRecord             string `json:"modifierRecord"`
+	TransmuteRecord            string `json:"transmuteRecord"`
+	MateriaRecord              string `json:"materiaRecord"`
+	RelicCompletionBonusRecord string `json:"relicCompletionBonusRecord"`
+	EnchantmentRecord          string `json:"enchantmentRecord"`
 
 	Seed            int64 `json:"seed"`
-	RelicSeed       int64 `json:"relicSeed" gorm:"column:relicseed"`
-	EnchantmentSeed int64 `json:"enchantmentSeed" gorm:"column:enchantmentseed"`
-	MateriaCombines int64 `json:"materiaCombines" gorm:"column:materiacombines"`
-	StackCount      int64 `json:"stackCount" gorm:"column:stackcount"`
+	RelicSeed       int64 `json:"relicSeed"`
+	EnchantmentSeed int64 `json:"enchantmentSeed"`
+	MateriaCombines int64 `json:"materiaCombines"`
+	StackCount      int64 `json:"stackCount"`
 
 	// Used in IA for sorting/filtering
-	CreatedAt int64 `json:"createdAt" gorm:"column:created_at"`
+	CreatedAt int64 `json:"createdAt"`
 
 	// Metadata
-	Name             string  `json:"name" gorm:"column:name"`
-	NameLowercase    string  `json:"nameLowercase" gorm:"column:namelowercase"`
-	Rarity           string  `json:"rarity" gorm:"column:rarity"`
-	LevelRequirement float64 `json:"levelRequirement" gorm:"column:levelrequirement"`
-	PrefixRarity     int64   `json:"prefixRarity" gorm:"column:prefixrarity"`
+	Name             string  `json:"name"`
+	NameLowercase    string  `json:"nameLowercase"`
+	Rarity           string  `json:"rarity"`
+	LevelRequirement float64 `json:"levelRequirement"`
+	PrefixRarity     int64   `json:"prefixRarity"`
 }
 
 type InputItem struct {

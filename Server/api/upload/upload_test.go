@@ -7,7 +7,7 @@ import (
 
 func TestShouldRejectPartitionsInInput(t *testing.T) {
 	m := []storage.JsonItem{
-		{ Id: "FC361743-67FC-4693-BF2D-D5CABC0BE8C2", UserId: 12345,},
+		{ Id: "FC361743-67FC-4693-BF2D-D5CABC0BE8C2",},
 	}
 
 	if validate(m) == "" {

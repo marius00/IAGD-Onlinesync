@@ -35,6 +35,7 @@ func ProcessRequest(c *gin.Context) {
 	currentTimestamp := util.GetCurrentTimestamp()
 	lastTimestamp, ok := util.GetTimestamp(c)
 	if !ok {
+		// Error has already been written to context in GetTimestamp
 		return
 	}
 

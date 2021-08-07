@@ -29,12 +29,11 @@ func TestCreateListDeleteItem(t *testing.T) {
 
 	expected := JsonItem{
 		Id:         "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
-		UserId:     userId,
 		Ts:         ts,
 		BaseRecord: "my base record",
 	}
 
-	inputItems, _ := itemDb.ToInputItems([]JsonItem{expected})
+	inputItems, _ := itemDb.ToInputItems(userId, []JsonItem{expected})
 	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 
 	items, err := itemDb.List(userId, ts-1)
@@ -71,7 +70,7 @@ func TestDoesNotFetchItemInThePast(t *testing.T) {
 		BaseRecord: "my base record",
 	}
 
-	inputItems, _ := itemDb.ToInputItems([]JsonItem{item})
+	inputItems, _ := itemDb.ToInputItems(userId, []JsonItem{item})
 	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 
 	// Same timestamp
@@ -104,7 +103,7 @@ func TestInsertSameItemTwice(t *testing.T) {
 	defer userDb.Purge(userId)
 	defer itemDb.Purge(userId)
 
-	inputItems, _ := itemDb.ToInputItems([]JsonItem{item})
+	inputItems, _ := itemDb.ToInputItems(userId, []JsonItem{item})
 	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 
@@ -136,7 +135,7 @@ func TestInsertSameItemTwiceDifferentBatches(t *testing.T) {
 	defer userDb.Purge(userId)
 	defer itemDb.Purge(userId)
 
-	inputItems, _ := itemDb.ToInputItems([]JsonItem{itemA, itemB})
+	inputItems, _ := itemDb.ToInputItems(userId, []JsonItem{itemA, itemB})
 	FailOnError(t, itemDb.Insert(userId, []InputItem{inputItems[0]}), "Error inserting item")
 	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
 
