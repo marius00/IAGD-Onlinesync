@@ -22,9 +22,9 @@ func ProcessRequest(c *gin.Context) {
 		Upload:   3240000,
 	}
 	multiUsage := LimitEntry{
-		Delete:   180000,
-		Download: 60000,
-		Upload:   60000,
+		Delete:   10000,
+		Download: 10000,
+		Upload:   1000,
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"msg":        "Logged in and all that good stuff.",
