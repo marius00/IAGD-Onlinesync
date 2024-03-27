@@ -11,6 +11,6 @@ const Method = routing.GET
 
 func ProcessRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "OK",
+		"status": "OK, all good!",
 	})
 }
