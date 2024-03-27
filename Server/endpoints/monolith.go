@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/go-co-op/gocron"
+	"github.com/marmyr/iagdbackup/api"
 	"github.com/marmyr/iagdbackup/api/buddyitems"
 	"github.com/marmyr/iagdbackup/api/character"
 	"github.com/marmyr/iagdbackup/api/delete"
@@ -32,6 +33,7 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, remove.Path, remove.Method, remove.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, login.Path, login.Method, login.ProcessRequest)
+	routing.AddPublicRoute(ginEngine, healthcheck.Path, healthcheck.Method, healthcheck.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, logincheck.Path, logincheck.Method, logincheck.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, logout.Path, logout.Method, logout.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, upload.Path, upload.Method, upload.ProcessRequest)

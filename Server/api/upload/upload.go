@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/logging"
+	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
 	"github.com/marmyr/iagdbackup/internal/util"
 	"go.uber.org/zap"
@@ -50,7 +50,6 @@ func ProcessRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching item records"})
 		return
 	}
-
 
 	for idx := range inputItems {
 		inputItems[idx].Ts = timeOfUpload
@@ -107,7 +106,6 @@ func validate(data []storage.JsonItem) string {
 
 	return ""
 }
-
 
 // HasValidRecords will verify that all records on an item are valid ascii (not garbled crap)
 func HasValidRecords(item storage.JsonItem) bool {
