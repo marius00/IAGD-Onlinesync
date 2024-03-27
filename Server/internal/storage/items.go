@@ -45,7 +45,7 @@ func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error
 // Maintenance deletes 'delete item' entries older than a year
 func (*ItemDb) Maintenance() error {
 	db := config.GetDatabaseInstance()
-	when := time.Now().AddDate(-1, 0, 0)
+	when := time.Now().AddDate(-1, 0, 0).Unix()
 	result := db.Where("ts < ?", when).Delete(DeletedItem{})
 	return result.Error
 }
