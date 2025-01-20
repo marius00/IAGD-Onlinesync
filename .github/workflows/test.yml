@@ -43,6 +43,8 @@ jobs:
         run: |
           echo "SET GLOBAL max_connections = 100; SET GLOBAL group_concat_max_len = 1048576;" | mysql -h 127.0.0.1 -u root
           echo "GRANT ALL PRIVILEGES ON iagd.* TO 'iagd'@'%';" | mysql -h 127.0.0.1 -u root
+          pwd
+          ls -la
           mysql -h 127.0.0.1 -u root -D iagd < rewrite/tables.sql
 
       - name: Run tests
