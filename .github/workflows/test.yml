@@ -42,8 +42,8 @@ jobs:
           mysql -h 127.0.0.1 -u root -D iagd < rewrite/tables.sql
 
       - name: Run tests
+        working-directory: ./Server
         run: |
-          cd Server
           DATABASE_USER=iagd
           DATABASE_PASSWORD=123456
           MYSQL_DATABASE=iagd
