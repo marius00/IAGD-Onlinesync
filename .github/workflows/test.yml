@@ -53,6 +53,6 @@ jobs:
           ls -la
           export DATABASE_USER=iagd
           export DATABASE_PASSWORD=123456
-          export MYSQL_DATABASE=iagd
+          export DATABASE_NAME=iagd
           export DATABASE_HOST=localhost
-          DATABASE_USER=iagd DATABASE_PASSWORD=123456 MYSQL_DATABASE=iagd DATABASE_HOST=localhost go test ./... -v -race -timeout 30s
+          DATABASE_USER=iagd DATABASE_PASSWORD=123456 DATABASE_NAME=iagd DATABASE_HOST=localhost go test ./... -v -race -timeout 30s
