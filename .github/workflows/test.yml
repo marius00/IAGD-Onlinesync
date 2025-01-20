@@ -45,6 +45,7 @@ jobs:
           echo "GRANT ALL PRIVILEGES ON iagd.* TO 'iagd'@'%';" | mysql -h 127.0.0.1 -u root
           pwd
           ls -la
+          ls -la rewrite
           mysql -h 127.0.0.1 -u root -D iagd < rewrite/tables.sql
 
       - name: Run tests
