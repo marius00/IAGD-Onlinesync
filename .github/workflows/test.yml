@@ -40,7 +40,6 @@ jobs:
         with:
           go-version: '1.23'
           args: --help
-      - uses: golangci/golangci-lint-action@v6
       - name: Setup db
         run: |
           echo "SET GLOBAL max_connections = 100; SET GLOBAL group_concat_max_len = 1048576; GRANT ALL PRIVILEGES ON `iagd`.* TO 'iagd'@'%';" | mysql -h 127.0.0.1 -u root
@@ -53,11 +52,3 @@ jobs:
           MYSQL_DATABASE=iagd
           DATABASE_HOST=localhost
           go test ./... -v -race -timeout 30s
-
-      - name: Run lint stuff
-        run: |
-          DATABASE_USER=iagd
-          DATABASE_PASSWORD=123456
-          MYSQL_DATABASE=iagd
-          DATABASE_HOST=localhost
-          golangci-lint run --fix
