@@ -32,8 +32,6 @@ jobs:
           --ulimit="nofile=32768:32768"
     steps:
       - uses: actions/checkout@v4
-        with:
-          sparse-checkout: Server
       - name: Try to fix the folder
         run: cd Server
       - uses: actions/setup-go@v5

@@ -1,0 +1,4 @@
+ALTER TABLE `item` ADD COLUMN `id_baserecord` BIGINT NOT NULL DEFAULT 0 AFTER `baserecord`;
+
+UPDATE item i
+SET id_baserecord = (SELECT r.id FROM recordcache r WHERE r.record = i.baserecord)
