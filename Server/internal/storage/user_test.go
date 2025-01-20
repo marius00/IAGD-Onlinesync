@@ -11,10 +11,10 @@ func TestUserDb(t *testing.T) {
 	db := UserDb{}
 
 	user := fmt.Sprintf("%v-user@example.com", uuid.NewV4().String())
-	entry := UserEntry{ Email:  user }
+	entry := UserEntry{Email: user}
 
 	userId, err := db.Insert(entry)
-	if  err != nil {
+	if err != nil {
 		t.Fatalf("Got error %v inserting user entry", err)
 	}
 	if userId == config.UserId(0) {
@@ -42,7 +42,7 @@ func TestUserDb(t *testing.T) {
 }
 
 func TestObtuseGormStuff(t *testing.T) {
-	DB := config.GetDatabaseInstance()
+	DB := config.GetDatabaseInstanceLegacy()
 
 	var users []UserEntry
 	result := DB.Find(&users)
@@ -51,7 +51,6 @@ func TestObtuseGormStuff(t *testing.T) {
 	if result.Error != nil {
 		t.Fatalf("Error fetching users, %v", result.Error)
 	}
-
 
 	userDb := UserDb{}
 	userId, err := userDb.Insert(UserEntry{
@@ -79,7 +78,6 @@ func TestCreateUserTwice(t *testing.T) {
 		t.Fatalf("Error creating user, userId is 0")
 	}
 
-
 	userRetry, err := userDb.Insert(UserEntry{
 		Email: email,
 	})
@@ -95,7 +93,7 @@ func TestCreateMultipleUsers(t *testing.T) {
 	emails := []string{"multi-1@example.com", "multi-2@example.com", "multi-3@example.com"}
 
 	for _, email := range emails {
-		userId, err := userDb.Insert(UserEntry{Email: email,})
+		userId, err := userDb.Insert(UserEntry{Email: email})
 		FailOnError(t, err, "Error creating user..")
 		if userId == config.UserId(0) {
 			// Again not terribly obvious, but when we fix the "gorm:stuff" above, we may fail getting the user id.

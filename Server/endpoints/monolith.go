@@ -41,6 +41,10 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, character.DownloadPath, character.DownloadMethod, character.DownloadProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.ListPath, character.ListMethod, character.ListProcessRequest)
 
+	if err := storage.Preload(); err != nil {
+		log.Fatalf("Error preloading record cache, %v", err)
+	}
+
 	s := gocron.NewScheduler(time.UTC)
 	s.Every(12).Hours().Do(maintenance)
 	s.StartAsync()

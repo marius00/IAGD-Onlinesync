@@ -16,13 +16,16 @@ type CharacterEntry struct {
 	UpdatedAt time.Time     `json:"updatedAt" sql:"-" gorm:"-"`
 }
 
+func (CharacterEntry) Table() string {
+	return "characters"
+}
 func (CharacterEntry) TableName() string {
 	return "characters"
 }
 
 func (*CharacterDb) Get(user config.UserId, name string) (*CharacterEntry, error) {
 	var entry CharacterEntry
-	result := config.GetDatabaseInstance().Where("userid = ? AND name = ?", user, name).Take(&entry)
+	result := config.GetDatabaseInstanceLegacy().Where("userid = ? AND name = ?", user, name).Take(&entry)
 	if result.Error != nil {
 		if IsNotFoundError(result.Error) {
 			return nil, nil
@@ -35,7 +38,7 @@ func (*CharacterDb) Get(user config.UserId, name string) (*CharacterEntry, error
 }
 
 func (*CharacterDb) List(user config.UserId) ([]CharacterEntry, error) {
-	DB := config.GetDatabaseInstance()
+	DB := config.GetDatabaseInstanceLegacy()
 
 	var entries []CharacterEntry
 	result := DB.Where("userid = ?", user).Find(&entries)
@@ -44,7 +47,7 @@ func (*CharacterDb) List(user config.UserId) ([]CharacterEntry, error) {
 }
 
 func (*CharacterDb) Insert(entry CharacterEntry) error {
-	db := config.GetDatabaseInstance()
+	db := config.GetDatabaseInstanceLegacy()
 
 	result :=
 
@@ -56,7 +59,7 @@ func (*CharacterDb) Insert(entry CharacterEntry) error {
 }
 
 func (*CharacterDb) Purge(user config.UserId) error {
-	db := config.GetDatabaseInstance()
+	db := config.GetDatabaseInstanceLegacy()
 	result := db.Where("userid = ?", user).Delete(CharacterEntry{})
 	return result.Error
 }

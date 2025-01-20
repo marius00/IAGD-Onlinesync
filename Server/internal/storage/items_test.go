@@ -12,8 +12,8 @@ import (
 
 var itemDb = ItemDb{}
 var userDb = UserDb{}
-// TODO: Test fetch items 50 years in the future..
 
+// TODO: Test fetch items 50 years in the future..
 
 func TestCreateListDeleteItem(t *testing.T) {
 	if !testutils.RunAgainstRealDatabase() {
@@ -26,6 +26,7 @@ func TestCreateListDeleteItem(t *testing.T) {
 	userId := CreateTestUser(t, user)
 	defer userDb.Purge(userId)
 	defer itemDb.Purge(userId)
+	Preload()
 
 	expected := JsonItem{
 		Id:         "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
