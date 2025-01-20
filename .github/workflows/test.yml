@@ -30,6 +30,7 @@ jobs:
           --health-timeout=5s
           --health-retries=3
           --ulimit="nofile=32768:32768"
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
