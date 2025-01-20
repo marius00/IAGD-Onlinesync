@@ -32,6 +32,9 @@ jobs:
           --ulimit="nofile=32768:32768"
     steps:
       - uses: actions/checkout@v4
+        sparse-checkout: Server
+      - name: Try to fix the folder
+        run: cd Server
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
@@ -44,7 +47,6 @@ jobs:
 
       - name: Run tests
         run: |
-          cd Server
           DATABASE_USER=iagd
           DATABASE_PASSWORD=123456
           MYSQL_DATABASE=iagd
@@ -53,7 +55,6 @@ jobs:
 
       - name: Run lint stuff
         run: |
-          cd Server
           DATABASE_USER=iagd
           DATABASE_PASSWORD=123456
           MYSQL_DATABASE=iagd
