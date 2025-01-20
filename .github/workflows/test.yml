@@ -42,7 +42,7 @@ jobs:
           args: --help
       - name: Setup db
         run: |
-          echo "SET GLOBAL max_connections = 100; SET GLOBAL group_concat_max_len = 1048576; GRANT ALL PRIVILEGES ON `iagd`.* TO 'iagd'@'%';" | mysql -h 127.0.0.1 -u root
+          echo "SET GLOBAL max_connections = 100; SET GLOBAL group_concat_max_len = 1048576; GRANT ALL PRIVILEGES ON `iagd` TO 'iagd'@'%';" | mysql -h 127.0.0.1 -u root
           mysql -h 127.0.0.1 -u root -D iagd < rewrite/tables.sql
 
       - name: Run tests
