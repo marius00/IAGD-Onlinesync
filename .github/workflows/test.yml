@@ -48,6 +48,9 @@ jobs:
 
       - name: Run tests
         run: |
+          cd Server
+          pwd
+          ls -la
           DATABASE_USER=iagd
           DATABASE_PASSWORD=123456
           MYSQL_DATABASE=iagd
