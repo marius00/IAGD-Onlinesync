@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
+	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/util"
 	"gorm.io/gorm/clause"
@@ -21,6 +21,7 @@ const (
 	UNIQUE_VIOLATION uint16 = 1062
 )
 
+/*
 // Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
 func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error {
 	DB := config.GetDatabaseInstance()
@@ -40,6 +41,27 @@ func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error
 	_, err = DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
+	}
+
+	// Add deletion entries to sync deletes to other clients
+	var deletionEntries []DeletedItem
+	for _, id := range ids {
+		deletionEntries = append(deletionEntries, DeletedItem{UserId: userId, Id: id, Ts: timestamp})
+	}
+	result = DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&deletionEntries)
+
+	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION) // TODO: Unique viol not needed anymore?
+}
+*/
+// Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
+func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error {
+	DB := config.GetDatabaseInstanceLegacy()
+
+	// Delete the actual items
+	obj := InputItem{UserId: userId}
+	result := DB.Where("userId = ? AND id IN (?)", userId, ids).Delete(&obj)
+	if result.Error != nil && result.Error.Error() != gorm.ErrRecordNotFound.Error() {
+		return result.Error
 	}
 
 	// Add deletion entries to sync deletes to other clients
@@ -75,14 +97,14 @@ func ReturnOrIgnore(err error, ignore uint16) error {
 }
 
 func (d *ItemDb) Insert(userId config.UserId, items []InputItem) error {
-	DB := config.GetDatabaseInstance()
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+	DB := config.GetDatabaseInstanceLegacy()
+	// ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	// defer cancel()
 
 	for idx := range items {
 		items[idx].UserId = userId
 
-		DB.NamedExecContext(ctx, "INSERT INTO items(id, userid, id_baserecord, id_prefixrecord, id_suffixrecord, id_modifierrecord, id_transmuterecord, seed, id_reliccompletionbonusrecord, id_enchantmentrecord, prefixrarity, unknown, enchantmentseed, materiacombines, stackcount, name, namelowercase, rarity, mod, levelrequirement, ishardcore, created_at, ts, relicseed, id_materiarecord) VALUES (:id, :userid, :base_record, :materia_record, :enchantment_record, :relic_completion_bonus_record, :transmute_record, :modifier_record, :suffix_record, :prefix_record, :mod, :prefix_rarity, :created_at, :enchantment_seed, :is_hardcore, :level_requirement, :materia_combines, :stack_count, :name, :name_lowercase, :rarity, :relic_seed, :seed, :ts)", items[idx])
+		// DB.NamedExecContext(ctx, "INSERT INTO items(id, userid, id_baserecord, id_prefixrecord, id_suffixrecord, id_modifierrecord, id_transmuterecord, seed, id_reliccompletionbonusrecord, id_enchantmentrecord, prefixrarity, unknown, enchantmentseed, materiacombines, stackcount, name, namelowercase, rarity, mod, levelrequirement, ishardcore, created_at, ts, relicseed, id_materiarecord) VALUES (:id, :userid, :base_record, :materia_record, :enchantment_record, :relic_completion_bonus_record, :transmute_record, :modifier_record, :suffix_record, :prefix_record, :mod, :prefix_rarity, :created_at, :enchantment_seed, :is_hardcore, :level_requirement, :materia_combines, :stack_count, :name, :name_lowercase, :rarity, :relic_seed, :seed, :ts)", items[idx])
 	}
 
 	result := DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&items)
@@ -91,7 +113,7 @@ func (d *ItemDb) Insert(userId config.UserId, items []InputItem) error {
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
 func (*ItemDb) List(user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
-	db := config.GetDatabaseInstance()
+	db := config.GetDatabaseInstanceLegacy()
 
 	sql := fmt.Sprintf(`
 SELECT 
@@ -244,7 +266,7 @@ func (*ItemDb) ListDeletedItems(user config.UserId, lastTimestamp int64) ([]Dele
 
 	for rows.Next() {
 		var item DeletedItem
-		err = rows.Scan(&item)
+		err = rows.StructScan(&item)
 		if err != nil {
 			return deletedItems, err
 		}

@@ -9,6 +9,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/satori/go.uuid v1.2.0
 	go.uber.org/zap v1.16.0
+	gorm.io/gorm v1.25.7
 )
 
 require (
@@ -23,6 +24,7 @@ require (
 	github.com/go-playground/validator/v10 v10.24.0 // indirect
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
@@ -52,6 +54,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gorm.io/driver/mysql v1.5.7 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.6 // indirect
 )
 

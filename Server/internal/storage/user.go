@@ -15,19 +15,22 @@ type UserDb struct {
 }
 
 type UserEntry struct {
-	UserId    config.UserId `json:"-" db:"userid"`
-	Email     string        `json:"-" db:"email"`
-	BuddyId   int32         `json:"buddyId" db:"buddy_id"`
-	CreatedAt time.Time     `json:"created_at" sql:"-" db:"-"`
+	UserId    config.UserId `json:"-" db:"userid" gorm:"primaryKey; column:userid"`
+	Email     string        `json:"-" db:"email" gorm:"column:email"`
+	BuddyId   int32         `json:"buddyId" db:"buddy_id" gorm:"column:buddy_id"`
+	CreatedAt time.Time     `json:"created_at" sql:"-" db:"-" gorm:"-"`
 }
 
 func (UserEntry) Table() string {
 	return "users"
 }
+func (UserEntry) TableName() string {
+	return "users"
+}
 
 func (*UserDb) Get(user config.UserId) (*UserEntry, error) {
 	var userEntry UserEntry
-	result := config.GetDatabaseInstance().Where("userid = ?", user).Take(&userEntry)
+	result := config.GetDatabaseInstanceLegacy().Where("userid = ?", user).Take(&userEntry)
 	if result.Error != nil {
 		if IsNotFoundError(result.Error) {
 			return nil, nil
@@ -45,7 +48,7 @@ func (*UserDb) GetByEmail(email string) (*UserEntry, error) {
 	}
 
 	var userEntry UserEntry
-	result := config.GetDatabaseInstance().Where("email = ?", email).Take(&userEntry)
+	result := config.GetDatabaseInstanceLegacy().Where("email = ?", email).Take(&userEntry)
 	if result.Error != nil {
 		if IsNotFoundError(result.Error) {
 			return nil, nil
@@ -79,7 +82,7 @@ func (*UserDb) GetFromBuddyId(buddyId string) (*UserEntry, error) {
 }
 
 func setBuddyId(entry UserEntry) error {
-	db := config.GetDatabaseInstance()
+	db := config.GetDatabaseInstanceLegacy()
 
 	// Make up to N attempts to store the entry (may conflict on buddy id)
 	for i := 0; i < 100; i++ {
@@ -103,7 +106,7 @@ func setBuddyId(entry UserEntry) error {
 
 // TODO: Test conflict on buddy id
 func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
-	db := config.GetDatabaseInstance()
+	db := config.GetDatabaseInstanceLegacy()
 
 	//https://stackoverflow.com/questions/39333102/how-to-create-or-update-a-record-with-gorm
 	//result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&entry)
