@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"github.com/go-sql-driver/mysql"
 	"github.com/marmyr/iagdbackup/internal/config"
@@ -14,13 +15,13 @@ type UserDb struct {
 }
 
 type UserEntry struct {
-	UserId    config.UserId `json:"-" gorm:"primaryKey; column:userid"`
-	Email     string        `json:"-" gorm:"column:email"`
-	BuddyId   int32         `json:"buddyId" gorm:"column:buddy_id"`
-	CreatedAt time.Time     `json:"created_at" sql:"-" gorm:"-"`
+	UserId    config.UserId `json:"-" db:"userid"`
+	Email     string        `json:"-" db:"email"`
+	BuddyId   int32         `json:"buddyId" db:"buddy_id"`
+	CreatedAt time.Time     `json:"created_at" sql:"-" db:"-"`
 }
 
-func (UserEntry) TableName() string {
+func (UserEntry) Table() string {
 	return "users"
 }
 
@@ -56,17 +57,25 @@ func (*UserDb) GetByEmail(email string) (*UserEntry, error) {
 	return &userEntry, result.Error
 }
 
+// GetFromBuddyId retrieves a UserEntry from the database identified by the given buddyId. Returns nil and no error if not found.
 func (*UserDb) GetFromBuddyId(buddyId string) (*UserEntry, error) {
 	var userEntry UserEntry
-	result := config.GetDatabaseInstance().Where("buddy_id = ?", buddyId).Take(&userEntry)
-	if result.Error != nil {
-		if IsNotFoundError(result.Error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := config.GetDatabaseInstance().QueryxContext(ctx, "SELECT userid, email, buddy_id FROM users WHERE buddy_id = ? LIMIT 1", buddyId)
+	if err != nil {
+		if IsNotFoundError(err) {
 			return nil, nil
 		}
-		return nil, result.Error
+		return nil, err
 	}
 
-	return &userEntry, result.Error
+	if result.Next() {
+		err = result.StructScan(&userEntry)
+	}
+
+	return &userEntry, err
 }
 
 func setBuddyId(entry UserEntry) error {
@@ -100,8 +109,8 @@ func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
 	//result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&entry)
 	entry.BuddyId = generateBuddyId()
 	result := db.FirstOrCreate(&entry, UserEntry{
-		UserId:  entry.UserId,
-		Email:   entry.Email,
+		UserId: entry.UserId,
+		Email:  entry.Email,
 	})
 	// TODO: Create a conflict resolve or something to insert buddyId != 0
 	// https://stackoverflow.com/questions/46321243/how-to-generate-a-unique-random-number-when-insert-in-mysql/46321328
@@ -127,9 +136,12 @@ func (*UserDb) Insert(entry UserEntry) (config.UserId, error) {
 }
 
 func (*UserDb) Purge(user config.UserId) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	db := config.GetDatabaseInstance()
-	result := db.Where("userid = ?", user).Delete(UserEntry{})
-	return result.Error
+	_, err := db.ExecContext(ctx, "DELETE FROM users WHERE userid = ?", user)
+	return err
 }
 
 // init ensures that the random function is seeded at startup, so the pin codes are not generated in a predictable sequence.

@@ -15,7 +15,7 @@ type ThrottleEntry struct {
 	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
 }
 
-func (ThrottleEntry) TableName() string {
+func (ThrottleEntry) Table() string {
 	return "throttleentry"
 }
 

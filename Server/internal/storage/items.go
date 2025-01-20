@@ -1,10 +1,10 @@
 package storage
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/util"
 	"gorm.io/gorm/clause"
@@ -21,15 +21,25 @@ const (
 	UNIQUE_VIOLATION uint16 = 1062
 )
 
-// Delete will delete a an item for a user
+// Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
 func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error {
 	DB := config.GetDatabaseInstance()
 
 	// Delete the actual items
 	obj := InputItem{UserId: userId}
-	result := DB.Where("userId = ? AND id IN (?)", userId, ids).Delete(&obj)
-	if result.Error != nil && result.Error.Error() != gorm.ErrRecordNotFound.Error() {
-		return result.Error
+
+	query, args, err := sqlx.In("DELETE FROM items WHERE userId = ? AND id IN (?)", userId, ids)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query = DB.Rebind(query)
+	_, err = DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
 	}
 
 	// Add deletion entries to sync deletes to other clients
@@ -46,8 +56,11 @@ func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error
 func (*ItemDb) Maintenance() error {
 	db := config.GetDatabaseInstance()
 	when := time.Now().AddDate(-1, 0, 0).Unix()
-	result := db.Where("ts < ?", when).Delete(DeletedItem{})
-	return result.Error
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := db.ExecContext(ctx, "DELETE FROM deleteditem WHERE ts < ?", when)
+	return err
 }
 
 func ReturnOrIgnore(err error, ignore uint16) error {
@@ -61,24 +74,19 @@ func ReturnOrIgnore(err error, ignore uint16) error {
 	return err
 }
 
-func (*ItemDb) Insert(userId config.UserId, items []InputItem) error {
+func (d *ItemDb) Insert(userId config.UserId, items []InputItem) error {
 	DB := config.GetDatabaseInstance()
-
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
 	for idx := range items {
 		items[idx].UserId = userId
+
+		DB.NamedExecContext(ctx, "INSERT INTO items(id, userid, id_baserecord, id_prefixrecord, id_suffixrecord, id_modifierrecord, id_transmuterecord, seed, id_reliccompletionbonusrecord, id_enchantmentrecord, prefixrarity, unknown, enchantmentseed, materiacombines, stackcount, name, namelowercase, rarity, mod, levelrequirement, ishardcore, created_at, ts, relicseed, id_materiarecord) VALUES (:id, :userid, :base_record, :materia_record, :enchantment_record, :relic_completion_bonus_record, :transmute_record, :modifier_record, :suffix_record, :prefix_record, :mod, :prefix_rarity, :created_at, :enchantment_seed, :is_hardcore, :level_requirement, :materia_combines, :stack_count, :name, :name_lowercase, :rarity, :relic_seed, :seed, :ts)", items[idx])
 	}
 
 	result := DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&items)
 	return result.Error
-}
-
-func (*ItemDb) InsertOld(user config.UserId, item InputItem) error {
-	DB := config.GetDatabaseInstance()
-
-	item.UserId = user
-	result := DB.Create(&item)
-	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION)
 }
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
@@ -145,25 +153,6 @@ SELECT
 	return items, nil
 }
 
-// Fetch 0..1000 items for a given user, since the provided timestamp
-func insertRecordEntry(records []string) error {
-	valueArgs := []interface{}{}
-	sql := "INSERT IGNORE INTO records(record) VALUES"
-
-	for _, val := range records {
-		valueArgs = append(valueArgs, val)
-		sql += "(?),"
-	}
-
-
-	// Remove the trailing ","
-	sql = sql[0:len(sql)-1]
-
-	DB := config.GetDatabaseInstance()
-	result := DB.Exec(sql, valueArgs...)
-	return result.Error
-}
-
 // EnsureRecordsExists will insert any missing records for this item
 func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 
@@ -179,6 +168,9 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 		for _, record := range candidates {
 			if record != "" {
 				if util.IsASCII(record) {
+					if !RecordExists(record) {
+						Write(record)
+					}
 					records = append(records, record)
 				} else {
 					fmt.Printf("Discarding record: %s\n", record)
@@ -187,58 +179,36 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 		}
 	}
 
-
-	if len(records) > 0 {
-		if err := insertRecordEntry(records); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-// Returns a string=>id map of the record references
-func (*ItemDb) toMap(references []RecordReference) map[string]sql.NullInt64 {
-
-	var m = map[string]sql.NullInt64{
-		"": {
-			Valid:false,
-		},
-	}
-	for _, ref := range references {
-		m[ref.Record] = sql.NullInt64 { Int64: int64(ref.Id), Valid: true } // TODO: uint=>int cast, this will go to hell some day.
-	}
-
-	return m
-}
-
 // Conerts a json item to an input item (settings record reference ids)
-func (*ItemDb) toInputItem(userId config.UserId, item JsonItem, references map[string]sql.NullInt64) InputItem {
+func (*ItemDb) toInputItem(userId config.UserId, item JsonItem) InputItem {
 	return InputItem{
-		Id: item.Id,
-		BaseRecord: references[item.BaseRecord],
-		MateriaRecord: references[item.MateriaRecord],
-		EnchantmentRecord: references[item.EnchantmentRecord],
-		RelicCompletionBonusRecord: references[item.RelicCompletionBonusRecord],
-		TransmuteRecord: references[item.TransmuteRecord],
-		ModifierRecord: references[item.ModifierRecord],
-		SuffixRecord: references[item.SuffixRecord],
-		PrefixRecord: references[item.PrefixRecord],
-		Mod: item.Mod,
-		PrefixRarity: item.PrefixRarity,
-		CreatedAt: item.CreatedAt,
-		EnchantmentSeed: item.EnchantmentSeed,
-		IsHardcore: item.IsHardcore,
-		LevelRequirement: item.LevelRequirement,
-		MateriaCombines: item.MateriaCombines,
-		Name: item.Name,
-		NameLowercase: item.NameLowercase,
-		Rarity: item.Rarity,
-		RelicSeed: item.RelicSeed,
-		Seed: item.Seed,
-		StackCount: item.StackCount,
-		Ts: item.Ts,
-		UserId: userId,
+		Id:                         item.Id,
+		BaseRecord:                 ReadRecordId(item.BaseRecord),
+		MateriaRecord:              ReadRecordId(item.MateriaRecord),
+		EnchantmentRecord:          ReadRecordId(item.EnchantmentRecord),
+		RelicCompletionBonusRecord: ReadRecordId(item.RelicCompletionBonusRecord),
+		TransmuteRecord:            ReadRecordId(item.TransmuteRecord),
+		ModifierRecord:             ReadRecordId(item.ModifierRecord),
+		SuffixRecord:               ReadRecordId(item.SuffixRecord),
+		PrefixRecord:               ReadRecordId(item.PrefixRecord),
+		Mod:                        item.Mod,
+		PrefixRarity:               item.PrefixRarity,
+		CreatedAt:                  item.CreatedAt,
+		EnchantmentSeed:            item.EnchantmentSeed,
+		IsHardcore:                 item.IsHardcore,
+		LevelRequirement:           item.LevelRequirement,
+		MateriaCombines:            item.MateriaCombines,
+		Name:                       item.Name,
+		NameLowercase:              item.NameLowercase,
+		Rarity:                     item.Rarity,
+		RelicSeed:                  item.RelicSeed,
+		Seed:                       item.Seed,
+		StackCount:                 item.StackCount,
+		Ts:                         item.Ts,
+		UserId:                     userId,
 	}
 }
 
@@ -248,68 +218,67 @@ func (db *ItemDb) ToInputItems(userId config.UserId, items []JsonItem) ([]InputI
 		return nil, err
 	}
 
-	ref, err := db.getRecordReferences(items)
-	if err != nil {
-		return nil, err
-	}
-	refMap := db.toMap(ref)
-
 	var result []InputItem
 	for _, item := range items {
-		result = append(result, db.toInputItem(userId, item, refMap));
+		result = append(result, db.toInputItem(userId, item))
 	}
 
 	return result, nil
 }
 
-
-// EnsureRecordsExists will insert any missing records for this item
-func (*ItemDb) getRecordReferences(items []JsonItem) ([]RecordReference, error) {
-	db := config.GetDatabaseInstance()
-	var records []string
-	for _, item := range items {
-		for _, record := range []string{
-			item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
-			item.ModifierRecord, item.TransmuteRecord, item.TransmuteRecord,
-			item.EnchantmentRecord, item.MateriaRecord,
-		} {
-			if record != "" && util.IsASCII(record) {
-				records = append(records, record)
-			}
-		}
-	}
-
-	var references []RecordReference
-	result := db.Where("record IN (?)", records).Find(&references)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return references, nil
-}
-
-// Fetch all items queued to be deleted
+// ListDeletedItems fetches all items queued to be deleted [a different client might have called delete, so it needs to sync down to all other clients]
 func (*ItemDb) ListDeletedItems(user config.UserId, lastTimestamp int64) ([]DeletedItem, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	DB := config.GetDatabaseInstance()
 
+	args := map[string]any{
+		"userid":    user,
+		"timestamp": lastTimestamp,
+	}
 	var deletedItems []DeletedItem
-	result := DB.Where("userid = ? AND ts > ?", user, lastTimestamp).Find(&deletedItems)
-	return deletedItems, result.Error
+	rows, err := DB.NamedQueryContext(ctx, "SELECT * FROM deleteditem WHERE userid = :userid AND ts > :timestamp", args)
+	if err != nil {
+		return deletedItems, err
+	}
+
+	for rows.Next() {
+		var item DeletedItem
+		err = rows.Scan(&item)
+		if err != nil {
+			return deletedItems, err
+		}
+
+		deletedItems = append(deletedItems, item)
+	}
+	return deletedItems, nil
 }
 
 // Fetch all items queued to be deleted
 func (*ItemDb) Purge(user config.UserId) error {
 	db := config.GetDatabaseInstance()
 
-	result := db.Where("userid = ?", user).Delete(InputItem{})
-	if result.Error != nil {
-		return result.Error
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_, err := db.ExecContext(ctx, "DELETE FROM item WHERE userid = ?", user)
+		if err != nil {
+			return err
+		}
+	}
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_, err := db.ExecContext(ctx, "DELETE FROM deleteditem WHERE userid = ?", user)
+		if err != nil {
+			return err
+		}
 	}
 
-	result = db.Where("userid = ?", user).Delete(DeletedItem{})
-	return result.Error
+	return nil
 }
-
 
 func IsNotFoundError(err error) bool {
 	return err != nil && err.Error() == gorm.ErrRecordNotFound.Error()

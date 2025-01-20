@@ -16,7 +16,7 @@ type CharacterEntry struct {
 	UpdatedAt time.Time     `json:"updatedAt" sql:"-" gorm:"-"`
 }
 
-func (CharacterEntry) TableName() string {
+func (CharacterEntry) Table() string {
 	return "characters"
 }
 

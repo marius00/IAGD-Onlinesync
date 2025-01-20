@@ -9,24 +9,24 @@ type AuthDb struct {
 }
 
 type AuthEntry struct {
-	UserId config.UserId `json:"-" gorm:"column:userid"`
-	Email     string    `json:"-" gorm:"column:email"`
+	UserId config.UserId `json:"-" db:"userid"`
+	Email  string        `json:"-" db:"email"`
 	Token  string        `json:"-"`
 	Ts     time.Time     `json:"ts"`
 }
 
-func (AuthEntry) TableName() string {
+func (AuthEntry) Table() string {
 	return "authentry"
 }
 
 type AuthAttempt struct {
 	Key       string    `json:"key"`
-	Email     string    `json:"-" gorm:"column:email"`
+	Email     string    `json:"-" db:"email"`
 	Code      string    `json:"-"`
-	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
+	CreatedAt time.Time `json:"created_at" sql:"-" db:"-"`
 }
 
-func (AuthAttempt) TableName() string {
+func (AuthAttempt) Table() string {
 	return "authattempt"
 }
 

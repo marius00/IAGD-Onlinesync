@@ -2,9 +2,10 @@ package remove
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/logging"
+	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
 	"github.com/marmyr/iagdbackup/internal/util"
 	"go.uber.org/zap"
@@ -17,7 +18,7 @@ const Path = "/remove"
 const Method = routing.POST
 
 type DeleteItemEntry struct {
-	ID        string `json:"id"`        // Item GUID
+	ID string `json:"id"` // Item GUID
 }
 
 func ProcessRequest(c *gin.Context) {
@@ -51,7 +52,7 @@ func ProcessRequest(c *gin.Context) {
 func validate(entries []DeleteItemEntry) string {
 	for _, entry := range entries {
 		if len(entry.ID) < 32 {
-			return `The field "id" must be of length 32 or longer.`
+			return fmt.Sprintf(`The field "id" must be of length 32 or longer, got the value "%v".`, entry.ID)
 		}
 	}
 
@@ -67,8 +68,7 @@ func toIds(entries []DeleteItemEntry) []string {
 	return ids
 }
 
-
-	func decode(body io.Reader) ([]DeleteItemEntry, error) {
+func decode(body io.Reader) ([]DeleteItemEntry, error) {
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
 		return nil, err
