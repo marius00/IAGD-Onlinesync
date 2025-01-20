@@ -65,6 +65,20 @@ var db *gorm.DB
 
 func GetDatabaseInstanceLegacy() *gorm.DB {
 	if db == nil {
+
+		if os.Getenv("DATABASE_USER") == "" {
+			log.Fatal().Msgf("DATABASE_USER is not set")
+		}
+		if os.Getenv("DATABASE_PASSWORD") == "" {
+			log.Fatal().Msgf("DATABASE_PASSWORD is not set")
+		}
+		if os.Getenv("DATABASE_HOST") == "" {
+			log.Fatal().Msgf("DATABASE_HOST is not set")
+		}
+		if os.Getenv("DATABASE_NAME") == "" {
+			log.Fatal().Msgf("DATABASE_NAME is not set")
+		}
+
 		log.Printf("Opening database connection to %s, db %s..\n", os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_NAME"))
 
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=5s",

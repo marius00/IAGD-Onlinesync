@@ -32,20 +32,27 @@ jobs:
           --ulimit="nofile=32768:32768"
     steps:
       - uses: actions/checkout@v4
+      - name: Try to fix the folder
+        run: cd Server
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-      - uses: golangci/golangci-lint-action@v6
       - name: Setup db
         run: |
-          echo "SET GLOBAL max_connections = 100; SET GLOBAL group_concat_max_len = 1048576; GRANT ALL PRIVILEGES ON `iagd`.* TO 'iagd'@'%';" | mysql -h 127.0.0.1 -u root
+          echo "SET GLOBAL max_connections = 100; SET GLOBAL group_concat_max_len = 1048576;" | mysql -h 127.0.0.1 -u root
+          echo "GRANT ALL PRIVILEGES ON iagd.* TO 'iagd'@'%';" | mysql -h 127.0.0.1 -u root
+          pwd
+          ls -la
+          ls -la rewrite
           mysql -h 127.0.0.1 -u root -D iagd < rewrite/tables.sql
 
       - name: Run tests
-        working-directory: ./Server
         run: |
-          DATABASE_USER=iagd
-          DATABASE_PASSWORD=123456
-          MYSQL_DATABASE=iagd
-          DATABASE_HOST=localhost
-          go test ./... -v -race -timeout 30s
+          cd Server
+          pwd
+          ls -la
+          export DATABASE_USER=iagd
+          export DATABASE_PASSWORD=123456
+          export DATABASE_NAME=iagd
+          export DATABASE_HOST=localhost
+          DATABASE_USER=iagd DATABASE_PASSWORD=123456 DATABASE_NAME=iagd DATABASE_HOST=localhost go test ./... -v -race -timeout 30s
