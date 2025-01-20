@@ -30,12 +30,12 @@ jobs:
           --health-timeout=5s
           --health-retries=3
           --ulimit="nofile=32768:32768"
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          args: --help
       - uses: golangci/golangci-lint-action@v6
       - name: Setup db
         run: |
@@ -43,10 +43,19 @@ jobs:
           mysql -h 127.0.0.1 -u root -D iagd < rewrite/tables.sql
 
       - name: Run tests
-        working-directory: ./Server
         run: |
+          cd Server
           DATABASE_USER=iagd
           DATABASE_PASSWORD=123456
           MYSQL_DATABASE=iagd
           DATABASE_HOST=localhost
           go test ./... -v -race -timeout 30s
+
+      - name: Run lint stuff
+        run: |
+          cd Server
+          DATABASE_USER=iagd
+          DATABASE_PASSWORD=123456
+          MYSQL_DATABASE=iagd
+          DATABASE_HOST=localhost
+          golangci-lint run --fix
