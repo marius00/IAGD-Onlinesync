@@ -1,11 +1,13 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/testutils"
 	"github.com/marmyr/iagdbackup/internal/util"
 	"github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"
 )
@@ -16,11 +18,7 @@ var userDb = UserDb{}
 // TODO: Test fetch items 50 years in the future..
 
 func TestCreateListDeleteItem(t *testing.T) {
-	if !testutils.RunAgainstRealDatabase() {
-		log.Println("Skipping DB test")
-		return
-	}
-	user := "item@example.com"
+	user := fmt.Sprintf("%s@example.com", uuid.NewV4().String())
 
 	ts := util.GetCurrentTimestamp()
 	userId := CreateTestUser(t, user)
@@ -29,29 +27,30 @@ func TestCreateListDeleteItem(t *testing.T) {
 	Preload()
 
 	expected := JsonItem{
-		Id:         "C11A9D5D-F92F-4079-AC68-C44ED2D36B10",
+		Id:         uuid.NewV4().String(),
 		Ts:         ts,
 		BaseRecord: "my base record",
 	}
 
 	inputItems, _ := itemDb.ToInputItems(userId, []JsonItem{expected})
-	FailOnError(t, itemDb.Insert(userId, inputItems), "Error inserting item")
+	err := itemDb.Insert(userId, inputItems)
+	assert.NoErrorf(t, err, "Error inserting item")
 
 	items, err := itemDb.List(userId, ts-1)
-	FailOnError(t, err, "Error fetching items")
-	testutils.ExpectEquals(t, len(items), 1, "Number of items")
-	testutils.ExpectEquals(t, expected.Id, items[0].Id, "The returned item is not the same as stored to DB")
-	testutils.ExpectEquals(t, expected.BaseRecord, items[0].BaseRecord, "The returned item is not the same as stored to DB")
-	testutils.ExpectEquals(t, expected.Ts, items[0].Ts, "The returned item is not the same as stored to DB")
-	testutils.ExpectEquals(t, "", items[0].Mod, "The returned item is not the same as stored to DB")
+	assert.NoErrorf(t, err, "Error listing items")
+	assert.Len(t, items, 1, "Expected to list 1 item")
+	assert.Equalf(t, expected.Id, items[0].Id, "Expected items to be equal")
+	assert.Equalf(t, expected.BaseRecord, items[0].BaseRecord, "Expected items to be equal")
+	assert.Equalf(t, expected.Ts, items[0].Ts, "Expected items to be equal")
+	assert.Equalf(t, "", items[0].Mod, "Expected no mod to be set")
 
-	FailOnError(t, itemDb.Delete(userId, []string{expected.Id}, ts), "Error deleting item")
-	FailOnError(t, itemDb.Delete(userId, []string{expected.Id, "definitely not my id"}, ts), "Error deleting item")
+	FailOnError(t, itemDb.Delete(context.Background(), userId, []string{expected.Id}, ts), "Error deleting item")
+	FailOnError(t, itemDb.Delete(context.Background(), userId, []string{expected.Id, "definitely not my id"}, ts), "Error deleting item")
 
 	deletedItems, err := itemDb.ListDeletedItems(userId, ts-1)
 	FailOnError(t, err, "Error fetching deleted items")
 
-	testutils.ExpectEquals(t, len(deletedItems), 2, "Number of deleted items")
+	assert.Len(t, deletedItems, 1, "Expected 1 item to have been deleted")
 	testutils.ExpectEquals(t, deletedItems[0].Id, expected.Id, "Deleted item ID")
 }
 
