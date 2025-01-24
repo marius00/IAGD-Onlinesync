@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/util"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm/clause"
 	"time"
 )
@@ -54,24 +55,45 @@ func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error
 }
 */
 // Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
-func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error {
-	DB := config.GetDatabaseInstanceLegacy()
+func (*ItemDb) Delete(ctx context.Context, userId config.UserId, ids []string, timestamp int64) error {
+	db := config.GetDatabaseInstance()
 
-	// Delete the actual items
-	obj := InputItem{UserId: userId}
-	result := DB.Where("userId = ? AND id IN (?)", userId, ids).Delete(&obj)
-	if result.Error != nil && result.Error.Error() != gorm.ErrRecordNotFound.Error() {
-		return result.Error
-	}
+	timedCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
-	// Add deletion entries to sync deletes to other clients
-	var deletionEntries []DeletedItem
 	for _, id := range ids {
-		deletionEntries = append(deletionEntries, DeletedItem{UserId: userId, Id: id, Ts: timestamp})
-	}
-	result = DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&deletionEntries)
+		ret, err := db.NamedExecContext(timedCtx, "DELETE FROM item WHERE userid = :userid AND id = :id", map[string]any{
+			"userid": userId,
+			"id":     id,
+		})
 
-	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION) // TODO: Unique viol not needed anymore?
+		if err != nil {
+			return err
+		}
+
+		rowsAffected, err := ret.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if rowsAffected == 1 {
+
+			sql := "INSERT INTO deleteditem(userid, id, ts) VALUES (:userid, :id, :ts) ON DUPLICATE KEY UPDATE id=id"
+			_, err = db.NamedExecContext(timedCtx, sql, map[string]interface{}{
+				"userid": userId,
+				"id":     id,
+				"ts":     timestamp,
+			})
+
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Warn().Msgf("Attempted to delete item %s, but item did not exist", id)
+		}
+	}
+
+	return nil
 }
 
 // Maintenance deletes 'delete item' entries older than a year

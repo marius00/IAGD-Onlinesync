@@ -18,7 +18,7 @@ func ProcessRequest(c *gin.Context) {
 	userId := routing.GetUser(c)
 	userDb := storage.UserDb{}
 	var success = true
-	
+
 	itemdb := &storage.ItemDb{}
 	err := itemdb.Purge(userId)
 	if err != nil {
@@ -26,7 +26,7 @@ func ProcessRequest(c *gin.Context) {
 		success = false
 	}
 
-	userEntry, err := userDb.Get(userId) // TODO: Eating err
+	userEntry, err := userDb.Get(userId)
 	if err != nil {
 		logger.Error("Error fetching user", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Something went wrong, deletion may have partially succeeded"})
@@ -40,12 +40,9 @@ func ProcessRequest(c *gin.Context) {
 		success = false
 	}
 
-
 	characterDb := storage.CharacterDb{}
 
 	characterDb.Purge(userId)
-
-
 
 	userDb.Purge(userId)
 
@@ -55,6 +52,7 @@ func ProcessRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Something went wrong, deletion may have partially succeeded"})
 	}
 }
+
 /*
 func abc() {
 
