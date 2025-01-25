@@ -10,7 +10,6 @@ import (
 	"github.com/marmyr/iagdbackup/internal/util"
 	"go.uber.org/zap"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -70,7 +69,7 @@ func toIds(entries []DeleteItemEntry) []string {
 }
 
 func decode(body io.Reader) ([]DeleteItemEntry, error) {
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
