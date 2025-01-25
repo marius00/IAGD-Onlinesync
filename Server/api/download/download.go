@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/logging"
@@ -24,7 +25,7 @@ type responseType struct {
 }
 
 type ItemProvider interface {
-	List(user config.UserId, lastTimestamp int64) ([]storage.OutputItem, error)
+	List(ctx context.Context, user config.UserId, lastTimestamp int64) ([]storage.OutputItem, error)
 	ListDeletedItems(user config.UserId, lastTimestamp int64) ([]storage.DeletedItem, error)
 }
 
@@ -39,7 +40,7 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 			return
 		}
 
-		items, err := itemDb.List(user, lastTimestamp)
+		items, err := itemDb.List(c.Request.Context(), user, lastTimestamp)
 		if err != nil {
 			logger.Warn("Error listing items", zap.Error(err), zap.Any("user", user), zap.Int64("lastTimestamp", lastTimestamp))
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching items"})

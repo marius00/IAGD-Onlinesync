@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
@@ -21,38 +22,6 @@ const (
 	UNIQUE_VIOLATION uint16 = 1062
 )
 
-/*
-// Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
-func (self *ItemDb)  Delete(userId config.UserId, ids []string, timestamp int64) error {
-	DB := config.GetDatabaseInstance()
-
-	// Delete the actual items
-	obj := InputItem{UserId: userId}
-
-	query, args, err := sqlx.In("DELETE FROM items WHERE userId = ? AND id IN (?)", userId, ids)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	query = DB.Rebind(query)
-	_, err = DB.ExecContext(ctx, query, args...)
-	if err != nil {
-		return err
-	}
-
-	// Add deletion entries to sync deletes to other clients
-	var deletionEntries []DeletedItem
-	for _, id := range ids {
-		deletionEntries = append(deletionEntries, DeletedItem{UserId: userId, Id: id, Ts: timestamp})
-	}
-	result = DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&deletionEntries)
-
-	return ReturnOrIgnore(result.Error, UNIQUE_VIOLATION) // TODO: Unique viol not needed anymore?
-}
-*/
 // Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
 func (self *ItemDb) Delete(ctx context.Context, userId config.UserId, ids []string, timestamp int64) error {
 	db := config.GetDatabaseInstance()
@@ -122,61 +91,27 @@ func (self *ItemDb) Insert(userId config.UserId, items []InputItem) error {
 	return result.Error
 }
 
+//go:embed select_items_query.sql
+var selectItemsQuery string
+
 // Fetch 0..1000 items for a given user, since the provided timestamp
-func (self *ItemDb) List(user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
-	db := config.GetDatabaseInstanceLegacy()
+func (self *ItemDb) List(ctx context.Context, user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
+	db := config.GetDatabaseInstance()
 
-	sql := fmt.Sprintf(`
-SELECT 
-	id, 
-	userid, 
-	base.record AS baserecord,
-	prefix.record as prefixrecord, 
-	suffix.record as suffixrecord, 
-	modifier.record as modifierrecord, 
-	relic.record as reliccompletionbonusrecord,
-	transmute.record as transmuterecord, 
-	materia.record as materiarecord, 
-	enchantment.record as enchantmentrecord, 
-	seed,  
-	relicseed, 
-	prefixrarity, 
-	unknown, 
-	enchantmentseed, 
-	materiacombines, 
-	stackcount, 
-	name, 
-	namelowercase, 
-	rarity, 
-	levelrequirement, 
-	%s, 
-	ishardcore, 
-	created_at, 
-	ts
-  FROM item i
-  LEFT JOIN records as base ON i.id_baserecord = base.id_record
-  LEFT JOIN records as prefix ON i.id_prefixrecord = prefix.id_record
-  LEFT JOIN records AS suffix ON i.id_suffixrecord = suffix.id_record
-  LEFT JOIN records AS modifier ON i.id_modifierrecord = modifier.id_record
-  LEFT JOIN records AS transmute ON i.id_transmuterecord = transmute.id_record
-  LEFT JOIN records AS materia ON i.id_materiarecord = materia.id_record
-  LEFT JOIN records AS relic ON i.id_reliccompletionbonusrecord = relic.id_record
-  LEFT JOIN records AS enchantment ON i.id_enchantmentrecord = enchantment.id_record
-  WHERE userid = ? AND ts > ?
-  ORDER BY ts ASC
-  LIMIT ?
-  `, "`mod`")
-	var items = make([]OutputItem, 0)
-	rows, err := db.Raw(sql, user, lastTimestamp, MaxItemLimit).Rows()
-	defer rows.Close()
+	timedCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
+	rows, err := db.QueryxContext(timedCtx, selectItemsQuery, user, lastTimestamp, MaxItemLimit)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	var item OutputItem
+	var items = make([]OutputItem, 0)
 	for rows.Next() {
-		if err = db.ScanRows(rows, &item); err != nil {
+		var item OutputItem
+		err = rows.StructScan(&item)
+		if err != nil {
 			return nil, err
 		}
 
@@ -195,7 +130,7 @@ func (self *ItemDb) ensureRecordsExists(items []JsonItem) error {
 		candidates := []string{
 			item.BaseRecord, item.PrefixRecord, item.SuffixRecord,
 			item.ModifierRecord, item.TransmuteRecord, item.TransmuteRecord,
-			item.EnchantmentRecord, item.MateriaRecord,
+			item.EnchantmentRecord, item.MateriaRecord, item.AscendantAffix2hNameRecord, item.AscendantAffixNameRecord,
 		}
 
 		for _, record := range candidates {
@@ -230,6 +165,8 @@ func (self *ItemDb) toInputItem(userId config.UserId, item JsonItem) InputItem {
 		ModifierRecord:             ReadRecordId(item.ModifierRecord),
 		SuffixRecord:               ReadRecordId(item.SuffixRecord),
 		PrefixRecord:               ReadRecordId(item.PrefixRecord),
+		AscendantAffixName:         ReadRecordId(item.AscendantAffixNameRecord),
+		AscendantAffix2hName:       ReadRecordId(item.AscendantAffix2hNameRecord),
 		Mod:                        item.Mod,
 		PrefixRarity:               item.PrefixRarity,
 		CreatedAt:                  item.CreatedAt,
@@ -243,6 +180,7 @@ func (self *ItemDb) toInputItem(userId config.UserId, item JsonItem) InputItem {
 		RelicSeed:                  item.RelicSeed,
 		Seed:                       item.Seed,
 		StackCount:                 item.StackCount,
+		RerollsUsed:                item.RerollsUsed,
 		Ts:                         item.Ts,
 		UserId:                     userId,
 	}

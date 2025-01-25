@@ -145,6 +145,12 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `uq_buddy_id` (`buddy_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=20133 DEFAULT CHARSET=latin1 COMMENT='List of users in the backup system.\r\nHelps keep track of new users and returning users (check if they have items in the old solution, notify them that they may have entered the wrong email etc)'';\r\n';
 
+
+ALTER TABLE `item`
+    ADD COLUMN `id_ascendantaffixname` BIGINT(20) UNSIGNED NULL DEFAULT NULL AFTER `id_enchantmentrecord`,
+    ADD COLUMN `id_ascendantaffix2hname` BIGINT(20) UNSIGNED NULL DEFAULT NULL AFTER `id_ascendantaffixname`,
+    ADD COLUMN `rerollsused` INT(11) NULL AFTER `stackcount`;
+
 -- Data exporting was unselected.
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
@@ -152,3 +158,4 @@ CREATE TABLE IF NOT EXISTS `users` (
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
+
