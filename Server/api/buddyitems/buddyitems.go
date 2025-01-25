@@ -48,7 +48,7 @@ func ProcessRequest(c *gin.Context) {
 	}
 
 	itemDb := storage.ItemDb{}
-	items, err := itemDb.List(user.UserId, lastTimestamp) // TODO:
+	items, err := itemDb.List(c.Request.Context(), user.UserId, lastTimestamp) // TODO:
 	if err != nil {
 		logger.Warn("Error listing items", zap.Error(err), zap.Any("user", user.UserId), zap.Int64("lastTimestamp", lastTimestamp))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching items"})

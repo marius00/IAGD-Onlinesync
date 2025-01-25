@@ -10,7 +10,6 @@ import (
 	"github.com/satori/go.uuid"
 	"go.uber.org/zap"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -60,7 +59,7 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
-	client := &http.Client{ Timeout: time.Second * 5, }
+	client := &http.Client{Timeout: time.Second * 5}
 	req.Header.Set("Simple-Auth", token)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -113,7 +112,7 @@ type AzureResponse struct {
 }
 
 func decode(body io.Reader) (AzureResponse, error) {
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	if err != nil {
 		return AzureResponse{}, err
 	}

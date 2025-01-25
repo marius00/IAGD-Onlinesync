@@ -168,3 +168,9 @@ ALTER TABLE `item`
 	CHANGE COLUMN `id` `id` VARCHAR(36) NOT NULL COMMENT 'GUID provided by client' COLLATE 'latin1_swedish_ci' FIRST;
 ALTER TABLE `authattempt`
 	COMMENT='Contains a publicly known "token" and a secret pin code used to authenticate for a given user. \r\n\r\nUpon presenting both the token and the code to an API, an access token is inserted into "authentry" and returned to the user.\r\nIf the authenticating user does not exist, he will be created upon verification.';
+
+
+ALTER TABLE `item`
+    ADD COLUMN `id_ascendantaffixname` BIGINT(20) UNSIGNED NULL DEFAULT NULL AFTER `id_enchantmentrecord`,
+    ADD COLUMN `id_ascendantaffix2hname` BIGINT(20) UNSIGNED NULL DEFAULT NULL AFTER `id_ascendantaffixname`,
+    ADD COLUMN `rerollsused` INT(11) NULL AFTER `stackcount`;
