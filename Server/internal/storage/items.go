@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/util"
@@ -24,7 +23,7 @@ const (
 
 /*
 // Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
-func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error {
+func (self *ItemDb)  Delete(userId config.UserId, ids []string, timestamp int64) error {
 	DB := config.GetDatabaseInstance()
 
 	// Delete the actual items
@@ -55,10 +54,11 @@ func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error
 }
 */
 // Delete will delete an item for a user, both deleting the item row and making a "delete this item" row to signal other clients
-func (*ItemDb) Delete(ctx context.Context, userId config.UserId, ids []string, timestamp int64) error {
+func (self *ItemDb) Delete(ctx context.Context, userId config.UserId, ids []string, timestamp int64) error {
 	db := config.GetDatabaseInstance()
 
-	timedCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	timeoutSeconds := time.Duration(2 * len(ids))
+	timedCtx, cancel := context.WithTimeout(ctx, timeoutSeconds*time.Second)
 	defer cancel()
 
 	for _, id := range ids {
@@ -97,7 +97,7 @@ func (*ItemDb) Delete(ctx context.Context, userId config.UserId, ids []string, t
 }
 
 // Maintenance deletes 'delete item' entries older than a year
-func (*ItemDb) Maintenance() error {
+func (self *ItemDb) Maintenance() error {
 	db := config.GetDatabaseInstance()
 	when := time.Now().AddDate(-1, 0, 0).Unix()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -107,18 +107,7 @@ func (*ItemDb) Maintenance() error {
 	return err
 }
 
-func ReturnOrIgnore(err error, ignore uint16) error {
-	if err != nil {
-		err := err.(*mysql.MySQLError)
-		if err.Number == ignore {
-			return nil
-		}
-	}
-
-	return err
-}
-
-func (d *ItemDb) Insert(userId config.UserId, items []InputItem) error {
+func (self *ItemDb) Insert(userId config.UserId, items []InputItem) error {
 	DB := config.GetDatabaseInstanceLegacy()
 	// ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	// defer cancel()
@@ -134,7 +123,7 @@ func (d *ItemDb) Insert(userId config.UserId, items []InputItem) error {
 }
 
 // Fetch 0..1000 items for a given user, since the provided timestamp
-func (*ItemDb) List(user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
+func (self *ItemDb) List(user config.UserId, lastTimestamp int64) ([]OutputItem, error) {
 	db := config.GetDatabaseInstanceLegacy()
 
 	sql := fmt.Sprintf(`
@@ -198,7 +187,7 @@ SELECT
 }
 
 // EnsureRecordsExists will insert any missing records for this item
-func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
+func (self *ItemDb) ensureRecordsExists(items []JsonItem) error {
 
 	var records []string
 
@@ -213,7 +202,10 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 			if record != "" {
 				if util.IsASCII(record) {
 					if !RecordExists(record) {
-						Write(record)
+						err := Write(record)
+						if err != nil {
+							log.Warn().Msgf("Failed to write record: %v", err)
+						}
 					}
 					records = append(records, record)
 				} else {
@@ -227,7 +219,7 @@ func (*ItemDb) ensureRecordsExists(items []JsonItem) error {
 }
 
 // Conerts a json item to an input item (settings record reference ids)
-func (*ItemDb) toInputItem(userId config.UserId, item JsonItem) InputItem {
+func (self *ItemDb) toInputItem(userId config.UserId, item JsonItem) InputItem {
 	return InputItem{
 		Id:                         item.Id,
 		BaseRecord:                 ReadRecordId(item.BaseRecord),
@@ -257,14 +249,14 @@ func (*ItemDb) toInputItem(userId config.UserId, item JsonItem) InputItem {
 }
 
 // Converts json items to input items, ensuring that the records exists in the database (mutates db)
-func (db *ItemDb) ToInputItems(userId config.UserId, items []JsonItem) ([]InputItem, error) {
-	if err := db.ensureRecordsExists(items); err != nil {
+func (self *ItemDb) ToInputItems(userId config.UserId, items []JsonItem) ([]InputItem, error) {
+	if err := self.ensureRecordsExists(items); err != nil {
 		return nil, err
 	}
 
 	var result []InputItem
 	for _, item := range items {
-		result = append(result, db.toInputItem(userId, item))
+		result = append(result, self.toInputItem(userId, item))
 	}
 
 	return result, nil
@@ -273,7 +265,7 @@ func (db *ItemDb) ToInputItems(userId config.UserId, items []JsonItem) ([]InputI
 // testytest
 
 // ListDeletedItems fetches all items queued to be deleted [a different client might have called delete, so it needs to sync down to all other clients]
-func (*ItemDb) ListDeletedItems(user config.UserId, lastTimestamp int64) ([]DeletedItem, error) {
+func (self *ItemDb) ListDeletedItems(user config.UserId, lastTimestamp int64) ([]DeletedItem, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	DB := config.GetDatabaseInstance()
@@ -301,7 +293,7 @@ func (*ItemDb) ListDeletedItems(user config.UserId, lastTimestamp int64) ([]Dele
 }
 
 // Fetch all items queued to be deleted
-func (*ItemDb) Purge(user config.UserId) error {
+func (self *ItemDb) Purge(user config.UserId) error {
 	db := config.GetDatabaseInstance()
 
 	{
