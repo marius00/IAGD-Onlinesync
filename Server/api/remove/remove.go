@@ -37,6 +37,7 @@ func ProcessRequest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": validationError})
 		return
 	}
+	logger.Info(fmt.Sprintf("Removing %d items", len(entries)))
 
 	itemDb := storage.ItemDb{}
 

@@ -58,7 +58,8 @@ func (*ItemDb) Delete(userId config.UserId, ids []string, timestamp int64) error
 func (*ItemDb) Delete(ctx context.Context, userId config.UserId, ids []string, timestamp int64) error {
 	db := config.GetDatabaseInstance()
 
-	timedCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	timeoutSeconds := time.Duration(2 * len(ids))
+	timedCtx, cancel := context.WithTimeout(ctx, timeoutSeconds*time.Second)
 	defer cancel()
 
 	for _, id := range ids {
