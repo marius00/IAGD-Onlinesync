@@ -32,6 +32,9 @@ func ProcessRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Something went wrong, deletion may have partially succeeded"})
 		return
 	}
+	
+	characterDb := storage.CharacterDb{}
+	characterDb.Purge(userId)
 
 	authDb := storage.AuthDb{}
 	err = authDb.Purge(userId, userEntry.Email)
@@ -39,10 +42,6 @@ func ProcessRequest(c *gin.Context) {
 		logger.Warn("Error purging user auth tokens", zap.Error(err), zap.Any("user", userId))
 		success = false
 	}
-
-	characterDb := storage.CharacterDb{}
-
-	characterDb.Purge(userId)
 
 	userDb.Purge(userId)
 

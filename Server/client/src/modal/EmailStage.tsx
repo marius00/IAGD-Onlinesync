@@ -1,6 +1,5 @@
 import * as React from 'react';
 import './EmailLoginModal.css';
-import '../spinner.css';
 
 interface Props {
   onCompletion: (email: string, token: string) => void;
