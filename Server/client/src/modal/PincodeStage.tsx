@@ -53,7 +53,9 @@ class PincodeStage extends React.Component<Props> {
       .then((response) => response.json())
       .then((json) => {
         if (json.token !== undefined) {
-          this.props.onCompletion(true, json.token);
+          // We don't really care what the auth token is, just if we have a success
+          // The auth token is only used for legacy logins with redirect
+          this.props.onCompletion(true, new URLSearchParams(document.location.search).get('token') ?? json.token);
           self.setState({isLoading: false});
         }
         else {

@@ -27,7 +27,7 @@ class EmailStage extends React.Component<Props> {
       const uri = 'https://api.iagd.evilsoft.net/login';
       this.setState({loading: true});
 
-      fetch(`${uri}?email=${email}`, {
+      fetch(`${uri}?email=${email}&token=${new URLSearchParams(document.location.search).get('token') ?? ''}`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -72,7 +72,7 @@ class EmailStage extends React.Component<Props> {
   }
 
   validateEmail(email: string) {
-    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return re.test(String(email).toLowerCase());
   }
 

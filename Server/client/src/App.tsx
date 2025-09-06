@@ -3,15 +3,6 @@ import { FaEnvelope } from 'react-icons/fa';
 import './App.css';
 import EmailLoginModal from './modal/EmailLoginModal';
 
-declare abstract class cefSharp {}
-export const isEmbedded = typeof cefSharp === 'object';
-
-
-interface IntegrationInterface {
-  requestStats(): string;
-}
-
-declare let core: IntegrationInterface;
 
 interface State {
   modalVisible: boolean;
@@ -32,7 +23,6 @@ class App extends React.Component {
   public render() {
     return (
       <div className="App">
-        {!isEmbedded && <h1>You do not appear to be in a view embedded inside IA. Login will mostly fail (for now)</h1>}
         <h1 className="logo header">Sign-In for Online Backups for GD Item Assistant</h1>
         <i>Keeping your items safe.</i>
 
@@ -50,17 +40,15 @@ class App extends React.Component {
             <li>Your e-mail address</li>
             <li>The data required to recreate your Grim Dawn items</li>
             <li>Your characters</li>
+            <li>Your transfer stash file</li>
             <li>The date/time each item were uploaded</li>
             <li>Your IP address for ~24 hours (throttling excess traffic, prevent brute force logins)</li>
           </ul>
-          Your email may in rare cases be utilized to contact you to help diagnose issues detected.
         </div>
         <br/><br/>
 
         <footer>
-          <i><b>If you run into issues, hop unto the <a href="https://discord.com/invite/5wuCPbB"
-                                                        rel="noopener noreferrer" target="_blank">IA
-            discord.</a></b></i>
+          <i><b>If you run into issues, hop unto the <a href="https://discord.com/invite/5wuCPbB" rel="noopener noreferrer" target="_blank">IA discord.</a></b></i>
         </footer>
       </div>
     );

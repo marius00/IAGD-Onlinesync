@@ -19,7 +19,6 @@ func TestEntireLoginFlow(t *testing.T) {
 		t.Fatalf("Error creating user.. %v", err)
 	}
 
-
 	if userId == config.UserId(0) {
 		t.Fatalf("Error creating user, userId is 0")
 	}
@@ -27,10 +26,11 @@ func TestEntireLoginFlow(t *testing.T) {
 	defer userDb.Purge(userId)
 
 	code := 10000000 + rand.Intn(9999999)
-	attempt := AuthAttempt {
-		Key: uuid.NewV4().String(),
-		Code: fmt.Sprintf("%d", code),
-		Email: "auth@example.com",
+	attempt := AuthAttempt{
+		Key:    uuid.NewV4().String(),
+		Code:   fmt.Sprintf("%d", code),
+		Email:  "auth@example.com",
+		Status: "CREATED",
 	}
 
 	if err = db.InitiateAuthentication(attempt); err != nil {
@@ -39,18 +39,22 @@ func TestEntireLoginFlow(t *testing.T) {
 
 	// API would send an e-mail here
 
-	fetched, err := db.GetAuthenticationAttempt(attempt.Key, attempt.Code)
-	if err != nil {
-		t.Fatalf("Error fetching attempt: %v", err)
-	}
+	for id := 0; id < 30; id++ {
+		fetched, err := db.GetAuthenticationAttempt(attempt.Key, attempt.Code)
+		if err != nil {
+			t.Fatalf("Error fetching attempt: %v", err)
+		}
 
-	if fetched == nil {
-		t.Fatal("Error fetching attempt, returned nil")
-	}
+		if fetched == nil {
+			t.Fatal("Error fetching attempt, returned nil")
+		}
 
-	if fetched.Key != attempt.Key || fetched.Code != attempt.Code {
-		t.Fatal("Fetched entry is not the one stored")
+		if fetched.Key != attempt.Key || fetched.Code != attempt.Code {
+			t.Fatal("Fetched entry is not the one stored")
+		}
 	}
+	k := attempt.Key
+	c := attempt.Code
 
 	accessToken := uuid.NewV4().String()
 	err = db.StoreSuccessfulAuth(attempt.Email, userId, attempt.Key, accessToken)
@@ -64,6 +68,18 @@ func TestEntireLoginFlow(t *testing.T) {
 	}
 	if fetchedUserId <= 0 {
 		t.Fatal("Expected access token to be valid")
+	}
+
+	qwe, err := db.GetAuthenticationAttempt(k, c)
+	if err != nil {
+		t.Fatalf("Error fetching attempt: %v", err)
+	}
+
+	if qwe == nil {
+		t.Fatal("Error fetching attempt, returned nil")
+	}
+	if qwe.Status != "COMPLETED" {
+		t.Fatalf("Expected status COMPLETED, got %s", qwe.Status)
 	}
 
 	if db.Purge(userId, attempt.Email) != nil {
@@ -94,10 +110,11 @@ func TestAuthFlowWrongPincode(t *testing.T) {
 	db := AuthDb{}
 
 	code := "12341234"
-	attempt := AuthAttempt {
-		Key: uuid.NewV4().String(),
-		Code: code,
-		Email: email,
+	attempt := AuthAttempt{
+		Key:    uuid.NewV4().String(),
+		Code:   code,
+		Email:  email,
+		Status: "CREATED",
 	}
 	err := db.InitiateAuthentication(attempt)
 	if err != nil {
@@ -130,14 +147,14 @@ func TestAuthFlowWrongKey(t *testing.T) {
 	})
 	defer userDb.Purge(userId)
 
-
 	db := AuthDb{}
 
 	code := "12341234"
-	attempt := AuthAttempt {
-		Key: uuid.NewV4().String(),
-		Code: code,
-		Email: email,
+	attempt := AuthAttempt{
+		Key:    uuid.NewV4().String(),
+		Code:   code,
+		Email:  email,
+		Status: "CREATED",
 	}
 	err := db.InitiateAuthentication(attempt)
 	if err != nil {

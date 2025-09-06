@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"time"
 )
@@ -23,6 +24,7 @@ type AuthAttempt struct {
 	Key       string    `json:"key"`
 	Email     string    `json:"-" gorm:"column:email"`
 	Code      string    `json:"-"`
+	Status    string    `json:"-"` // Valid values: [COMPLETED, CREATED]
 	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
 }
 
@@ -52,7 +54,7 @@ func (*AuthDb) InitiateAuthentication(entry AuthAttempt) error {
 // Maintenance performs maintenance work such as deleting expired entries
 func (*AuthDb) Maintenance() error {
 	db := config.GetDatabaseInstanceLegacy()
-	result := db.Where("created_at < NOW() - interval 1 day").Delete(AuthAttempt{})
+	result := db.Where("created_at < NOW() - INTERVAL 30 minute").Delete(AuthAttempt{})
 	return result.Error
 }
 
@@ -70,6 +72,27 @@ func (*AuthDb) GetAuthenticationAttempt(key string, code string) (*AuthAttempt, 
 	return &attempt, result.Error
 }
 
+func (*AuthDb) GetAuthenticationAttemptStatus(key string) (*AuthAttempt, error) {
+	var attempt AuthAttempt
+	result := config.GetDatabaseInstanceLegacy().Where("`key` = ? AND created_at > NOW() - INTERVAL 15 minute", key).Take(&attempt)
+	if result.Error != nil {
+		if IsNotFoundError(result.Error) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+
+	return &attempt, result.Error
+}
+
+func (*AuthDb) GetLatestAuthToken(email string) string {
+	db := config.GetDatabaseInstanceLegacy()
+	var authToken string
+	db.Raw("SELECT auth.token from users u INNER JOIN authentry auth ON auth.userid = u.userid WHERE u.email = ? ORDER BY auth.ts DESC LIMIT 1", email).Scan(&authToken)
+
+	return authToken
+}
+
 // StoreSuccessfulAuth stores an access token and deletes the login attempt entry
 func (*AuthDb) StoreSuccessfulAuth(email string, userId config.UserId, key string, authToken string) error {
 	db := config.GetDatabaseInstanceLegacy()
@@ -78,9 +101,8 @@ func (*AuthDb) StoreSuccessfulAuth(email string, userId config.UserId, key strin
 		return result.Error
 	}
 
-	if key != "" {
-		result = db.Where("email = ? AND `key` = ?", email, key).Delete(AuthAttempt{})
-	}
+	db.Raw("UPDATE authattempt SET `status` = 'COMPLETED' WHERE `key` = ?", key).Find(context.Background())
+
 	return result.Error
 }
 

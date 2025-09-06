@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `authattempt` (
   `code` varchar(9) NOT NULL DEFAULT '',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `email` varchar(320) NOT NULL,
+  `status` enum('CREATED', 'COMPLETED') NOT NULL,
   PRIMARY KEY (`key`,`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT='Contains a publicly known "token" and a secret pin code used to authenticate for a given user. \r\n\r\nUpon presenting both the token and the code to an API, an access token is inserted into "authentry" and returned to the user.\r\nIf the authenticating user does not exist, he will be created upon verification.';
 

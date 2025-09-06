@@ -51,37 +51,41 @@ func ProcessRequest(c *gin.Context) {
 
 	// Verify that the code is correct
 	db := storage.AuthDb{}
-	fetched, err := db.GetAuthenticationAttempt(key, code)
+	authAttempt, err := db.GetAuthenticationAttempt(key, code)
 	if err != nil {
 		logger.Warn("Error fetching auth attempt", zap.String("key", key), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
 		return
 	}
 
-	if fetched == nil {
-		logger.Warn("Attempted to validate inexisting access key", zap.String("key", key))
+	if authAttempt == nil {
+		logger.Warn("Attempted to validate non-existing access key", zap.String("key", key))
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid access token"})
+		return
+	} else if authAttempt.Status != "CREATED" {
+		logger.Warn("Attempted to validate already used access key", zap.String("key", key))
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "Access token already used"})
 		return
 	}
 
 	// Create a user entry for the user, if one does not exist.
 	userDb := storage.UserDb{}
-	userId, err := userDb.Insert(storage.UserEntry{Email: fetched.Email})
+	userId, err := userDb.Insert(storage.UserEntry{Email: authAttempt.Email})
 	if err != nil {
-		logger.Warn("Error inserting user entry", zap.Any("user", fetched.Email), zap.Error(err))
+		logger.Warn("Error inserting user entry", zap.Any("user", authAttempt.Email), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
 		return
 	}
 
 	// Store auth entry
 	accessToken := uuid.NewV4().String()
-	err = db.StoreSuccessfulAuth(fetched.Email, userId, fetched.Key, accessToken)
+	err = db.StoreSuccessfulAuth(authAttempt.Email, userId, authAttempt.Key, accessToken)
 	if err != nil {
-		logger.Warn("Error storing auth token", zap.String("key", key), zap.Any("user", fetched.Email), zap.Error(err))
+		logger.Warn("Error storing auth token", zap.String("key", key), zap.Any("user", authAttempt.Email), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": `Internal server error`})
 		return
 	}
 
-	logger.Debug("Login succeeded", zap.Any("user", fetched.Email))
+	logger.Debug("Login succeeded", zap.Any("user", authAttempt.Email))
 	c.JSON(http.StatusOK, gin.H{"token": accessToken})
 }

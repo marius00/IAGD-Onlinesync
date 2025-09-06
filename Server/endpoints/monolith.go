@@ -12,6 +12,7 @@ import (
 	"github.com/marmyr/iagdbackup/api/migrate"
 	"github.com/marmyr/iagdbackup/api/remove"
 	"github.com/marmyr/iagdbackup/api/session/auth"
+	"github.com/marmyr/iagdbackup/api/session/authstatus"
 	"github.com/marmyr/iagdbackup/api/session/login"
 	"github.com/marmyr/iagdbackup/api/session/logincheck"
 	"github.com/marmyr/iagdbackup/api/session/logout"
@@ -33,6 +34,7 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, remove.Path, remove.Method, remove.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, auth.Path, auth.Method, auth.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, login.Path, login.Method, login.ProcessRequest)
+	routing.AddPublicRoute(ginEngine, authstatus.Path, authstatus.Method, authstatus.ProcessRequest)
 	routing.AddPublicRoute(ginEngine, healthcheck.Path, healthcheck.Method, healthcheck.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, logincheck.Path, logincheck.Method, logincheck.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, logout.Path, logout.Method, logout.ProcessRequest)

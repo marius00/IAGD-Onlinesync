@@ -24,6 +24,11 @@ type MailProvider func(logger zap.Logger, recipient string, code string) error
 
 var ProcessRequest = ProcessRequestInternal(sendMail)
 
+func IsValidUUID(uuid string) bool {
+	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
+	return r.MatchString(uuid)
+}
+
 // Input: GET /login?email=someone@example.com
 // Output: JSON {"key": "somevalue"}
 // Effect: Email to someone@example.com, pincode stored to DB.
@@ -35,8 +40,17 @@ func ProcessRequestInternal(mailProvider MailProvider) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"msg": `Query parameter "email" does not appear to contain a valid e-mail address`})
 			return
 		}
-
 		logger := logging.Logger(c)
+
+		token := c.Query("token")
+		if len(token) == 0 {
+			token = uuid.NewV4().String()
+			logger.Info("Generating access token, none provided", zap.String("user", email))
+		} else if !IsValidUUID(token) {
+			c.JSON(http.StatusBadRequest, gin.H{"msg": `Query parameter "token" is not a valid UUID`})
+			return
+		}
+
 		throttleDb := storage.ThrottleDb{}
 
 		throttleKey := fmt.Sprintf("sendmail:%s", email)
@@ -56,9 +70,10 @@ func ProcessRequestInternal(mailProvider MailProvider) gin.HandlerFunc {
 		db := storage.AuthDb{}
 
 		attempt := storage.AuthAttempt{
-			Email: email,
-			Key:   uuid.NewV4().String(),
-			Code:  generateRandomCode(),
+			Email:  email,
+			Key:    token,
+			Code:   generateRandomCode(),
+			Status: "CREATED",
 		}
 
 		if err = db.InitiateAuthentication(attempt); err != nil {
