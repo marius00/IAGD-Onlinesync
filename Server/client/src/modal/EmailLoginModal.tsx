@@ -1,13 +1,10 @@
 import * as React from 'react';
-import Modal from 'react-modal';
-import { FaWindowClose } from 'react-icons/fa';
 import './EmailLoginModal.css';
 import EmailStage from './EmailStage';
 import PincodeStage from './PincodeStage';
 
 interface Props {
   visible: boolean;
-  onClose: () => void;
 }
 
 enum Stage {
@@ -48,9 +45,6 @@ class EmailLoginModal extends React.Component<Props> {
       <div>
         <h2>You have entered an invalid verification code</h2>
         <br/>
-        <br/>
-        <br/>
-        <button value="Close" className="btn btn-primary" onClick={() => this.onClose()}/>
       </div>
     );
   }
@@ -73,11 +67,6 @@ class EmailLoginModal extends React.Component<Props> {
     } else {
       this.setState({stage: Stage.InvalidCode});
     }
-  }
-
-  onClose() {
-    this.setState({stage: Stage.Email});
-    this.props.onClose()
   }
 
   onIntegrationPullComplete(token?: string) {
@@ -132,17 +121,8 @@ class EmailLoginModal extends React.Component<Props> {
     let stage = this.state.stage;
     return (
       <div>
-        <Modal
-          isOpen={true}
-          onRequestClose={() => this.onClose()}
-          contentLabel="Verify your e-mail"
-          ariaHideApp={false}
-        >
+        <div>
           <div className="email-modal">
-            <span className="modal-btn-close" onClick={() => this.onClose()}>
-              <FaWindowClose />
-            </span>
-
             {stage === Stage.Email && <EmailStage onCompletion={(email, token) => this.onEmailStageComplete(email, token)} />}
             {stage === Stage.Code && <PincodeStage
               onCompletion={(success: boolean, token?: string) => this.onCodeStageComplete(success, token)}
@@ -152,11 +132,25 @@ class EmailLoginModal extends React.Component<Props> {
             }
             {stage === Stage.InvalidCode && this.renderInvalidCode()}
             {stage === Stage.PendingIntegration && this.renderWaitingForIntegration()}
-            {stage === Stage.Error && <div>Something went wrong.. Ask for help on the IA discord or try again later.</div>}
-            {stage === Stage.Expired && <div>Something went wrong, Item Assistant did not connect to the cloud</div>}
-            {stage === Stage.CompletedIntegration && <div>Login successful, you can safely close this window.</div>}
+            {stage === Stage.Error && <div>
+                <h1>Something went wrong</h1>
+                <br/>
+                Something went wrong.. Ask for help on the IA discord or try again later.
+            </div>}
+            {stage === Stage.Expired && <div>
+                <h1>Something went wrong</h1>
+                <br/>
+                Something went wrong, Item Assistant did not connect to the cloud
+            </div>}
+            {stage === Stage.CompletedIntegration
+              && <div>
+                    <h1>Login successful</h1>
+                    <br/>
+                    You can safely close this window.
+            </div>
+            }
           </div>
-        </Modal>
+        </div>
       </div>
     );
   }

@@ -25,15 +25,18 @@ class App extends React.Component {
       <div className="App">
         <h1 className="logo header">Sign-In for Online Backups for GD Item Assistant</h1>
         <i>Keeping your items safe.</i>
+        <hr/>
 
-        <div className="login-container">
-          <a className="btn btn-block btn-social btn-email" href="#"
-             onClick={() => this.setState({modalVisible: true})}>
-            <FaEnvelope /> Sign in with E-Mail
-          </a>
-        </div>
-        {this.state.modalVisible ? <EmailLoginModal onClose={() => this.onModalClose()} visible={true}/> : ''}
 
+        {this.state.modalVisible ? <EmailLoginModal visible={true}/> : ''}
+
+        {!this.state.modalVisible ? <div>
+          <div className="login-container">
+            <a className="btn btn-block btn-social btn-email" href="#"
+               onClick={() => this.setState({modalVisible: true})}>
+              <FaEnvelope/> Sign in with E-Mail
+            </a>
+          </div>
         <div className="disclaimer">
           <b>By using this service, the following details will be stored about you:</b><br/>
           <ul>
@@ -45,6 +48,7 @@ class App extends React.Component {
             <li>Your IP address for ~24 hours (throttling excess traffic, prevent brute force logins)</li>
           </ul>
         </div>
+        </div> : ''}
         <br/><br/>
 
         <footer>
