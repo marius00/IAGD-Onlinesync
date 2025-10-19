@@ -62,3 +62,17 @@ Entries in the array are expected to be sorted by partition key, _unsorted reque
 
 ### Partitions
 The partitions endpoint will return a list of all the partitions for a given user. Any unknown partitions should be fully synced down, as well as any partition which may have been closed since the last call to partitions.
+
+
+### Testing locally
+In IAGD, under persistent settings:
+
+    "cloudAuthToken": "58f8e362-15a9-4872-b98c-f8438e299e8a",
+    "cloudUser": "pincode@example.com",
+
+In DB:
+
+    INSERT INTO `authentry` (`userid`, `token`, `email`, `ts`) VALUES (20144, '58f8e362-15a9-4872-b98c-f8438e299e8a', 'pincode@example.com', '2025-01-18 07:40:40');
+    INSERT INTO `users` (`userid`, `email`, `created_at`, `buddy_id`) VALUES (20144, 'pincode@example.com', '2025-01-18 07:40:40', 123406);
+
+Edit IAGrim.Backup.Cloud.Uris and set EnvLocalDev URL to http://localhost:8080
