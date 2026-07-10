@@ -23,7 +23,8 @@ import (
 	"time"
 )
 
-// Runs the entire application as a single application. Useful for local testing, or deploying outside of AWS Lambda.
+// Runs the entire application as a single process. This is the sole entrypoint,
+// deployed as a Docker image on Coolify with /storage mounted as a persistent volume.
 func main() {
 	ginEngine := routing.Build()
 	routing.AddPublicRoute(ginEngine, buddyitems.Path, buddyitems.Method, buddyitems.ProcessRequest)
@@ -43,13 +44,28 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, character.DownloadPath, character.DownloadMethod, character.DownloadProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.ListPath, character.ListMethod, character.ListProcessRequest)
 
+	// Seed core.db (user directory + records) from the read-only MySQL source.
+	// No-op once MySQL is decommissioned.
+	if err := storage.BootstrapFromMySQL(); err != nil {
+		log.Fatalf("Error bootstrapping core.db from MySQL, %v", err)
+	}
+
 	if err := storage.Preload(); err != nil {
 		log.Fatalf("Error preloading record cache, %v", err)
+	}
+
+	if err := storage.PreloadMigrationState(); err != nil {
+		log.Fatalf("Error preloading migration state, %v", err)
 	}
 
 	s := gocron.NewScheduler(time.UTC)
 	s.Every(12).Hours().Do(maintenance)
 	s.StartAsync()
+
+	// Continuously and slowly drain users off MySQL so the legacy database can be
+	// decommissioned without waiting for every user to log in. Throttled to spare
+	// the host; runs for the lifetime of the process.
+	go storage.RunBackgroundDrain(2*time.Second, 1*time.Hour)
 
 	if err := ginEngine.Run(); err != nil {
 		log.Printf("Error starting gin %v", err)

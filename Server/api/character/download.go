@@ -18,7 +18,7 @@ const DownloadMethod = routing.GET
 // Requests a download URL for the provided character name (?name=myCharName)
 func DownloadProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	user := routing.GetUser(c)
+	email := routing.GetEmail(c)
 
 	name, ok := c.GetQuery("name")
 	if !ok {
@@ -27,7 +27,7 @@ func DownloadProcessRequest(c *gin.Context) {
 	}
 
 	db := storage.CharacterDb{}
-	entry, err := db.Get(user, name)
+	entry, err := db.Get(email, name)
 	if err != nil {
 		logger.Warn("Failed fetching character entry", zap.Error(err), zap.String("name", name))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching character"})

@@ -47,15 +47,23 @@ func ProcessRequest(c *gin.Context) {
 		return
 	}
 
+	// Ensure the buddy's data has been drained from MySQL into their SQLite db
+	// before reading it (the buddy may not have made a request of their own yet).
+	if err := storage.EnsureMigrated(user.Email, user.UserId); err != nil {
+		logger.Warn("Error migrating buddy to SQLite", zap.Error(err), zap.Any("user", user.UserId))
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching items"})
+		return
+	}
+
 	itemDb := storage.ItemDb{}
-	items, err := itemDb.List(c.Request.Context(), user.UserId, lastTimestamp) // TODO:
+	items, err := itemDb.List(c.Request.Context(), user.Email, lastTimestamp)
 	if err != nil {
 		logger.Warn("Error listing items", zap.Error(err), zap.Any("user", user.UserId), zap.Int64("lastTimestamp", lastTimestamp))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching items"})
 		return
 	}
 
-	deleted, err := itemDb.ListDeletedItems(user.UserId, lastTimestamp)
+	deleted, err := itemDb.ListDeletedItems(user.Email, lastTimestamp)
 	if err != nil {
 		logger.Warn("Error listing deleted items", zap.Error(err), zap.Any("user", user.UserId), zap.Int64("lastTimestamp", lastTimestamp))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching deleted items"})

@@ -23,6 +23,7 @@ type DeleteItemEntry struct {
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
 	user := routing.GetUser(c)
+	email := routing.GetEmail(c)
 
 	entries, err := decode(c.Request.Body)
 	if err != nil {
@@ -41,7 +42,7 @@ func ProcessRequest(c *gin.Context) {
 	itemDb := storage.ItemDb{}
 
 	timeOfRemove := util.GetCurrentTimestamp()
-	if err := itemDb.Delete(c.Request.Context(), user, toIds(entries), timeOfRemove); err != nil {
+	if err := itemDb.Delete(c.Request.Context(), email, toIds(entries), timeOfRemove); err != nil {
 		logger.Warn("Failed to delete item", zap.Error(err), zap.Any("user", user))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error deleting items, operation may have partially succeeded"})
 	}

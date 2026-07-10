@@ -2,9 +2,23 @@ package testutils
 
 import (
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
+
+// IsolateStorage points STORAGE_PATH at a fresh temp directory (if not already
+// set) so tests never touch the production /storage mount and parallel test
+// binaries don't share a core.db. Call from a package's TestMain.
+func IsolateStorage() {
+	if os.Getenv("STORAGE_PATH") == "" {
+		dir, err := os.MkdirTemp("", "iagdbackup-test-*")
+		if err != nil {
+			panic(err)
+		}
+		os.Setenv("STORAGE_PATH", dir)
+	}
+}
 
 func Expect(t *testing.T, w *httptest.ResponseRecorder, expectedStatus int, expectedBody string) {
 	if w.Code != expectedStatus {

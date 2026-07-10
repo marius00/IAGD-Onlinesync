@@ -24,12 +24,13 @@ type JsonItem struct {
 	AscendantAffixNameRecord   string `json:"ascendantAffixNameRecord"`
 	AscendantAffix2hNameRecord string `json:"ascendantAffix2hNameRecord"`
 
-	Seed            int64 `json:"seed"`
-	RelicSeed       int64 `json:"relicSeed"`
-	EnchantmentSeed int64 `json:"enchantmentSeed"`
-	MateriaCombines int64 `json:"materiaCombines"`
-	StackCount      int64 `json:"stackCount"`
-	RerollsUsed     int64 `json:"rerollsUsed" db:"rerollsused"`
+	Seed             int64 `json:"seed"`
+	RelicSeed        int64 `json:"relicSeed"`
+	EnchantmentSeed  int64 `json:"enchantmentSeed"`
+	MateriaCombines  int64 `json:"materiaCombines"`
+	StackCount       int64 `json:"stackCount"`
+	RerollsUsed      int64 `json:"rerollsUsed" db:"rerollsused"`
+	AffixRerollsUsed int64 `json:"affixRerollsUsed" db:"affixrerollsused"`
 
 	// Used in IA for sorting/filtering
 	CreatedAt int64 `json:"createdAt"`
@@ -61,12 +62,13 @@ type InputItem struct {
 	AscendantAffixName         sql.NullInt64 `json:"ascendantAffixNameRecord" db:"id_ascendantaffixname" gorm:"column:id_ascendantaffixname"`
 	AscendantAffix2hName       sql.NullInt64 `json:"ascendantAffix2hNameRecord" db:"id_ascendantaffix2hname" gorm:"column:id_ascendantaffix2hname"`
 
-	Seed            int64 `json:"seed"`
-	RelicSeed       int64 `json:"relicSeed" db:"relicseed" gorm:"column:relicseed"`
-	EnchantmentSeed int64 `json:"enchantmentSeed" db:"enchantmentseed" gorm:"column:enchantmentseed"`
-	MateriaCombines int64 `json:"materiaCombines" db:"materiacombines" gorm:"column:materiacombines"`
-	StackCount      int64 `json:"stackCount" db:"stackcount" gorm:"column:stackcount"`
-	RerollsUsed     int64 `json:"rerollsUsed" db:"rerollsused" gorm:"column:rerollsused"`
+	Seed             int64 `json:"seed"`
+	RelicSeed        int64 `json:"relicSeed" db:"relicseed" gorm:"column:relicseed"`
+	EnchantmentSeed  int64 `json:"enchantmentSeed" db:"enchantmentseed" gorm:"column:enchantmentseed"`
+	MateriaCombines  int64 `json:"materiaCombines" db:"materiacombines" gorm:"column:materiacombines"`
+	StackCount       int64 `json:"stackCount" db:"stackcount" gorm:"column:stackcount"`
+	RerollsUsed      int64 `json:"rerollsUsed" db:"rerollsused" gorm:"column:rerollsused"`
+	AffixRerollsUsed int64 `json:"affixRerollsUsed" db:"affixrerollsused" gorm:"column:affixrerollsused"`
 
 	// Used in IA for sorting/filtering
 	CreatedAt int64 `json:"createdAt" db:"created_at"`
@@ -112,12 +114,13 @@ type OutputItem struct {
 	AscendantAffix2hNameRecord string `json:"ascendantAffix2hNameRecord" db:"ascendantAffix2hRecord" gorm:"column:ascendantAffix2hRecord"`
 
 	// TODO: Buddy items does not need seed, but is it worth a new struct just to exclude it?
-	Seed            int64 `json:"seed"`
-	RelicSeed       int64 `json:"relicSeed" db:"relicseed" gorm:"column:relicseed"`
-	EnchantmentSeed int64 `json:"enchantmentSeed" db:"enchantmentseed" gorm:"column:enchantmentseed"`
-	MateriaCombines int64 `json:"materiaCombines" db:"materiacombines" gorm:"column:materiacombines"`
-	StackCount      int64 `json:"stackCount" db:"stackcount" gorm:"column:stackcount"`
-	RerollsUsed     int64 `json:"rerollsUsed" db:"rerollsused" gorm:"column:rerollsused"`
+	Seed             int64 `json:"seed"`
+	RelicSeed        int64 `json:"relicSeed" db:"relicseed" gorm:"column:relicseed"`
+	EnchantmentSeed  int64 `json:"enchantmentSeed" db:"enchantmentseed" gorm:"column:enchantmentseed"`
+	MateriaCombines  int64 `json:"materiaCombines" db:"materiacombines" gorm:"column:materiacombines"`
+	StackCount       int64 `json:"stackCount" db:"stackcount" gorm:"column:stackcount"`
+	RerollsUsed      int64 `json:"rerollsUsed" db:"rerollsused" gorm:"column:rerollsused"`
+	AffixRerollsUsed int64 `json:"affixRerollsUsed" db:"affixrerollsused" gorm:"column:affixrerollsused"`
 
 	// Used in IA for sorting/filtering
 	CreatedAt int64 `json:"createdAt" db:"created_at" gorm:"column:created_at"`

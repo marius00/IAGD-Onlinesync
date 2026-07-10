@@ -11,9 +11,11 @@ import (
 func TestEntireLoginFlow(t *testing.T) {
 	db := AuthDb{}
 
+	email := fmt.Sprintf("%s@example.com", uuid.NewV4().String())
+
 	userDb := UserDb{}
 	userId, err := userDb.Insert(UserEntry{
-		Email: fmt.Sprintf("%s@example.com", uuid.NewV4().String()),
+		Email: email,
 	})
 	if err != nil {
 		t.Fatalf("Error creating user.. %v", err)
@@ -29,7 +31,7 @@ func TestEntireLoginFlow(t *testing.T) {
 	attempt := AuthAttempt{
 		Key:    uuid.NewV4().String(),
 		Code:   fmt.Sprintf("%d", code),
-		Email:  "auth@example.com",
+		Email:  email,
 		Status: "CREATED",
 	}
 

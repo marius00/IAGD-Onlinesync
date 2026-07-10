@@ -16,6 +16,15 @@ import (
 
 var sqlxDb *sqlx.DB
 
+// MySQLConfigured reports whether legacy MySQL connection details are present.
+// MySQL is only needed as the read-only source during the SQLite drain; once
+// every user is migrated and the env vars are unset, the drain path is skipped.
+func MySQLConfigured() bool {
+	return os.Getenv("DATABASE_HOST") != "" &&
+		os.Getenv("DATABASE_USER") != "" &&
+		os.Getenv("DATABASE_NAME") != ""
+}
+
 func GetDatabaseInstance() *sqlx.DB {
 	if sqlxDb == nil {
 		log.Printf("Opening database connection to %s, db %s..\n", os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_NAME"))

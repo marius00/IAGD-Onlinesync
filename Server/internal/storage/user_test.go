@@ -41,30 +41,6 @@ func TestUserDb(t *testing.T) {
 	}
 }
 
-func TestObtuseGormStuff(t *testing.T) {
-	DB := config.GetDatabaseInstanceLegacy()
-
-	var users []UserEntry
-	result := DB.Find(&users)
-
-	// We seemingly do nothing, but when we change up some "gorm:stuff" on UserEntry, we get: reflect.Value.SetInt using unaddressable value
-	if result.Error != nil {
-		t.Fatalf("Error fetching users, %v", result.Error)
-	}
-
-	userDb := UserDb{}
-	userId, err := userDb.Insert(UserEntry{
-		Email: fmt.Sprintf("%s@example.com", uuid.NewV4().String()),
-	})
-	if err != nil {
-		t.Fatalf("Error creating user.. %v", err)
-	}
-	if userId == config.UserId(0) {
-		// Again not terribly obvious, but when we fix the "gorm:stuff" above, we may fail getting the user id.
-		t.Fatalf("Error creating user, userId is 0")
-	}
-}
-
 func TestCreateUserTwice(t *testing.T) {
 	userDb := UserDb{}
 	email := "twice@example.com"

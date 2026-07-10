@@ -1,7 +1,9 @@
 package storage
 
 import (
-	"github.com/marmyr/iagdbackup/internal/config"
+	"database/sql"
+	"errors"
+	"github.com/marmyr/iagdbackup/internal/userdb"
 	"time"
 )
 
@@ -9,57 +11,57 @@ type CharacterDb struct {
 }
 
 type CharacterEntry struct {
-	UserId    config.UserId `json:"-" gorm:"column:userid"`
-	Name      string        `json:"name" gorm:"column:name"`
-	Filename  string        `json:"-" gorm:"column:filename"`
-	CreatedAt time.Time     `json:"createdAt" sql:"-" gorm:"-"`
-	UpdatedAt time.Time     `json:"updatedAt" sql:"-" gorm:"-"`
+	Name      string    `json:"name" db:"name"`
+	Filename  string    `json:"-" db:"filename"`
+	CreatedAt time.Time `json:"createdAt" db:"-"`
+	UpdatedAt time.Time `json:"updatedAt" db:"-"`
 }
 
-func (CharacterEntry) Table() string {
-	return "characters"
-}
-func (CharacterEntry) TableName() string {
-	return "characters"
-}
-
-func (*CharacterDb) Get(user config.UserId, name string) (*CharacterEntry, error) {
-	var entry CharacterEntry
-	result := config.GetDatabaseInstanceLegacy().Where("userid = ? AND name = ?", user, name).Take(&entry)
-	if result.Error != nil {
-		if IsNotFoundError(result.Error) {
-			return nil, nil
-		}
-
-		return nil, result.Error
+func (*CharacterDb) Get(email string, name string) (*CharacterEntry, error) {
+	db, err := userdb.Get(email)
+	if err != nil {
+		return nil, err
 	}
 
-	return &entry, result.Error
+	var entry CharacterEntry
+	err = db.Get(&entry, "SELECT name, filename FROM characters WHERE name = ?", name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &entry, nil
 }
 
-func (*CharacterDb) List(user config.UserId) ([]CharacterEntry, error) {
-	DB := config.GetDatabaseInstanceLegacy()
+func (*CharacterDb) List(email string) ([]CharacterEntry, error) {
+	db, err := userdb.Get(email)
+	if err != nil {
+		return nil, err
+	}
 
-	var entries []CharacterEntry
-	result := DB.Where("userid = ?", user).Find(&entries)
-
-	return entries, result.Error
+	entries := make([]CharacterEntry, 0)
+	err = db.Select(&entries, "SELECT name, filename FROM characters")
+	return entries, err
 }
 
-func (*CharacterDb) Insert(entry CharacterEntry) error {
-	db := config.GetDatabaseInstanceLegacy()
+func (*CharacterDb) Insert(email string, entry CharacterEntry) error {
+	db, err := userdb.Get(email)
+	if err != nil {
+		return err
+	}
 
-	result :=
-
-		db.Exec(`INSERT INTO characters(userid, name, filename)
-			VALUES(?, ?, ?)
-			ON DUPLICATE KEY UPDATE updated_at=now();`, entry.UserId, entry.Name, entry.Filename)
-
-	return result.Error
+	_, err = db.Exec(`INSERT INTO characters(name, filename) VALUES (?, ?)
+		ON CONFLICT(name) DO UPDATE SET updated_at = unixepoch()`, entry.Name, entry.Filename)
+	return err
 }
 
-func (*CharacterDb) Purge(user config.UserId) error {
-	db := config.GetDatabaseInstanceLegacy()
-	result := db.Where("userid = ?", user).Delete(CharacterEntry{})
-	return result.Error
+func (*CharacterDb) Purge(email string) error {
+	db, err := userdb.Get(email)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("DELETE FROM characters")
+	return err
 }

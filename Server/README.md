@@ -1,78 +1,111 @@
-### Compilation:
-On _linux_/WSL simply run `make clean install`
+# IAGD Backup API
 
-### Backend deploy:
-`sls deploy --verbose`
+Backup service for Grim Dawn items, consumed exclusively by the IAGD client.
 
-### Frontend deploy:
-`sls client deploy`  
->This will deploy the contents under `client\build`
+## Storage architecture
 
+Data is stored in SQLite under a persistent volume (`STORAGE_PATH`, default `/storage`):
 
-### Pre-deploy one-time RDS setup:
-Prior to deploying for the first time, the following environmental variables must be set to permit RDS access:  
-**TODO**
+* **`core.db`** — shared state: the user directory (`email → db_filename`, buddy id),
+  the `records` string-dedup table, login attempts, throttle entries, and per-user
+  migration bookkeeping.
+* **`<STORAGE_PATH>/users/<sha256(email)>.db`** — one database per user, holding that
+  user's items, deletion markers, character-backup filenames, and access tokens.
 
-### Pre-deploy lambda setup:
-* `aws ssm put-parameter --name /gd/ia/backup/config/db/hostname --type String --value dbhostname` 
-* `aws ssm put-parameter --name /gd/ia/backup/config/db/database --type String --value databasename`  
-* `aws ssm put-parameter --name /gd/ia/backup/config/db/user --type String --value username`  
-* `aws ssm put-parameter --name /gd/ia/backup/config/db/password --type String --value supersecretpassword`   
-* `aws ssm put-parameter --name /gd/ia/backup/config/allowed_origin --type String --value lambdahostname.execute-api.us-east-1.amazonaws.com`  
-* `aws ssm put-parameter --name /gd/ia/backup/config/api_host --type String --value https://url-to-api-here.example.com`  
-* `aws ssm put-parameter --name /gd/ia/backup/config/region --type String --value us-east-1`  
-* `aws ssm put-parameter --name /gd/ia/backup/config/backupbucket --type String --value name-of-bucket`  
+Items store numeric record ids; the strings are resolved from an in-memory cache
+preloaded from `core.db` (no cross-database JOIN on the download path).
 
-re
-### Project structure
-Shared code is primarily maintained under `internal`, the code behind each endpoint is found under `api`, and the actual endpoint mapping under `endpoints` (in addition to `serverless.yml` for AWS lambda deploys)
+### MySQL migration (transitional)
 
+The service is migrating off a single large MySQL database onto the per-user SQLite
+model above. During the transition MySQL is a **strictly read-only source**:
 
-### Adding a new endpoint:
-* Create the underlying logic under `api\myEndpointName`, exporting `Path`, `Method` and `ProcessRequest`
-* Add a new file to `endpoints\myEndpointName\myEndpointName.go` which is the endpoint AWS will be using
-* Add the new endpoint to `endpoints\monolith\monolith.go`, which allows it to run locally and anywhere aside from AWS.
-* Add a reference to the endpoint in `serverless.yml` which adds a binary:endpoint mapping for the AWS deploy
+* At startup, `BootstrapFromMySQL` seeds `core.db` with `users` and `records`
+  (preserving ids).
+* Each user's items/characters/tokens are drained into their `.db` **lazily** on their
+  first authenticated request, and by a throttled background sweep for the long tail.
+  Drains are validated (item counts) and idempotent.
+* Migration state lives in `core.db`; MySQL is never mutated. Once every user is
+  migrated, unset the `DATABASE_*` env vars and MySQL can be decommissioned — the
+  bootstrap/drain paths are then skipped.
 
+Schema changes to the per-user databases are applied lazily per file via numbered
+migrations under `internal/userdb/migrations` (tracked with `PRAGMA user_version`);
+`core.db` migrates the same way from `internal/coredb/migrations`.
+
+## Build & deploy
+
+Deployed as a Docker image on Coolify with `/storage` mounted as a persistent volume.
+
+    make test      # runs against a local MySQL mirror (see below)
+    make build     # builds the linux monolith binary into bin/
+    make docker    # builds the Docker image
+
+### Environment variables
+
+| Var | Purpose |
+| --- | --- |
+| `STORAGE_PATH` | Persistent volume for SQLite databases (default `/storage`) |
+| `DATABASE_HOST` / `DATABASE_NAME` / `DATABASE_USER` / `DATABASE_PASSWORD` | Read-only MySQL source, only needed until the drain is complete |
+| `ALLOWED_ORIGIN` | CORS allowed origin |
+| `REGION` / `BUCKETNAME` | S3 for character backups |
+
+### Backups
+
+The SQLite files under `STORAGE_PATH` are the source of truth. Do **not** copy a live
+`.db` naively (WAL mode makes that inconsistent). Use one of:
+
+* filesystem/volume snapshots of `STORAGE_PATH`, or
+* `VACUUM INTO '<dest>'` per database for a consistent point-in-time copy.
+
+## Project structure
+
+Shared code lives under `internal`, the logic behind each endpoint under `api`, and the
+process entrypoint (route wiring, scheduled maintenance/migration) under
+`endpoints/monolith.go`.
+
+### Adding a new endpoint
+
+* Create the logic under `api/myEndpointName`, exporting `Path`, `Method` and `ProcessRequest`.
+* Register it in `endpoints/monolith.go`.
 
 # How does it work?
-Data is partitioned per user.
+
+Data is partitioned per user (one SQLite database each).
 
 ### Authentication
+
 The API expects the following headers to be set:
-* `X-Api-User: user@example.com`  
-* `Authorization: AccessTokenWithoutBearerPrefix`  
-Endpoints:
+
+* `X-Api-User: user@example.com`
+* `Authorization: AccessTokenWithoutBearerPrefix`
 
 ### Upload
-The upload endpoints accepts an array of items. Each item have the field `id` with a GUID value.  
-The endpoint returns the partition the items were stored in, as well as any items which were not processed due to any errors. 
+
+Accepts an array of items. Each item has an `id` field with a GUID value. Returns any
+items that were not processed due to errors.
 
 ### Download
-The download endpoint will return:
-* The current server timestamp [TODO: Is this safe? what if there's concurrent uploads?]
-* All items stored for a given partition, filter by a server timestamp.  
-* All items that needs to be removed, which may be located in a different partition.
 
- 
+Returns the current server timestamp, all items stored since a given timestamp, and all
+items queued for removal (so other clients sync down deletions).
+
 ### Remove
-The remove endpoint will accepts a list of items which should be deleted. The items can be located in any partition.  
-The items will be removed from the corresponding partition, and added as a deletion entry to the current active partition. This ensures that all clients will be notified of a pending deletion.  
-Entries in the array are expected to be sorted by partition key, _unsorted requests may get rejected_.
 
-### Partitions
-The partitions endpoint will return a list of all the partitions for a given user. Any unknown partitions should be fully synced down, as well as any partition which may have been closed since the last call to partitions.
-
+Accepts a list of item ids to delete. Items are removed and added as deletion entries so
+all clients are notified of the pending deletion.
 
 ### Testing locally
+
+Bring up the local MySQL mirror (see `docker-compose.yml` in `D:\Dev\item`), then run
+`make test`. Tests point `STORAGE_PATH` at a throwaway temp directory, so the production
+volume is never touched, and seed `core.db` from the mirror as needed.
+
 In IAGD, under persistent settings:
 
     "cloudAuthToken": "58f8e362-15a9-4872-b98c-f8438e299e8a",
     "cloudUser": "pincode@example.com",
 
-In DB:
-
-    INSERT INTO `authentry` (`userid`, `token`, `email`, `ts`) VALUES (20144, '58f8e362-15a9-4872-b98c-f8438e299e8a', 'pincode@example.com', '2025-01-18 07:40:40');
-    INSERT INTO `users` (`userid`, `email`, `created_at`, `buddy_id`) VALUES (20144, 'pincode@example.com', '2025-01-18 07:40:40', 123406);
-
-Edit IAGrim.Backup.Cloud.Uris and set EnvLocalDev URL to http://localhost:8080
+Ensure that user exists in the (read-only) MySQL mirror so it gets bootstrapped into
+`core.db`, or register directly via the login flow. Set `EnvLocalDev` URL in
+`IAGrim.Backup.Cloud.Uris` to `http://localhost:8080`.

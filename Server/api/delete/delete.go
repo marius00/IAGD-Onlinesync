@@ -5,6 +5,7 @@ import (
 	"github.com/marmyr/iagdbackup/internal/logging"
 	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
+	"github.com/marmyr/iagdbackup/internal/userdb"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -16,34 +17,34 @@ const Method = routing.DELETE
 func ProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
 	userId := routing.GetUser(c)
+	email := routing.GetEmail(c)
 	userDb := storage.UserDb{}
 	var success = true
 
 	itemdb := &storage.ItemDb{}
-	err := itemdb.Purge(userId)
+	err := itemdb.Purge(email)
 	if err != nil {
 		logger.Warn("Error purging user items", zap.Error(err), zap.Any("user", userId))
 		success = false
 	}
 
-	userEntry, err := userDb.Get(userId)
-	if err != nil {
-		logger.Error("Error fetching user", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Something went wrong, deletion may have partially succeeded"})
-		return
-	}
-	
 	characterDb := storage.CharacterDb{}
-	characterDb.Purge(userId)
+	characterDb.Purge(email)
 
 	authDb := storage.AuthDb{}
-	err = authDb.Purge(userId, userEntry.Email)
+	err = authDb.Purge(userId, email)
 	if err != nil {
 		logger.Warn("Error purging user auth tokens", zap.Error(err), zap.Any("user", userId))
 		success = false
 	}
 
 	userDb.Purge(userId)
+
+	// Everything for this user lives in their single .db file; remove it entirely.
+	if err := userdb.Remove(email); err != nil {
+		logger.Warn("Error removing user database file", zap.Error(err), zap.Any("user", userId))
+		success = false
+	}
 
 	if success {
 		c.JSON(http.StatusOK, gin.H{"msg": "Success"})

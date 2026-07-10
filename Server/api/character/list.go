@@ -14,10 +14,10 @@ const ListMethod = routing.GET
 
 func ListProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
-	user := routing.GetUser(c)
+	email := routing.GetEmail(c)
 
 	db := storage.CharacterDb{}
-	entries, err := db.List(user)
+	entries, err := db.List(email)
 	if err != nil {
 		logger.Warn("Failed fetching character entries", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching characters"})
