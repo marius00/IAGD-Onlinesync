@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/marmyr/iagdbackup/internal/config"
+	"github.com/marmyr/iagdbackup/internal/coredb"
 	"time"
 )
 
@@ -9,36 +9,34 @@ type ThrottleDb struct {
 }
 
 type ThrottleEntry struct {
-	Id        int64     `json:"userid" gorm:"primaryKey"`
-	UserId    string    `json:"-" gorm:"column:userid"`
-	Ip        string    `json:"ip"`
-	CreatedAt time.Time `json:"created_at" sql:"-" gorm:"-"`
+	Id        int64     `json:"userid" db:"id"`
+	UserId    string    `json:"-" db:"userid"`
+	Ip        string    `json:"ip" db:"ip"`
+	CreatedAt time.Time `json:"created_at" db:"-"`
 }
 
-func (ThrottleEntry) Table() string {
-	return "throttleentry"
-}
-func (ThrottleEntry) TableName() string {
-	return "throttleentry"
-}
-
-// GetNumEntries returns the number of failed attempts by a user, in the past 2 hours
+// GetNumEntries returns the number of failed attempts by a user, in the past 4 hours
 func (*ThrottleDb) GetNumEntries(user string, ip string) (int, error) {
-	var entries []ThrottleEntry
-	result := config.GetDatabaseInstanceLegacy().Where("(userid = ? OR ip = ?) AND created_at > NOW() - INTERVAL 240 minute", user, ip).Find(&entries)
+	db, err := coredb.Get()
+	if err != nil {
+		return 0, err
+	}
 
-	return len(entries), result.Error
+	since := time.Now().Add(-240 * time.Minute).Unix()
+
+	var count int
+	err = db.Get(&count, "SELECT COUNT(*) FROM throttleentry WHERE (userid = ? OR ip = ?) AND created_at > ?", user, ip, since)
+	return count, err
 }
 
 func (*ThrottleDb) Insert(user string, ip string) error {
-	DB := config.GetDatabaseInstanceLegacy()
+	db, err := coredb.Get()
+	if err != nil {
+		return err
+	}
 
-	result := DB.Create(&ThrottleEntry{
-		UserId: user,
-		Ip:     ip,
-	})
-
-	return result.Error
+	_, err = db.Exec("INSERT INTO throttleentry(userid, ip) VALUES (?, ?)", user, ip)
+	return err
 }
 
 func (db *ThrottleDb) Throttle(user string, ip string, maxAttempts int) (bool, error) {
@@ -58,16 +56,25 @@ func (db *ThrottleDb) Throttle(user string, ip string, maxAttempts int) (bool, e
 	return false, nil
 }
 
-// Fetch all items queued to be deleted
+// Purge removes all throttle entries for the given user or ip
 func (*ThrottleDb) Purge(user string, ip string) error {
-	db := config.GetDatabaseInstanceLegacy()
-	result := db.Where("userid = ? OR ip = ?", user, ip).Delete(ThrottleEntry{})
-	return result.Error
+	db, err := coredb.Get()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("DELETE FROM throttleentry WHERE userid = ? OR ip = ?", user, ip)
+	return err
 }
 
 // Maintenance performs maintenance work such as deleting expired entries
 func (*ThrottleDb) Maintenance() error {
-	db := config.GetDatabaseInstanceLegacy()
-	result := db.Where("created_at < NOW() - interval 1 day").Delete(ThrottleEntry{})
-	return result.Error
+	db, err := coredb.Get()
+	if err != nil {
+		return err
+	}
+
+	since := time.Now().Add(-24 * time.Hour).Unix()
+	_, err = db.Exec("DELETE FROM throttleentry WHERE created_at < ?", since)
+	return err
 }

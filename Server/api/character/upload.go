@@ -28,6 +28,7 @@ var bucket = os.Getenv(config.BucketName)
 func UploadProcessRequest(c *gin.Context) {
 	logger := logging.Logger(c)
 	user := routing.GetUser(c)
+	email := routing.GetEmail(c)
 
 	name, ok := c.GetQuery("name")
 	if !ok {
@@ -75,12 +76,11 @@ func UploadProcessRequest(c *gin.Context) {
 	// Store to db
 	db := storage.CharacterDb{}
 	entry := storage.CharacterEntry{
-		UserId:   user,
 		Name:     name,
 		Filename: key,
 	}
 
-	if err := db.Insert(entry); err != nil {
+	if err := db.Insert(email, entry); err != nil {
 		logger.Warn("Error storing character entry to db", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error storing character entry",})
 		return

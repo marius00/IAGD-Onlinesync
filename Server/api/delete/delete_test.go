@@ -24,7 +24,7 @@ func TestDeleteAccount(t *testing.T) {
 	ts := util.GetCurrentTimestamp()
 	userId := CreateTestUser(t, email)
 	defer userDb.Purge(userId)
-	defer itemDb.Purge(userId)
+	defer itemDb.Purge(email)
 	storage.Preload()
 
 	expected := storage.JsonItem{
@@ -38,20 +38,19 @@ func TestDeleteAccount(t *testing.T) {
 		BaseRecord: "my base record2",
 	}
 
-	inputItems, _ := itemDb.ToInputItems(userId, []storage.JsonItem{expected, deletingThis})
-	err := itemDb.Insert(userId, inputItems)
+	inputItems, _ := itemDb.ToInputItems([]storage.JsonItem{expected, deletingThis})
+	err := itemDb.Insert(email, inputItems)
 	assert.NoErrorf(t, err, "Error inserting item")
 
-	err = itemDb.Delete(context.Background(), userId, []string{deletingThis.Id}, ts)
+	err = itemDb.Delete(context.Background(), email, []string{deletingThis.Id}, ts)
 	assert.NoErrorf(t, err, "Expected no error")
 
 	entry := storage.CharacterEntry{
-		UserId:   userId,
 		Name:     "Pete",
 		Filename: "fileynamey",
 	}
 
-	err = characterDb.Insert(entry)
+	err = characterDb.Insert(email, entry)
 	assert.NoErrorf(t, err, "Expected no error")
 
 	accessToken := uuid.NewV4().String()
@@ -59,11 +58,11 @@ func TestDeleteAccount(t *testing.T) {
 	assert.NoErrorf(t, err, "Expected no error")
 
 	{
-		items, err := itemDb.List(context.Background(), userId, 0)
+		items, err := itemDb.List(context.Background(), email, 0)
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.Len(t, items, 1, "Expected 1 item")
 
-		deletedItems, err := itemDb.ListDeletedItems(userId, 0)
+		deletedItems, err := itemDb.ListDeletedItems(email, 0)
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.Len(t, deletedItems, 1, "Expected 1 deleted item")
 
@@ -71,7 +70,7 @@ func TestDeleteAccount(t *testing.T) {
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.NotNil(t, user, "Expected a user")
 
-		characters, err := characterDb.List(userId)
+		characters, err := characterDb.List(email)
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.Len(t, characters, 1, "Expected 1 character")
 
@@ -79,14 +78,14 @@ func TestDeleteAccount(t *testing.T) {
 		assert.Equal(t, accessToken, latestAuthToken)
 	}
 
-	CallEndpoint(t, userId)
+	CallEndpoint(t, userId, email)
 
 	{
-		items, err := itemDb.List(context.Background(), userId, 0)
+		items, err := itemDb.List(context.Background(), email, 0)
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.Len(t, items, 0, "Expected zero items")
 
-		deletedItems, err := itemDb.ListDeletedItems(userId, 0)
+		deletedItems, err := itemDb.ListDeletedItems(email, 0)
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.Len(t, deletedItems, 0, "Expected zero deleted items")
 
@@ -94,7 +93,7 @@ func TestDeleteAccount(t *testing.T) {
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.Nil(t, user, "Expected no user")
 
-		characters, err := characterDb.List(userId)
+		characters, err := characterDb.List(email)
 		assert.NoErrorf(t, err, "Expected no error")
 		assert.Len(t, characters, 0, "Expected no character")
 
@@ -105,7 +104,7 @@ func TestDeleteAccount(t *testing.T) {
 	// TODO: Verify no auth token
 }
 
-func CallEndpoint(t *testing.T, userId config.UserId) {
+func CallEndpoint(t *testing.T, userId config.UserId, email string) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 
@@ -117,6 +116,7 @@ func CallEndpoint(t *testing.T, userId config.UserId) {
 	// Assign the modified request to the Gin context
 	ctx.Request = req
 	ctx.Set("AuthUserKey", userId)
+	ctx.Set("AuthEmailKey", email)
 	ProcessRequest(ctx)
 
 	assert.Equalf(t, http.StatusOK, w.Code, "Expected status code OK")
@@ -135,7 +135,7 @@ func CreateTestUser(t *testing.T, email string) config.UserId {
 	}
 
 	// Ensure we have no left-over data for this user
-	if err := itemDb.Purge(userId); err != nil {
+	if err := itemDb.Purge(email); err != nil {
 		t.Fatal("Failed to purge user")
 	}
 

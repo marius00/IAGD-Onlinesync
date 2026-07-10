@@ -3,7 +3,6 @@ package download
 import (
 	"context"
 	"github.com/gin-gonic/gin"
-	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/logging"
 	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
@@ -25,14 +24,15 @@ type responseType struct {
 }
 
 type ItemProvider interface {
-	List(ctx context.Context, user config.UserId, lastTimestamp int64) ([]storage.OutputItem, error)
-	ListDeletedItems(user config.UserId, lastTimestamp int64) ([]storage.DeletedItem, error)
+	List(ctx context.Context, email string, lastTimestamp int64) ([]storage.OutputItem, error)
+	ListDeletedItems(email string, lastTimestamp int64) ([]storage.DeletedItem, error)
 }
 
 func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger := logging.Logger(c)
 		user := routing.GetUser(c)
+		email := routing.GetEmail(c)
 
 		currentTimestamp := util.GetCurrentTimestamp()
 		lastTimestamp, ok := util.GetTimestamp(c)
@@ -40,14 +40,14 @@ func processRequest(itemDb ItemProvider) gin.HandlerFunc {
 			return
 		}
 
-		items, err := itemDb.List(c.Request.Context(), user, lastTimestamp)
+		items, err := itemDb.List(c.Request.Context(), email, lastTimestamp)
 		if err != nil {
 			logger.Warn("Error listing items", zap.Error(err), zap.Any("user", user), zap.Int64("lastTimestamp", lastTimestamp))
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching items"})
 			return
 		}
 
-		deleted, err := itemDb.ListDeletedItems(user, lastTimestamp)
+		deleted, err := itemDb.ListDeletedItems(email, lastTimestamp)
 		if err != nil {
 			logger.Warn("Error listing deleted items", zap.Error(err), zap.Any("user", user), zap.Int64("lastTimestamp", lastTimestamp))
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching deleted items"})

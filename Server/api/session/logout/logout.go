@@ -14,10 +14,11 @@ const Method = routing.POST
 
 func ProcessRequest(c *gin.Context) {
 	user := routing.GetUser(c)
+	email := routing.GetEmail(c)
 	token := c.GetHeader("Authorization")
 
 	authDb := storage.AuthDb{}
-	err := authDb.Logout(user, token)
+	err := authDb.Logout(email, token)
 	if err != nil {
 		logger := logging.Logger(c)
 		logger.Warn("Error logging out user", zap.Any("user", user), zap.Error(err))

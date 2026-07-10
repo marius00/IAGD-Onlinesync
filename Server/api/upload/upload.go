@@ -25,6 +25,7 @@ func ProcessRequest(c *gin.Context) {
 	timeOfUpload := util.GetCurrentTimestamp()
 	logger := logging.Logger(c)
 	user := routing.GetUser(c)
+	email := routing.GetEmail(c)
 
 	// Parse JSON
 	jsonItems, err := decode(c.Request.Body)
@@ -43,7 +44,7 @@ func ProcessRequest(c *gin.Context) {
 
 	// Store to DB
 	db := &storage.ItemDb{}
-	inputItems, err := db.ToInputItems(user, jsonItems)
+	inputItems, err := db.ToInputItems(jsonItems)
 	if err != nil {
 		logger.Warn("Unable to fetch item records", zap.Any("user", user), zap.Int("numItems", len(jsonItems)), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Error fetching item records"})
@@ -54,7 +55,7 @@ func ProcessRequest(c *gin.Context) {
 		inputItems[idx].Ts = timeOfUpload
 	}
 
-	if err := db.Insert(user, inputItems); err != nil {
+	if err := db.Insert(email, inputItems); err != nil {
 		logger.Warn("Unable to store new item(s)", zap.Error(err), zap.Any("user", user))
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "Some error storing items, may have partially succeeded"})
 		return

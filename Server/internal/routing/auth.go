@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/logging"
+	"github.com/marmyr/iagdbackup/internal/storage"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 const MaxAttempts int = 30
 const authUserKey = "AuthUserKey"
+const authEmailKey = "AuthEmailKey"
 
 type Authorizer interface {
 	GetUserId(email string, token string) (config.UserId, error)
@@ -60,7 +62,18 @@ func authorizedHandler(authDb Authorizer, throttleDb Throttler) gin.HandlerFunc 
 			c.JSON(http.StatusUnauthorized, gin.H{"msg": "API: Authorization token invalid"})
 			c.Abort()
 		} else {
+			// First authenticated touch drains this user's data from MySQL into
+			// their SQLite database (no-op once migrated).
+			if err := storage.EnsureMigrated(user, userId); err != nil {
+				logger := logging.Logger(c)
+				logger.Error("Error migrating user to SQLite", zap.Error(err), zap.String("user", user))
+				c.JSON(http.StatusInternalServerError, gin.H{"msg": "API: Error preparing user data"})
+				c.Abort()
+				return
+			}
+
 			c.Set(authUserKey, userId)
+			c.Set(authEmailKey, user)
 			c.Next()
 		}
 	}
@@ -75,4 +88,17 @@ func GetUser(c *gin.Context) config.UserId {
 	}
 
 	return u.(config.UserId)
+}
+
+// GetEmail returns the e-mail (X-Api-User header, lowercased) for the currently
+// authenticated request. Used to locate a user's per-user SQLite database.
+func GetEmail(c *gin.Context) string {
+	e, ok := c.Get(authEmailKey)
+	if !ok || e == "" {
+		logger := logging.Logger(c)
+		logger.Fatal("Could not locate email on request, restricted endpoint exposed publicly or auth mechanism broken.")
+		panic("Could not locate email on request, restricted endpoint exposed publicly or auth mechanism broken.")
+	}
+
+	return e.(string)
 }

@@ -152,6 +152,12 @@ ALTER TABLE `item`
     ADD COLUMN `id_ascendantaffix2hname` BIGINT(20) UNSIGNED NULL DEFAULT NULL AFTER `id_ascendantaffixname`,
     ADD COLUMN `rerollsused` INT(11) NULL AFTER `stackcount`;
 
+-- NOTE: This file documents the legacy MySQL schema, which is now a read-only
+-- source being drained into per-user SQLite databases. New columns (e.g.
+-- affixrerollsused) are added ONLY to the SQLite schema; see
+-- internal/userdb/migrations and internal/coredb/migrations. MySQL is no longer
+-- migrated.
+
 -- Data exporting was unselected.
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
