@@ -6,6 +6,7 @@ import (
 	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/coredb"
 	"github.com/marmyr/iagdbackup/internal/userdb"
+	"github.com/rs/zerolog/log"
 	"time"
 )
 
@@ -23,8 +24,14 @@ type AuthAttempt struct {
 }
 
 // GetUserId checks if an access token is valid for a given e-mail, returns 0 on invalid user/token combination.
-// For migrated users the token lives in their per-user database; for users not yet drained from MySQL the
-// token is still read from the read-only MySQL source (their tokens are copied into SQLite when they migrate).
+//
+// The user's own SQLite database is checked FIRST: tokens issued at login are
+// written there (see StoreSuccessfulAuth), so a freshly-issued token must
+// validate regardless of whether the user's historical data has finished
+// draining out of MySQL. Only if the token isn't found in SQLite, and the user
+// hasn't been migrated yet, do we fall back to their pre-existing tokens in the
+// read-only MySQL source. This decoupling means login no longer depends on a
+// successful (and possibly slow or failing) drain.
 func (*AuthDb) GetUserId(email string, accessToken string) (config.UserId, error) {
 	userDb := UserDb{}
 	entry, err := userDb.GetByEmail(email)
@@ -35,33 +42,31 @@ func (*AuthDb) GetUserId(email string, accessToken string) (config.UserId, error
 		return 0, nil
 	}
 
-	if !IsMigrated(entry.UserId) && config.MySQLConfigured() {
-		var count int
-		err = config.GetDatabaseInstance().Get(&count, "SELECT COUNT(*) FROM authentry WHERE userid = ? AND token = ?", entry.UserId, accessToken)
-		if err != nil {
-			return 0, err
-		}
-		if count == 0 {
-			return 0, nil
-		}
-		return entry.UserId, nil
-	}
-
 	db, err := userdb.Get(email)
 	if err != nil {
 		return 0, err
 	}
 
 	var count int
-	err = db.Get(&count, "SELECT COUNT(*) FROM authentry WHERE token = ?", accessToken)
-	if err != nil {
+	if err := db.Get(&count, "SELECT COUNT(*) FROM authentry WHERE token = ?", accessToken); err != nil {
 		return 0, err
 	}
-	if count == 0 {
-		return 0, nil
+	if count > 0 {
+		return entry.UserId, nil
 	}
 
-	return entry.UserId, nil
+	// Not in SQLite: for users not yet drained, their older tokens still live in MySQL.
+	if !IsMigrated(entry.UserId) && config.MySQLConfigured() {
+		var mysqlCount int
+		if err := config.GetDatabaseInstance().Get(&mysqlCount, "SELECT COUNT(*) FROM authentry WHERE userid = ? AND token = ?", entry.UserId, accessToken); err != nil {
+			return 0, err
+		}
+		if mysqlCount > 0 {
+			return entry.UserId, nil
+		}
+	}
+
+	return 0, nil
 }
 
 // InitiateAuthentication initializes an authentication with key/code
@@ -142,15 +147,16 @@ func (*AuthDb) GetLatestAuthToken(email string) string {
 	return token
 }
 
-// StoreSuccessfulAuth stores an access token and marks the login attempt entry completed
+// StoreSuccessfulAuth stores an access token and marks the login attempt entry completed.
+//
+// The token is written and the attempt marked COMPLETED FIRST, so that login
+// succeeds independently of the MySQL drain. The drain is then attempted on a
+// best-effort basis: if it fails (e.g. flaky MySQL) or the request is cut off
+// mid-drain, the user is still logged in with a valid token, and the drain is
+// retried lazily on their next request and by the background drainer. Because
+// the drain no longer clears the authentry table (see drainUser), a later drain
+// will not wipe the token written here.
 func (*AuthDb) StoreSuccessfulAuth(email string, userId config.UserId, key string, authToken string) error {
-	// Drain any existing MySQL data into the user's SQLite db first, so that the
-	// (idempotent, clear-then-copy) drain can't later wipe the token we're about
-	// to write.
-	if err := EnsureMigrated(email, userId); err != nil {
-		return err
-	}
-
 	userDb, err := userdb.Get(email)
 	if err != nil {
 		return err
@@ -165,8 +171,17 @@ func (*AuthDb) StoreSuccessfulAuth(email string, userId config.UserId, key strin
 		return err
 	}
 
-	_, err = coreDb.Exec("UPDATE authattempt SET status = 'COMPLETED' WHERE key = ?", key)
-	return err
+	if _, err := coreDb.Exec("UPDATE authattempt SET status = 'COMPLETED' WHERE key = ?", key); err != nil {
+		return err
+	}
+
+	// Best-effort: get the user's historical data into SQLite so it's ready on
+	// first use. Never fail the login on this.
+	if err := EnsureMigrated(email, userId); err != nil {
+		log.Warn().Msgf("Login for %s succeeded, but initial MySQL drain failed (will retry later): %v", email, err)
+	}
+
+	return nil
 }
 
 // Purge will remove all access tokens and login attempts for the provided user

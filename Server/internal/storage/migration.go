@@ -226,7 +226,12 @@ func drainUser(email string, userId config.UserId) error {
 	}
 	defer tx.Rollback()
 
-	for _, table := range []string{"item", "deleteditem", "characters", "authentry"} {
+	// Clear-then-copy the data tables so a retried (previously partial) drain is
+	// idempotent. authentry is deliberately NOT cleared: a token may already have
+	// been issued at login (StoreSuccessfulAuth) before the drain runs, and
+	// clearing it here would log the user out. MySQL tokens are merged into it
+	// below via ON CONFLICT DO NOTHING instead.
+	for _, table := range []string{"item", "deleteditem", "characters"} {
 		if _, err := tx.Exec("DELETE FROM " + table); err != nil {
 			return fmt.Errorf("clearing %s for %d: %w", table, userId, err)
 		}
