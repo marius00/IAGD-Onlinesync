@@ -1,8 +1,10 @@
 package upload
 
 import (
-	"github.com/marmyr/iagdbackup/internal/storage"
+	"strings"
 	"testing"
+
+	"github.com/marmyr/iagdbackup/internal/storage"
 )
 
 func TestShouldRejectPartitionsInInput(t *testing.T) {
@@ -74,6 +76,55 @@ func TestShouldRejectTooLongBaseRecord(t *testing.T) {
 	expected := `Item with id="AC361743-67FA-4693-BA2D-D5CFBC0BE8C2" has a one or more invalid records`
 	if err := validate(m); err != expected {
 		t.Fatalf("Unexpected error: `%s`, expected `%s`", err, expected)
+	}
+}
+
+func TestShouldRejectOversizedName(t *testing.T) {
+	m := []storage.JsonItem{
+		{
+			Id:         "AC361743-67FA-4693-BA2D-D5CFBC0BE8C2",
+			BaseRecord: "my base record",
+			Name:       strings.Repeat("x", storage.MaxStringLength+1),
+			Seed:       12345,
+			StackCount: 1,
+		},
+	}
+
+	expected := `Item with id="AC361743-67FA-4693-BA2D-D5CFBC0BE8C2" has a string field exceeding 255 characters`
+	if err := validate(m); err != expected {
+		t.Fatalf("Unexpected error: `%s`, expected `%s`", err, expected)
+	}
+}
+
+func TestShouldRejectOversizedId(t *testing.T) {
+	m := []storage.JsonItem{
+		{
+			Id:         strings.Repeat("a", storage.MaxStringLength+1),
+			BaseRecord: "my base record",
+			Seed:       12345,
+			StackCount: 1,
+		},
+	}
+
+	if validate(m) == "" {
+		t.Fatal("Expected an oversized id to be rejected")
+	}
+}
+
+func TestShouldAcceptMaxLengthStrings(t *testing.T) {
+	m := []storage.JsonItem{
+		{
+			Id:         "AC361743-67FA-4693-BA2D-D5CFBC0BE8C2",
+			BaseRecord: strings.Repeat("a", storage.MaxStringLength),
+			Name:       strings.Repeat("x", storage.MaxStringLength),
+			Rarity:     strings.Repeat("y", storage.MaxStringLength),
+			Seed:       12345,
+			StackCount: 1,
+		},
+	}
+
+	if err := validate(m); err != "" {
+		t.Fatalf("Expected max-length strings to be accepted, got `%s`", err)
 	}
 }
 

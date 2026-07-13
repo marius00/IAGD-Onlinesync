@@ -17,8 +17,10 @@ import (
 	"github.com/marmyr/iagdbackup/api/session/logincheck"
 	"github.com/marmyr/iagdbackup/api/session/logout"
 	"github.com/marmyr/iagdbackup/api/upload"
+	"github.com/marmyr/iagdbackup/api/ws"
 	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
+	"github.com/marmyr/iagdbackup/internal/wshub"
 	"log"
 	"time"
 )
@@ -43,6 +45,10 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, character.UploadPath, character.UploadMethod, character.UploadProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.DownloadPath, character.DownloadMethod, character.DownloadProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.ListPath, character.ListMethod, character.ListProcessRequest)
+
+	// Live sync: relays item additions/deletions between a user's machines.
+	hub := wshub.New()
+	routing.AddProtectedRoute(ginEngine, ws.Path, ws.Method, ws.ProcessRequest(hub))
 
 	// Seed core.db (user directory + records) from the read-only MySQL source.
 	// No-op once MySQL is decommissioned.
