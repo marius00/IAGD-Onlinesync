@@ -1,0 +1,14 @@
+# Build context hygiene
+.git
+.github
+bin/
+client/.idea
+*.db
+*.sqlite
+tables.sql
+*.postman_collection.json
+Makefile
+README.md
+package-lock.json
+Dockerfile
+.dockerignore

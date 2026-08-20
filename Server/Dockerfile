@@ -1,20 +1,29 @@
-# Start by building the application.
-FROM golang:1.25-alpine as build
+# syntax=docker/dockerfile:1
 
-WORKDIR /go/src/app
+# ---------- Build stage ----------
+FROM golang:1.25-alpine AS build
+WORKDIR /src
 
 # Cache dependencies first for faster rebuilds.
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
 COPY . .
 
 # modernc.org/sqlite is pure Go, so no cgo/musl toolchain is required.
-RUN env GOOS=linux go build -ldflags="-s -w" -o /go/bin/app endpoints/monolith.go
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/app endpoints/monolith.go
 
-# Now copy it into our base image.
-FROM gcr.io/distroless/base-debian12
-COPY --from=build /go/bin/app /
+# ---------- Runtime stage ----------
+FROM alpine:3.20
+WORKDIR /
+
+# ca-certificates: outbound TLS (S3, SMTP). wget comes from busybox and is used
+# by the Coolify healthcheck. tzdata: correct local time in logs and scheduling.
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=build /out/app /app
+
 EXPOSE 8080
 
 # Persistent volume for core.db and per-user .db files. On Coolify this is the
@@ -32,4 +41,8 @@ ENV ALLOWED_ORIGIN=
 ENV GO_API_HOST=
 ENV REGION=
 ENV BUCKETNAME=
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --quiet --spider http://127.0.0.1:8080/health || exit 1
+
 CMD ["/app"]
