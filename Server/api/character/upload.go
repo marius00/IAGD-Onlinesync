@@ -23,12 +23,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// v2 exists to lock out clients older than the fix for the upload loop in
-// IAGD 1.5.9732-1.5.9735: those clients re-upload every character once a
-// second for the lifetime of the session, which cost more in S3 PUTs than the
-// rest of the service combined. LegacyUploadPath answers them without doing
-// any work. Item sync is unaffected; character backup is a courtesy service
-// and old clients simply lose it until they update.
 const UploadPath = "/character/upload/v2"
 const UploadMethod = routing.POST
 
@@ -36,8 +30,6 @@ const LegacyUploadPath = "/character/upload"
 const LegacyUploadMethod = routing.POST
 
 // MinUploadInterval caps how often a single character can be written to S3.
-// Backups are best-effort; a character that changes several times a day is
-// stored once a day.
 const MinUploadInterval = 24 * time.Hour
 
 var bucket = os.Getenv(config.BucketName)
