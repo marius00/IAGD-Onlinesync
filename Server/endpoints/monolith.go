@@ -43,6 +43,9 @@ func main() {
 	routing.AddProtectedRoute(ginEngine, logout.Path, logout.Method, logout.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, upload.Path, upload.Method, upload.ProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.UploadPath, character.UploadMethod, character.UploadProcessRequest)
+	// Public on purpose: it only tells outdated clients to update, and they hit
+	// it hard enough that it must not cost an auth lookup.
+	routing.AddPublicRoute(ginEngine, character.LegacyUploadPath, character.LegacyUploadMethod, character.LegacyUploadProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.DownloadPath, character.DownloadMethod, character.DownloadProcessRequest)
 	routing.AddProtectedRoute(ginEngine, character.ListPath, character.ListMethod, character.ListProcessRequest)
 
