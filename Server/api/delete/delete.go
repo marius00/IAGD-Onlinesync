@@ -1,7 +1,10 @@
 package delete
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
+	"github.com/marmyr/iagdbackup/internal/config"
 	"github.com/marmyr/iagdbackup/internal/logging"
 	"github.com/marmyr/iagdbackup/internal/routing"
 	"github.com/marmyr/iagdbackup/internal/storage"
@@ -31,6 +34,11 @@ func ProcessRequest(c *gin.Context) {
 	characterDb := storage.CharacterDb{}
 	characterDb.Purge(email)
 
+	// The character archives themselves live in S3 under a per-user prefix.
+	// Removing them can take a while for a user with many characters, and the
+	// caller does not need to wait for it, so it runs detached.
+	go purgeCharacterArchives(userId)
+
 	authDb := storage.AuthDb{}
 	err = authDb.Purge(userId, email)
 	if err != nil {
@@ -53,16 +61,16 @@ func ProcessRequest(c *gin.Context) {
 	}
 }
 
-/*
-func abc() {
+// purgeCharacterArchives deletes a user's character backups from S3. Runs
+// detached from the request, so it logs failures rather than reporting them.
+func purgeCharacterArchives(userId config.UserId) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Panic purging character archives for user %v, %v", userId, r)
+		}
+	}()
 
-	sess := storage.ConnectAws()
-	uploader := s3manager.NewBatchDelete(sess)
-	uploader.Delete()
-	up, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(key),
-		Body:        file,
-		ContentType: &contentType,
-	})
-}*/
+	if err := storage.DeleteS3Prefix(storage.CharacterPrefix(userId)); err != nil {
+		log.Printf("Error purging character archives for user %v, %v", userId, err)
+	}
+}

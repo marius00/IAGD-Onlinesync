@@ -50,7 +50,7 @@ func TestDeleteAccount(t *testing.T) {
 		Filename: "fileynamey",
 	}
 
-	err = characterDb.Insert(email, entry)
+	err = characterDb.Upsert(email, entry, "content-hash")
 	assert.NoErrorf(t, err, "Expected no error")
 
 	accessToken := uuid.NewV4().String()
