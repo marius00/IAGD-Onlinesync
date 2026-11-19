@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------- Build stage ----------
-FROM golang:1.25-alpine AS build
+FROM golang:1.27-alpine AS build
 WORKDIR /src
 
 # Cache dependencies first for faster rebuilds.
@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/app endpoints/monolith.go
 
 # ---------- Runtime stage ----------
-FROM alpine:3.20
+FROM alpine:3.24
 WORKDIR /
 
 # ca-certificates: outbound TLS (S3, SMTP). wget comes from busybox and is used
